@@ -1,0 +1,22 @@
+{% extends 'layout/base.twig' %}
+{% import 'partials/macros.twig' as ui %}
+{% set seo_title = page.seo_title ?? 'Häufige Fragen' %}
+{% set seo_description = page.seo_description ?? '' %}
+{% set canonical = '/faq/' %}
+{% block content %}
+  {% include 'partials/page_hero.twig' with {title: page.title ?? 'Häufige Fragen', intro: page.intro ?? '', media_id: null, crumbs: [{label: 'Häufige Fragen'}]} %}
+  <section class="section">
+    <div class="container">
+      {% set groups = {} %}
+      {% for f in faqs %}{% set groups = groups|merge({(f.category ?: 'Allgemein'): (groups[f.category ?: 'Allgemein'] ?? [])|merge([f])}) %}{% endfor %}
+      {% for name, items in groups %}
+        <h2 class="{{ loop.first ? '' : 'mt-7' }}">{{ name }}</h2>
+        {{ ui.faq_list(items) }}
+      {% else %}
+        <p>Noch keine Fragen eingetragen.</p>
+      {% endfor %}
+    </div>
+  </section>
+  <section class="section section--alt"><div class="container">{{ ui.cta_band('Ihre Frage war nicht dabei?', 'Schreiben Sie uns – wir antworten persönlich.', site.company) }}</div></section>
+{% endblock %}
+{% block schema %}{{ ui.faq_schema(faqs) }}{% endblock %}

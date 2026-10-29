@@ -1,0 +1,195 @@
+{% extends 'layout/base.twig' %}
+{% import 'partials/macros.twig' as ui %}
+{% set seo_title = seo.title ?? 'MEA Bildungszentrum' %}
+{% set seo_description = seo.description ?? '' %}
+{% set canonical = '/' %}
+{% set og_image = media_url(home.hero_media_id, 1440) %}
+
+{% block head %}
+  <link rel="preload" as="image" href="{{ media_url(home.hero_media_id, 960) }}" fetchpriority="high">
+{% endblock %}
+
+{% block content %}
+<section class="hero" aria-labelledby="hero-title">
+  <div class="container hero__grid">
+    <div>
+      <span class="eyebrow">{{ home.eyebrow }}</span>
+      <h1 id="hero-title">{{ home.title }}</h1>
+      <p class="hero__lead">{{ home.lead }}</p>
+      <div class="btn-row">
+        <a class="btn" href="/telc-pruefungszentrum/">{{ icon('calendar') }}Prüfungstermin finden</a>
+        <a class="btn btn--ghost-light" href="/kontakt/">Beratung anfragen</a>
+      </div>
+      <ul class="hero__benefits">
+        {% for b in home.benefits %}
+          <li><strong>{{ icon(b.icon) }}{{ b.title }}</strong><span>{{ b.text }}</span></li>
+        {% endfor %}
+      </ul>
+    </div>
+    <div class="hero__media">
+      {{ img(home.hero_media_id, '(max-width: 960px) 100vw, 560px', {loading: 'eager', fetchpriority: 'high'}) }}
+      {% if rating.count > 0 %}
+        <div class="hero-quote">{{ ui.stars(rating.average) }}<p><strong>{{ rating.average|number_format(1, ',') }} von 5</strong> aus {{ rating.count }} Bewertungen</p></div>
+      {% elseif hero_reviews is not empty %}
+        {% set hr = hero_reviews|first %}
+        <figure class="hero-quote mb-0">
+          <p>„{{ hr.body }}“</p>
+          <footer><strong>{{ hr.display_name }}</strong>{% if hr.role_label %}, {{ hr.role_label }}{% endif %}</footer>
+        </figure>
+      {% endif %}
+    </div>
+  </div>
+</section>
+
+{% if home.partners is not empty %}
+<section class="partners" aria-label="Partner und Zulassungen">
+  <div class="container">
+    <p class="partners__label">Zulassungen und Partner</p>
+    <ul class="partners__list">
+      {% for p in home.partners %}<li>{{ img(p.media_id, '170px', {alt: p.label}) }}</li>{% endfor %}
+    </ul>
+  </div>
+</section>
+{% endif %}
+
+<section class="section" aria-labelledby="exams-title">
+  <div class="container">
+    <div class="section-head section-head--split">
+      <div>
+        <span class="eyebrow">telc-Prüfungszentrum</span>
+        <h2 id="exams-title">Sprachprüfungen mit anerkanntem Zertifikat</h2>
+        <p>Wählen Sie Ihre Prüfung, sehen Sie Termine, Preis und freie Plätze und melden Sie sich direkt an.</p>
+      </div>
+      <a class="link-arrow" href="/telc-pruefungszentrum/">Alle Prüfungen und Termine{{ icon('arrow-right') }}</a>
+    </div>
+    {% if exams is not empty %}
+      <div class="grid grid--3">
+        {% for e in exams|slice(0, 6) %}{{ ui.exam_card(e) }}{% endfor %}
+      </div>
+    {% else %}
+      <div class="notice">{{ icon('info') }}<p>Unsere Prüfungen werden gerade eingetragen. Fragen Sie gerne direkt nach Terminen: <a href="/kontakt/?thema=pruefung">Kontakt aufnehmen</a>.</p></div>
+    {% endif %}
+  </div>
+</section>
+
+{% if next_sessions is not empty %}
+<section class="section section--alt" aria-labelledby="dates-title">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">Aktuelle Termine</span>
+      <h2 id="dates-title">Die nächsten freien Prüfungstermine</h2>
+    </div>
+    <div class="sessions">
+      {% for s in next_sessions %}
+        <div class="session reveal">
+          <div class="session__date"><span class="session__day">{{ s.starts_local|date('d') }}</span><span class="session__month">{{ s.starts_local|format_date(pattern='MMM yy', locale='de') }}</span></div>
+          <div class="session__info">
+            <span class="session__title">{{ s.public_name }}</span>
+            <span class="meta-row">{{ icon('clock') }}{{ s.starts_local|format_date(pattern="EEEE, HH:mm 'Uhr'", locale='de') }} · {{ icon('map-pin') }}{{ s.location_short }}</span>
+            <span>{{ ui.availability(s) }}</span>
+          </div>
+          <div class="session__price">{{ ui.price(s.price) }}</div>
+          <div class="session__action"><a class="btn btn--sm" href="/pruefungen/{{ s.exam_slug }}/#termine">Termin wählen<span class="visually-hidden">: {{ s.public_name }} am {{ s.starts_local|format_date('long', locale='de') }}</span></a></div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<section class="section" aria-labelledby="steps-title">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">So einfach geht's</span>
+      <h2 id="steps-title">In vier Schritten zur Prüfung</h2>
+    </div>
+    <ol class="steps">
+      {% for st in site.booking.steps ?? [] %}
+        <li class="reveal"><h3>{{ st.title }}</h3><p>{{ st.text }}</p></li>
+      {% endfor %}
+    </ol>
+  </div>
+</section>
+
+<section class="section section--alt" aria-labelledby="services-title">
+  <div class="container">
+    <div class="section-head section-head--split">
+      <div>
+        <span class="eyebrow">Unsere Leistungen</span>
+        <h2 id="services-title">Bildung, Integration und Fachkräftegewinnung</h2>
+        <p>Für Menschen, die beruflich weiterkommen wollen, und für Unternehmen, die Fachkräfte suchen.</p>
+      </div>
+      <a class="link-arrow" href="/leistungen/">Alle Leistungen{{ icon('arrow-right') }}</a>
+    </div>
+    <div class="grid grid--3">
+      {% for s in services %}{{ ui.service_card(s) }}{% endfor %}
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container split">
+    <div class="split__media reveal">{{ img(home.about_media_id, '(max-width: 900px) 100vw, 560px') }}</div>
+    <div>
+      <span class="eyebrow">Warum MEA</span>
+      <h2>{{ home.about_title }}</h2>
+      <p class="lead">{{ home.about_text }}</p>
+      <div class="grid grid--features mt-6">
+        {% for w in home.why %}
+          <div class="feature"><span class="card__icon">{{ icon(w.icon) }}</span><h3>{{ w.title }}</h3><p>{{ w.text }}</p></div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</section>
+
+{% if reviews is not empty %}
+<section class="section section--alt" aria-labelledby="reviews-title" id="stimmen">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">Stimmen</span>
+      <h2 id="reviews-title">Was unsere Teilnehmenden sagen</h2>
+    </div>
+    <div class="grid grid--3">
+      {% for r in reviews %}
+        <figure class="quote-card reveal">
+          {{ icon('quote') }}
+          {% if r.rating %}{{ ui.stars(r.rating) }}{% endif %}
+          <blockquote>„{{ r.body }}“</blockquote>
+          <figcaption><strong>{{ r.display_name }}</strong>{{ r.role_label }}</figcaption>
+        </figure>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+{% if faqs is not empty %}
+<section class="section" aria-labelledby="faq-title">
+  <div class="container split split--reverse">
+    <div>
+      <span class="eyebrow">Häufige Fragen</span>
+      <h2 id="faq-title">Gut zu wissen vor der Anmeldung</h2>
+      <p class="lead">Ihre Frage ist nicht dabei? Wir helfen gerne persönlich weiter.</p>
+      <a class="link-arrow" href="/faq/">Alle Fragen ansehen{{ icon('arrow-right') }}</a>
+    </div>
+    {{ ui.faq_list(faqs) }}
+  </div>
+</section>
+{% endif %}
+
+<section class="section section--alt" aria-label="Kontakt">
+  <div class="container">
+    {{ ui.cta_band('Sie haben Fragen zu Prüfung, Kurs oder Coaching?', 'Wir beraten Sie persönlich – telefonisch, per WhatsApp oder an einem unserer Standorte.', site.company) }}
+  </div>
+</section>
+{% endblock %}
+
+{% block schema %}
+  {% set orgs = [] %}
+  {% for l in all_locations %}
+    {% set orgs = orgs|merge([{'@type': 'EducationalOrganization', name: site.company.name ~ ' – ' ~ l.short_name, telephone: l.phone, address: {'@type': 'PostalAddress', streetAddress: l.street, postalCode: l.postal_code, addressLocality: l.city, addressCountry: 'DE'}}]) %}
+  {% endfor %}
+  <script type="application/ld+json">{{ {'@context': 'https://schema.org', '@type': 'EducationalOrganization', name: site.company.legal_name, url: base_url ~ '/', logo: abs_url(media_url(site.company.logo_media_id, 480)), telephone: site.company.phone, sameAs: [site.company.facebook, site.company.instagram]|filter(v => v), department: orgs}|json_ld }}</script>
+  {{ ui.faq_schema(faqs) }}
+{% endblock %}

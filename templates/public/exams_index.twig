@@ -1,0 +1,55 @@
+{% extends 'layout/base.twig' %}
+{% import 'partials/macros.twig' as ui %}
+{% set seo_title = page.seo_title ?? 'telc-Prüfungen – MEA Bildungszentrum' %}
+{% set seo_description = page.seo_description ?? '' %}
+{% set canonical = '/telc-pruefungszentrum/' %}
+{% set robots_noindex = is_filtered %}
+{% block content %}
+  {% include 'partials/page_hero.twig' with {title: page.title ?? 'Prüfungen', intro: page.intro ?? '', media_id: page.hero_media_id ?? null, crumbs: [{label: 'Prüfungen'}], eyebrow: 'Zertifiziert. Anerkannt. Zukunftsorientiert.', cta_url: '#pruefungen', cta_label: 'Prüfung auswählen', cta2_url: '/preise/', cta2_label: 'Preise ansehen'} %}
+
+  <section class="section" id="pruefungen" aria-labelledby="list-title">
+    <div class="container">
+      <div class="section-head"><h2 id="list-title">Unsere Prüfungen</h2><p>Wählen Sie eine Prüfung für Ablauf, Termine und Anmeldung.</p></div>
+      {% if options.levels|length > 1 or options.providers|length > 1 %}
+        <nav class="filters" aria-label="Prüfungen filtern">
+          <span class="filters__label">Niveau:</span>
+          <a class="chip" href="/telc-pruefungszentrum/#pruefungen"{% if not is_filtered %} aria-current="true"{% endif %}>Alle</a>
+          {% for l in options.levels %}
+            <a class="chip" href="?niveau={{ l|url_encode }}#pruefungen"{% if filter.level == l %} aria-current="true"{% endif %}>{{ l }}</a>
+          {% endfor %}
+          {% if options.providers|length > 1 %}
+            <span class="filters__label">Anbieter:</span>
+            {% for p in options.providers %}<a class="chip" href="?anbieter={{ p|url_encode }}#pruefungen"{% if filter.provider == p %} aria-current="true"{% endif %}>{{ p }}</a>{% endfor %}
+          {% endif %}
+        </nav>
+      {% endif %}
+      {% if exams is not empty %}
+        <div class="grid grid--3">{% for e in exams %}{{ ui.exam_card(e) }}{% endfor %}</div>
+      {% else %}
+        <div class="notice">{{ icon('info') }}<p>{% if is_filtered %}Für diese Auswahl gibt es derzeit keine Prüfung. <a href="/telc-pruefungszentrum/">Alle Prüfungen anzeigen</a>{% else %}Unsere Prüfungen werden gerade eingetragen. <a href="/kontakt/?thema=pruefung">Fragen Sie uns nach Terminen.</a>{% endif %}</p></div>
+      {% endif %}
+    </div>
+  </section>
+
+  <section class="section section--alt">
+    <div class="container">
+      <div class="section-head"><span class="eyebrow">Anmeldung</span><h2>So melden Sie sich an</h2></div>
+      <ol class="steps">{% for st in site.booking.steps ?? [] %}<li class="reveal"><h3>{{ st.title }}</h3><p>{{ st.text }}</p></li>{% endfor %}</ol>
+    </div>
+  </section>
+
+  {% if page.body_html ?? false %}
+    <section class="section"><div class="container split"><div class="prose">{{ page.body_html|raw }}</div><div class="split__media reveal">{{ img(page.hero_media_id, '(max-width: 900px) 100vw, 560px') }}</div></div></section>
+  {% endif %}
+
+  {% if faqs is not empty %}
+    <section class="section section--alt"><div class="container"><div class="section-head"><span class="eyebrow">Häufige Fragen</span><h2>Rund um die Prüfung</h2></div>{{ ui.faq_list(faqs) }}</div></section>
+  {% endif %}
+  <section class="section"><div class="container">{{ ui.cta_band('Unsicher, welche Prüfung passt?', 'Wir beraten Sie gerne – auch zu Vorbereitungskursen.', site.company) }}</div></section>
+{% endblock %}
+{% block schema %}
+  {% set list = [] %}
+  {% for e in exams %}{% set list = list|merge([{'@type': 'ListItem', position: loop.index, url: base_url ~ '/pruefungen/' ~ e.slug ~ '/', name: e.public_name}]) %}{% endfor %}
+  <script type="application/ld+json">{{ {'@context': 'https://schema.org', '@type': 'ItemList', itemListElement: list}|json_ld }}</script>
+  {{ ui.faq_schema(faqs) }}
+{% endblock %}

@@ -1,0 +1,128 @@
+{% extends 'layout/base.twig' %}
+{% import 'partials/macros.twig' as ui %}
+{% set url = '/pruefungen/' ~ exam.slug ~ '/' %}
+{% set seo_title = exam.seo_title ?: exam.public_name ~ ' – MEA Bildungszentrum' %}
+{% set seo_description = exam.seo_description ?: exam.short_text %}
+{% set canonical = url %}
+{% set og_image = media_url(exam.hero_media_id ?: exam.card_media_id, 1440) %}
+{% set price = exam.next_session.price ?? exam.from_price %}
+
+{% block content %}
+<section class="page-hero">
+  <div class="container page-hero__grid">
+    <div>
+      {{ ui.breadcrumbs([{label: 'Prüfungen', url: '/telc-pruefungszentrum/'}, {label: exam.public_name}]) }}
+      <div class="btn-row mb-0 align-center">
+        {% if exam.level_label %}<span class="level level--lg" aria-hidden="true">{{ exam.level_label }}</span>{% endif %}
+        {% if exam.provider_name %}<span class="eyebrow mb-0">{{ exam.provider_name }}{% if exam.category %} · {{ exam.category }}{% endif %}</span>{% endif %}
+      </div>
+      <h1 class="mt-5">{{ exam.public_name }}</h1>
+      <p class="lead">{{ exam.short_text }}</p>
+      <div class="btn-row">
+        {% if exam.session_count > 0 %}
+          <a class="btn" href="#termine">{{ icon('calendar') }}{{ exam.session_count }} {{ exam.session_count == 1 ? 'Termin' : 'Termine' }} ansehen</a>
+        {% else %}
+          <a class="btn" href="/kontakt/?pruefung={{ exam.public_name|url_encode }}">Nach Terminen fragen</a>
+        {% endif %}
+        <a class="btn btn--secondary" href="#ablauf">Ablauf und Voraussetzungen</a>
+      </div>
+    </div>
+    <div class="page-hero__media">{{ img(exam.hero_media_id ?: exam.card_media_id, '(max-width: 860px) 100vw, 520px', {loading: 'eager', fetchpriority: 'high'}) }}</div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container exam-layout">
+    <div class="stack">
+      {% if exam.status == 'disabled' %}
+        <div class="notice notice--warning">{{ icon('circle-alert') }}<p>Diese Prüfung ist derzeit nicht buchbar. Bei Fragen <a href="/kontakt/?pruefung={{ exam.public_name|url_encode }}">kontaktieren Sie uns</a>.</p></div>
+      {% endif %}
+
+      <div id="ablauf" class="prose">
+        <h2>Über die Prüfung</h2>
+        {{ exam.body_html|raw }}
+        {% if exam.target_group_html %}<h2>Für wen?</h2>{{ exam.target_group_html|raw }}{% endif %}
+        {% if exam.requirements_html %}<h2>Voraussetzungen</h2>{{ exam.requirements_html|raw }}{% endif %}
+        {% if exam.procedure_html %}<h2>Ablauf</h2>{{ exam.procedure_html|raw }}{% endif %}
+      </div>
+
+      <div id="termine">
+        <h2 class="mt-7">Termine und Anmeldung</h2>
+        {% if exam.sessions is not empty %}
+          <div class="sessions">
+            {% for s in exam.sessions %}
+              <div class="session{{ s.bookable ? '' : ' session--disabled' }}">
+                <div class="session__date"><span class="session__day">{{ s.starts_local|date('d') }}</span><span class="session__month">{{ s.starts_local|format_date(pattern='MMM yy', locale='de') }}</span></div>
+                <div class="session__info">
+                  <span class="session__title">{{ s.starts_local|format_date(pattern="EEEE, d. MMMM yyyy, HH:mm 'Uhr'", locale='de') }}</span>
+                  <span class="meta-row">{{ icon('map-pin') }}<a href="/standorte/{{ s.location_slug }}/">{{ s.location_name }}</a></span>
+                  <span class="meta-row">{{ icon('clock') }}Anmeldeschluss: {{ s.deadline_local|format_date('medium', locale='de') }}</span>
+                  {% if s.notes_public %}<span class="text-muted">{{ s.notes_public }}</span>{% endif %}
+                  <span>{{ ui.availability(s) }}</span>
+                </div>
+                <div class="session__price">{{ ui.price(s.price) }}</div>
+                <div class="session__action">
+                  {% if s.bookable %}
+                    <a class="btn btn--sm" href="{{ url }}buchen/{{ s.id }}/">Platz buchen<span class="visually-hidden"> am {{ s.starts_local|format_date('long', locale='de') }}</span></a>
+                  {% else %}
+                    <span class="btn btn--sm" aria-disabled="true">Nicht buchbar</span>
+                  {% endif %}
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="notice">{{ icon('info') }}<p>Derzeit sind keine Termine für diese Prüfung geplant. <a href="/kontakt/?pruefung={{ exam.public_name|url_encode }}">Schreiben Sie uns</a> – wir informieren Sie über neue Termine.</p></div>
+        {% endif %}
+      </div>
+
+      {% if faqs is not empty %}<div><h2 class="mt-7">Häufige Fragen</h2>{{ ui.faq_list(faqs) }}</div>{% endif %}
+    </div>
+
+    <aside class="exam-aside" aria-label="Zusammenfassung">
+      <div class="box box--brand">
+        <h2 class="h-sm mb-0">Auf einen Blick</h2>
+        <ul class="facts mt-5">
+          {% if exam.provider_name %}<li><span>Anbieter</span><strong>{{ exam.provider_name }}</strong></li>{% endif %}
+          {% if exam.level_label %}<li><span>Niveau</span><strong>{{ exam.level_label }}</strong></li>{% endif %}
+          {% if exam.exam_format %}<li><span>Format</span><strong>{{ exam.exam_format }}</strong></li>{% endif %}
+          {% if exam.duration_text %}<li><span>Dauer</span><strong>{{ exam.duration_text }}</strong></li>{% endif %}
+          <li><span>Nächster Termin</span><strong>{{ exam.next_session ? exam.next_session.starts_local|format_date('medium', locale='de') : 'derzeit keiner' }}</strong></li>
+        </ul>
+        <div class="mt-5">{{ ui.price(price, exam.next_session ? 'pro Person' : 'Grundpreis') }}</div>
+        {% if exam.fees|filter(f => f.is_mandatory)|length > 0 %}<p class="mb-0 text-xs">inkl. {% for f in exam.fees|filter(f => f.is_mandatory) %}{{ f.label }}{{ not loop.last ? ', ' }}{% endfor %}</p>{% endif %}
+        {% if exam.session_count > 0 %}<a class="btn btn--light btn--block mt-5" href="#termine">Termin wählen</a>{% endif %}
+      </div>
+      <div class="box">
+        <h2 class="h-sm">Fragen zur Prüfung?</h2>
+        <ul class="contact-list">
+          <li><span class="card__icon">{{ icon('phone') }}</span><span>Telefon<br><a href="tel:{{ site.company.phone|tel }}">{{ site.company.phone_display }}</a></span></li>
+          <li><span class="card__icon">{{ icon('message-circle') }}</span><span>Nachricht<br><a href="/kontakt/?pruefung={{ exam.public_name|url_encode }}">Kontaktformular</a></span></li>
+        </ul>
+      </div>
+    </aside>
+  </div>
+</section>
+
+{% if others is not empty %}
+<section class="section section--alt">
+  <div class="container">
+    <div class="section-head"><h2>Weitere Prüfungen</h2></div>
+    <div class="grid grid--3">{% for e in others %}{{ ui.exam_card(e) }}{% endfor %}</div>
+  </div>
+</section>
+{% endif %}
+{% endblock %}
+
+{% block schema %}
+  {% set events = [] %}
+  {% for s in exam.sessions|filter(s => s.bookable) %}
+    {% set ev = {'@type': 'Event', name: exam.public_name, startDate: s.starts_local|date('c'), eventStatus: 'https://schema.org/EventScheduled', eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode', location: {'@type': 'Place', name: s.location_name, address: s.location_city}, organizer: {'@type': 'Organization', name: site.company.legal_name, url: base_url}} %}
+    {% if s.price %}{% set ev = ev|merge({offers: {'@type': 'Offer', price: (s.price.total_cents / 100)|number_format(2, '.', ''), priceCurrency: s.price.currency, availability: s.seats_free > 0 ? 'https://schema.org/InStock' : 'https://schema.org/SoldOut', url: base_url ~ url}}) %}{% endif %}
+    {% set events = events|merge([ev]) %}
+  {% endfor %}
+  <script type="application/ld+json">{{ {'@context': 'https://schema.org', '@type': 'Course', name: exam.public_name, description: exam.short_text, provider: {'@type': 'Organization', name: site.company.legal_name, url: base_url}}|json_ld }}</script>
+  {% if events is not empty %}<script type="application/ld+json">{{ {'@context': 'https://schema.org', '@graph': events}|json_ld }}</script>{% endif %}
+  <script type="application/ld+json">{{ {'@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: [{'@type': 'ListItem', position: 1, name: 'Startseite', item: base_url ~ '/'}, {'@type': 'ListItem', position: 2, name: 'Prüfungen', item: base_url ~ '/telc-pruefungszentrum/'}, {'@type': 'ListItem', position: 3, name: exam.public_name, item: base_url ~ url}]}|json_ld }}</script>
+  {{ ui.faq_schema(faqs) }}
+{% endblock %}

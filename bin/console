@@ -1,0 +1,49 @@
+#!/usr/bin/env php
+<?php
+declare(strict_types=1);
+
+// Kommandozeile für Installation und Betrieb. Nur per SSH nutzbar, nie über das Web.
+if (PHP_SAPI !== 'cli') {
+    exit(1);
+}
+$root = dirname(__DIR__);
+require $root . '/vendor/autoload.php';
+
+use Mea\Core\Config;
+use Mea\Core\Database;
+use Mea\Install\ContentSeeder;
+use Mea\Install\DemoSeeder;
+use Mea\Module\Media\ImageVariantGenerator;
+
+$cmd = $argv[1] ?? 'help';
+$config = Config::fromEnvironment($root);
+$phinx = escapeshellarg($root . '/vendor/bin/phinx') . ' --configuration=' . escapeshellarg($root . '/phinx.php');
+
+switch ($cmd) {
+    case 'migrate':
+        passthru("$phinx migrate", $rc);
+        exit($rc);
+    case 'migrate:rollback':
+        passthru("$phinx rollback", $rc);
+        exit($rc);
+    case 'seed':
+        $db = Database::fromConfig($config);
+        $gen = new ImageVariantGenerator($db, $root . '/storage/uploads', $root . '/public/media');
+        (new ContentSeeder($db, $gen, $root . '/seeds/media'))->run();
+        echo "Startdaten angelegt.\n";
+        if (in_array('--demo', $argv, true)) {
+            if ($config->get('APP_ENV') === 'production') {
+                fwrite(STDERR, "Beispieldaten sind auf der Produktivseite nicht erlaubt.\n");
+                exit(1);
+            }
+            (new DemoSeeder($db))->run();
+            echo "Beispieltermine angelegt (nur Vorschau).\n";
+        }
+        exit(0);
+    case 'serve':
+        $port = $argv[2] ?? '8080';
+        passthru('php -S 127.0.0.1:' . (int) $port . ' -t ' . escapeshellarg($root . '/public') . ' ' . escapeshellarg($root . '/public/index.php'));
+        exit(0);
+    default:
+        echo "Befehle:\n  migrate            Datenbank auf den neuesten Stand bringen\n  migrate:rollback   letzte Migration zurücknehmen\n  seed [--demo]      Startdaten anlegen (--demo: Beispieltermine, nur Vorschau)\n  serve [port]       lokaler Entwicklungsserver\n";
+}

@@ -1,0 +1,5 @@
+<nav class="quickbar" aria-label="Schnellzugriff">
+  <a href="tel:{{ company.phone|tel }}">{{ icon('phone') }}Anrufen</a>
+  {% if company.whatsapp %}<a href="https://wa.me/{{ company.whatsapp|tel|replace({'+': ''}) }}" rel="noopener" target="_blank">{{ icon('message-circle') }}WhatsApp</a>{% else %}<a href="/kontakt/">{{ icon('mail') }}Kontakt</a>{% endif %}
+  <a class="quickbar__primary" href="/telc-pruefungszentrum/">{{ icon('calendar') }}Prüfung buchen</a>
+</nav>

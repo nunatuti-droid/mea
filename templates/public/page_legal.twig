@@ -1,0 +1,8 @@
+{% extends 'layout/base.twig' %}
+{% set seo_title = page.seo_title ?: page.title %}
+{% set seo_description = page.seo_description %}
+{% set canonical = '/' ~ page.slug ~ '/' %}
+{% block content %}
+  {% include 'partials/page_hero.twig' with {title: page.title, intro: page.intro, media_id: null, crumbs: [{label: page.title}]} %}
+  <section class="section"><div class="container"><div class="prose">{{ page.body_html|raw }}</div></div></section>
+{% endblock %}

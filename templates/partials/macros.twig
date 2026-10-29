@@ -1,0 +1,109 @@
+{% macro stars(value) %}
+  {%- set full = value|round -%}
+  <span class="stars" role="img" aria-label="{{ value|number_format(1, ',') }} von 5 Sternen">
+    {%- for i in 1..5 -%}<svg class="icon{{ i > full ? ' is-empty' : '' }}" aria-hidden="true"><use href="#i-star"></use></svg>{%- endfor -%}
+  </span>
+{% endmacro %}
+
+{% macro breadcrumbs(items) %}
+  <nav class="breadcrumbs" aria-label="Brotkrumen">
+    <ol>
+      <li><a href="/">Startseite</a></li>
+      {% for it in items %}
+        <li>{% if loop.last %}<span aria-current="page">{{ it.label }}</span>{% else %}<a href="{{ it.url }}">{{ it.label }}</a>{% endif %}</li>
+      {% endfor %}
+    </ol>
+  </nav>
+{% endmacro %}
+
+{% macro price(p, label = 'pro Person') %}
+  {% if p %}
+    <div class="price"><span class="price__value">{{ p.total_cents|money(p.currency) }}</span><span class="price__label">{{ label }}</span></div>
+  {% else %}
+    <div class="price price--none"><span class="price__value">Preis folgt</span></div>
+  {% endif %}
+{% endmacro %}
+
+{% macro availability(s) %}
+  {%- set labels = {
+    available: s.seats_free ~ ' Plätze frei',
+    few: 'Nur noch ' ~ s.seats_free ~ (s.seats_free == 1 ? ' Platz' : ' Plätze'),
+    full: 'Ausgebucht',
+    closed: 'Anmeldung geschlossen',
+    unavailable: 'Derzeit nicht buchbar'
+  } -%}
+  <span class="pill pill--{{ s.availability }}">{{ labels[s.availability] }}</span>
+{% endmacro %}
+
+{% macro exam_card(e, heading = 'h3') %}
+  {% import _self as ui %}
+  <article class="card exam-card reveal">
+    <div class="card__media">
+      {{ img(e.card_media_id, '(max-width: 700px) 100vw, 380px', {alt: ''}) }}
+      <div class="card__badge-wrap">{% if e.level_label %}<span class="level" aria-hidden="true">{{ e.level_label }}</span>{% endif %}</div>
+    </div>
+    <div class="card__body">
+      {% if e.provider_name %}<span class="eyebrow mb-0">{{ e.provider_name }}{% if e.category %} · {{ e.category }}{% endif %}</span>{% endif %}
+      <{{ heading }}><a href="/pruefungen/{{ e.slug }}/">{{ e.public_name }}</a></{{ heading }}>
+      <p>{{ e.short_text }}</p>
+      <div class="card__meta">
+        {% if e.next_session %}
+          <div class="meta-row">{{ icon('calendar') }}<span>Nächster Termin: <strong>{{ e.next_session.starts_local|format_date('medium', locale='de') }}</strong>, {{ e.next_session.location_short }}</span></div>
+          <div class="meta-row">{{ icon('users') }}{{ ui.availability(e.next_session) }}</div>
+        {% elseif not e.is_bookable_type %}
+          <div class="meta-row">{{ icon('info') }}<span>Derzeit nicht buchbar</span></div>
+        {% else %}
+          <div class="meta-row">{{ icon('calendar') }}<span>Derzeit keine Termine</span></div>
+        {% endif %}
+      </div>
+      <div class="card__footer">
+        {{ ui.price(e.next_session.price ?? e.from_price, e.next_session ? 'pro Person' : 'Grundpreis') }}
+        <span class="link-arrow" aria-hidden="true">Details{{ icon('arrow-right') }}</span>
+      </div>
+    </div>
+  </article>
+{% endmacro %}
+
+{% macro service_card(s, url = null) %}
+  <article class="card service-card reveal">
+    <div class="card__media">{{ img(s.card_media_id, '(max-width: 700px) 100vw, 380px', {alt: ''}) }}</div>
+    <div class="card__body">
+      <span class="card__icon">{{ icon(s.icon ?: 'arrow-right') }}</span>
+      <h3><a href="{{ url ?? (s.cta_url starts with '/telc' ? s.cta_url : '/' ~ s.slug ~ '/') }}">{{ s.title }}</a></h3>
+      <p>{{ s.teaser }}</p>
+      <span class="link-arrow" aria-hidden="true">Mehr erfahren{{ icon('arrow-right') }}</span>
+    </div>
+  </article>
+{% endmacro %}
+
+{% macro faq_list(faqs) %}
+  <div class="faq">
+    {% for f in faqs %}
+      <details>
+        <summary>{{ f.question }}{{ icon('chevron-down') }}</summary>
+        <div class="faq__answer">{{ f.answer_html|raw }}</div>
+      </details>
+    {% endfor %}
+  </div>
+{% endmacro %}
+
+{% macro faq_schema(faqs) %}
+  {% if faqs is not empty %}
+    {% set items = [] %}
+    {% for f in faqs %}{% set items = items|merge([{'@type': 'Question', name: f.question, acceptedAnswer: {'@type': 'Answer', text: f.answer_html|striptags}}]) %}{% endfor %}
+    <script type="application/ld+json">{{ {'@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: items}|json_ld }}</script>
+  {% endif %}
+{% endmacro %}
+
+{% macro cta_band(title, text, company) %}
+  <div class="cta-band reveal">
+    <div>
+      <h2>{{ title }}</h2>
+      <p>{{ text }}</p>
+    </div>
+    <div class="btn-row">
+      <a class="btn btn--light" href="/kontakt/">{{ icon('mail') }}Nachricht schreiben</a>
+      <a class="btn btn--ghost-light" href="tel:{{ company.phone|tel }}">{{ icon('phone') }}{{ company.phone_display }}</a>
+    </div>
+  </div>
+{% endmacro %}

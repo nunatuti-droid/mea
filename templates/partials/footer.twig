@@ -1,0 +1,56 @@
+<footer class="site-footer footer">
+  <div class="container">
+    <div class="footer__top">
+      <div class="footer__brand">
+        <a href="/" aria-label="{{ company.name }} – Startseite">{{ img(company.logo_media_id, '160px', {alt: company.name}) }}</a>
+        <p>{{ company.claim }} Wir begleiten Menschen und Unternehmen auf dem Weg in Arbeit, Sprache und Beruf.</p>
+        <a class="btn btn--light btn--sm" href="/kontakt/" data-m="{{ company.email|obfuscate }}">{{ icon('mail') }}E-Mail schreiben</a>
+        <div class="footer__social">
+          {% if company.facebook %}<a href="{{ company.facebook }}" rel="noopener" target="_blank">Facebook<span class="visually-hidden"> (öffnet in neuem Fenster)</span></a>{% endif %}
+          {% if company.instagram %}<a href="{{ company.instagram }}" rel="noopener" target="_blank">Instagram<span class="visually-hidden"> (öffnet in neuem Fenster)</span></a>{% endif %}
+        </div>
+      </div>
+      {% for item in main_menu|filter(i => i.children is not empty) %}
+        <div>
+          <h2>{{ item.label }}</h2>
+          <ul>{% for c in item.children %}<li><a href="{{ c.url }}">{{ c.label }}</a></li>{% endfor %}</ul>
+        </div>
+      {% endfor %}
+      <div>
+        <h2>Unternehmen</h2>
+        <ul>{% for c in footer_menu %}<li><a href="{{ c.url }}">{{ c.label }}</a></li>{% endfor %}</ul>
+      </div>
+      <div>
+        <h2>Standorte</h2>
+        <div class="footer__locations">
+          {% for loc in all_locations %}
+            <address>
+              <a href="/standorte/{{ loc.slug }}/"><strong>{{ loc.name }}</strong></a><br>
+              {{ loc.street }}{% if loc.address_extra %}, {{ loc.address_extra }}{% endif %}<br>{{ loc.postal_code }} {{ loc.city }}
+              {% if loc.phone %}<br><a href="tel:{{ loc.phone|tel }}">{{ loc.phone }}</a>{% endif %}
+            </address>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+    {% if footer_reviews is not empty %}
+      {% set fr = footer_reviews|first %}
+      <div class="footer__reviews">
+        <div>
+          {% if rating_summary.count > 0 %}
+            {% import 'partials/macros.twig' as ui %}{{ ui.stars(rating_summary.average) }}
+            <p class="mb-0"><strong>{{ rating_summary.average|number_format(1, ',') }} von 5</strong> aus {{ rating_summary.count }} Bewertungen</p>
+          {% else %}
+            <h2 class="mb-0">Stimmen unserer Teilnehmenden</h2>
+          {% endif %}
+        </div>
+        <blockquote>„{{ fr.body }}“<cite>{{ fr.display_name }}{% if fr.role_label %}, {{ fr.role_label }}{% endif %}</cite></blockquote>
+        <a href="/ueber-uns/#stimmen">Alle {{ footer_reviews|length }} Stimmen</a>
+      </div>
+    {% endif %}
+    <div class="footer__bottom">
+      <p class="mb-0">© {{ 'now'|date('Y') }} {{ company.legal_name }}</p>
+      <ul>{% for c in legal_menu %}<li><a href="{{ c.url }}">{{ c.label }}</a></li>{% endfor %}</ul>
+    </div>
+  </div>
+</footer>

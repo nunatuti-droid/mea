@@ -1,0 +1,15 @@
+<article class="card location-card reveal">
+  <div class="btn-row align-center"><span class="card__icon">{{ icon('map-pin') }}</span>{% if l.is_headquarters %}<span class="pill pill--available">Zentrale</span>{% endif %}</div>
+  <h2 class="h3">{% if linked %}<a href="/standorte/{{ l.slug }}/">{{ l.name }}</a>{% else %}{{ l.name }}{% endif %}</h2>
+  <address>{{ site.company.legal_name }}<br>{{ l.street }}{% if l.address_extra %}, {{ l.address_extra }}{% endif %}<br>{{ l.postal_code }} {{ l.city }}</address>
+  <ul class="contact-list">
+    {% if l.phone %}<li><span class="card__icon">{{ icon('phone') }}</span><span>Telefon<br><a href="tel:{{ l.phone|tel }}">{{ l.phone }}</a></span></li>{% endif %}
+  </ul>
+  {% if l.hours is not empty %}
+    <div><h3 class="h-sm">Öffnungszeiten</h3><ul class="hours">{% for h in l.hours %}<li><span>{{ h.day }}</span><span>{{ h.opens }}–{{ h.closes }} Uhr</span></li>{% endfor %}</ul></div>
+  {% endif %}
+  <div class="btn-row">
+    <a class="btn btn--sm btn--secondary" href="https://www.openstreetmap.org/search?query={{ l.route_query }}" rel="noopener" target="_blank">{{ icon('route') }}Route planen<span class="visually-hidden"> (OpenStreetMap, öffnet in neuem Fenster)</span></a>
+    {% if linked %}<a class="link-arrow" href="/standorte/{{ l.slug }}/">Anfahrt und Details{{ icon('arrow-right') }}</a>{% endif %}
+  </div>
+</article>
