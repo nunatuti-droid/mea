@@ -1,0 +1,42 @@
+{% extends 'layout/base.twig' %}
+{% import 'partials/macros.twig' as ui %}
+{% set l = location %}
+{% set seo_title = l.name ~ ' – MEA Bildungszentrum' %}
+{% set seo_description = 'Adresse, Anfahrt und Kontakt: ' ~ l.name ~ ', ' ~ l.street ~ ', ' ~ l.postal_code ~ ' ' ~ l.city ~ '.' %}
+{% set canonical = '/standorte/' ~ l.slug ~ '/' %}
+{% block content %}
+  {% include 'partials/page_hero.twig' with {title: l.name, intro: l.street ~ (l.address_extra ? ', ' ~ l.address_extra : '') ~ ', ' ~ l.postal_code ~ ' ' ~ l.city, media_id: l.image_media_id, crumbs: [{label: 'Standorte', url: '/standorte/'}, {label: l.short_name}]} %}
+  <section class="section">
+    <div class="container contact-layout">
+      <div class="stack">
+        <h2>Anfahrt</h2>
+        {% if l.directions_html %}<div class="prose">{{ l.directions_html|raw }}</div>{% endif %}
+        {% if l.has_coordinates %}
+          {% set d = 0.006 %}
+          <div class="map" data-map-src="https://www.openstreetmap.org/export/embed.html?bbox={{ l.longitude - d }}%2C{{ l.latitude - d }}%2C{{ l.longitude + d }}%2C{{ l.latitude + d }}&amp;layer=mapnik&amp;marker={{ l.latitude }}%2C{{ l.longitude }}" data-map-title="Karte: {{ l.name }}">
+            <div class="map__consent">
+              <span class="card__icon">{{ icon('map') }}</span>
+              <p>Die Karte wird von OpenStreetMap geladen. Dabei wird Ihre IP-Adresse an die OpenStreetMap Foundation übertragen.</p>
+              <button class="btn btn--sm" type="button" data-map-load>Karte laden</button>
+            </div>
+          </div>
+        {% else %}
+          <div class="notice">{{ icon('route') }}<p>Planen Sie Ihre Anreise mit dem Routenplaner Ihrer Wahl. Die eingebettete Karte erscheint, sobald die Koordinaten des Standorts im Backend eingetragen sind.</p></div>
+        {% endif %}
+      </div>
+      {% include 'partials/location_card.twig' with {l: l, linked: false} %}
+    </div>
+  </section>
+  {% if others is not empty %}
+    <section class="section section--alt"><div class="container"><div class="section-head"><h2>Weitere Standorte</h2></div><div class="grid grid--2">{% for o in others %}{% include 'partials/location_card.twig' with {l: o, linked: true} %}{% endfor %}</div></div></section>
+  {% endif %}
+{% endblock %}
+{% block schema %}
+  {% set hours = [] %}
+  {% set dayNames = {1: 'Monday', 2: 'Tuesday', 3: 'Wednesday', 4: 'Thursday', 5: 'Friday', 6: 'Saturday', 7: 'Sunday'} %}
+  {% for h in l.hours %}{% set hours = hours|merge([{'@type': 'OpeningHoursSpecification', dayOfWeek: dayNames[h.weekday], opens: h.opens, closes: h.closes}]) %}{% endfor %}
+  {% set data = {'@context': 'https://schema.org', '@type': 'LocalBusiness', name: site.company.legal_name ~ ' – ' ~ l.short_name, url: base_url ~ '/standorte/' ~ l.slug ~ '/', telephone: l.phone, address: {'@type': 'PostalAddress', streetAddress: l.street, postalCode: l.postal_code, addressLocality: l.city, addressCountry: 'DE'}} %}
+  {% if hours is not empty %}{% set data = data|merge({openingHoursSpecification: hours}) %}{% endif %}
+  {% if l.has_coordinates %}{% set data = data|merge({geo: {'@type': 'GeoCoordinates', latitude: l.latitude, longitude: l.longitude}}) %}{% endif %}
+  <script type="application/ld+json">{{ data|json_ld }}</script>
+{% endblock %}

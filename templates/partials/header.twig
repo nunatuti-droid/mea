@@ -1,0 +1,46 @@
+{%- set current = canonical ?? '/' -%}
+<div class="topbar">
+  <div class="container">
+    <div class="topbar__group">
+      <a href="tel:{{ company.phone|tel }}">{{ icon('phone') }}<span>{{ company.phone_display }}</span></a>
+      {% if company.whatsapp %}<a href="https://wa.me/{{ company.whatsapp|tel|replace({'+': ''}) }}" rel="noopener" target="_blank">{{ icon('message-circle') }}<span>WhatsApp</span><span class="visually-hidden"> (öffnet in neuem Fenster)</span></a>{% endif %}
+    </div>
+    <div class="topbar__group topbar__group--secondary">
+      {% for loc in all_locations %}
+        <a href="/standorte/{{ loc.slug }}/">{{ icon('map-pin') }}<span>{{ loc.short_name }}</span></a>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+<header class="site-header">
+  <div class="container">
+    <a class="brand" href="/" aria-label="{{ company.name }} – Startseite">
+      {{ img(company.logo_media_id, '160px', {alt: company.name, loading: 'eager', fetchpriority: 'high'}) }}
+    </a>
+    <nav class="nav" id="site-nav" aria-label="Hauptnavigation" tabindex="-1">
+      <button class="menu-button nav__close" type="button" data-nav-close aria-label="Menü schließen">{{ icon('x') }}</button>
+      <ul class="nav__list">
+        {% for item in main_menu %}
+          {% if item.children is not empty %}
+            <li class="nav__item">
+              <button class="nav__toggle" type="button" aria-expanded="false" aria-controls="sub-{{ item.id }}">{{ item.label }}{{ icon('chevron-down') }}</button>
+              <ul class="nav__dropdown" id="sub-{{ item.id }}">
+                {% for child in item.children %}
+                  <li><a href="{{ child.url }}"{% if child.url == current %} aria-current="page"{% endif %}>{{ child.label }}{% if child.description %}<span>{{ child.description }}</span>{% endif %}</a></li>
+                {% endfor %}
+              </ul>
+            </li>
+          {% else %}
+            <li class="nav__item"><a class="nav__link" href="{{ item.url }}"{% if item.url == current %} aria-current="page"{% endif %}>{{ item.label }}</a></li>
+          {% endif %}
+        {% endfor %}
+      </ul>
+      <div class="nav__mobile-cta">
+        <a class="btn" href="/telc-pruefungszentrum/">{{ icon('calendar') }}Prüfung buchen</a>
+        <a class="btn btn--secondary" href="tel:{{ company.phone|tel }}">{{ icon('phone') }}{{ company.phone_display }}</a>
+      </div>
+    </nav>
+    <a class="btn btn--sm header-cta" href="/telc-pruefungszentrum/">Prüfung buchen</a>
+    <button class="menu-button" type="button" data-nav-open aria-controls="site-nav" aria-expanded="false" aria-label="Menü öffnen">{{ icon('menu') }}</button>
+  </div>
+</header>

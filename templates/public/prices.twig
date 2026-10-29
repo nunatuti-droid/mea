@@ -1,0 +1,33 @@
+{% extends 'layout/base.twig' %}
+{% import 'partials/macros.twig' as ui %}
+{% set seo_title = page.seo_title ?? 'Preise' %}
+{% set seo_description = page.seo_description ?? '' %}
+{% set canonical = '/preise/' %}
+{% block content %}
+  {% include 'partials/page_hero.twig' with {title: page.title ?? 'Preise', intro: page.intro ?? '', media_id: null, crumbs: [{label: 'Prüfungen', url: '/telc-pruefungszentrum/'}, {label: 'Preise'}]} %}
+  <section class="section">
+    <div class="container">
+      {% if exams is not empty %}
+        <div class="table-wrap">
+          <table class="table table--stack">
+            <caption class="visually-hidden">Prüfungsgebühren</caption>
+            <thead><tr><th scope="col">Prüfung</th><th scope="col">Niveau</th><th scope="col">Nächster Termin</th><th scope="col" class="num">Grundpreis</th></tr></thead>
+            <tbody>
+              {% for e in exams %}
+                <tr>
+                  <th scope="row"><a href="/pruefungen/{{ e.slug }}/">{{ e.public_name }}</a></th>
+                  <td data-label="Niveau">{{ e.level_label }}</td>
+                  <td data-label="Nächster Termin">{{ e.next_session ? e.next_session.starts_local|format_date('medium', locale='de') ~ ', ' ~ e.next_session.location_short : 'derzeit keiner' }}</td>
+                  <td class="num" data-label="Grundpreis">{{ e.from_price ? e.from_price.total_cents|money(e.from_price.currency) : 'Preis folgt' }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <p class="text-muted mt-5">Zusatzgebühren und abweichende Terminpreise sehen Sie auf der jeweiligen Prüfungsseite und vor der Zahlung.</p>
+      {% else %}
+        <div class="notice">{{ icon('info') }}<p>Die Preise werden gerade eingetragen. <a href="/kontakt/?thema=pruefung">Fragen Sie uns gerne direkt.</a></p></div>
+      {% endif %}
+    </div>
+  </section>
+{% endblock %}

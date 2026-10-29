@@ -1,0 +1,56 @@
+<?php
+declare(strict_types=1);
+
+namespace Mea\Install;
+
+use Mea\Core\Database;
+use Mea\Module\Content\SettingsRepository;
+
+/**
+ * NUR für Entwicklung und Vorschau: veröffentlicht die Startprüfungen und legt
+ * Beispieltermine mit Beispielpreisen an. Die Website zeigt dann einen deutlichen Hinweis.
+ * Auf der Produktivseite wird dieser Seeder nicht ausgeführt.
+ */
+final class DemoSeeder
+{
+    public function __construct(private Database $db) {}
+
+    public function run(): void
+    {
+        (new SettingsRepository($this->db))->set('demo_notice', true);
+        $this->db->run("UPDATE exam_types SET status = 'published', published_at = UTC_TIMESTAMP() WHERE status = 'draft'");
+        $examples = ['telc-deutsch-a1' => 15000, 'telc-deutsch-a2' => 16000, 'telc-deutsch-a2-b1' => 19000,
+            'telc-deutsch-b1' => 18000, 'telc-deutsch-b2' => 22000, 'telc-deutsch-c1' => 26000];
+        $locations = array_column($this->db->all('SELECT id, slug FROM locations ORDER BY id'), 'id', 'slug');
+        $i = 0;
+        foreach ($examples as $slug => $price) {
+            $exam = (int) $this->db->value('SELECT id FROM exam_types WHERE slug = ?', [$slug]);
+            $this->db->run('UPDATE exam_types SET base_price_cents = ? WHERE id = ?', [$price, $exam]);
+            if ($slug === 'telc-deutsch-c1') {
+                continue; // zeigt den Zustand „derzeit keine Termine“
+            }
+            foreach ([[21, 'marl', 16], [49, 'herne', 12]] as $k => [$days, $loc, $cap]) {
+                $start = (new \DateTimeImmutable('today 09:00', new \DateTimeZone('Europe/Berlin')))
+                    ->modify('+' . ($days + $i * 3) . ' days')->setTimezone(new \DateTimeZone('UTC'));
+                $this->db->insert('exam_sessions', [
+                    'exam_type_id' => $exam, 'location_id' => $locations[$loc] ?? reset($locations),
+                    'starts_at' => $start->format('Y-m-d H:i:s'),
+                    'registration_until' => $start->modify('-14 days')->format('Y-m-d H:i:s'),
+                    'capacity' => $cap, 'status' => 'open',
+                    'notes_public' => 'Beispieltermin für die Vorschau.',
+                ]);
+            }
+            $i++;
+        }
+        // Ein fast ausgebuchter Termin, damit die Anzeige „wenige Plätze“ sichtbar ist
+        $sid = (int) $this->db->value("SELECT s.id FROM exam_sessions s JOIN exam_types e ON e.id = s.exam_type_id WHERE e.slug = 'telc-deutsch-b1' ORDER BY s.starts_at LIMIT 1");
+        $exam = (int) $this->db->value("SELECT id FROM exam_types WHERE slug = 'telc-deutsch-b1'");
+        for ($n = 0; $n < 14; $n++) {
+            $this->db->insert('bookings', [
+                'public_ref' => 'DEMO' . str_pad((string) $n, 8, '0', STR_PAD_LEFT), 'exam_session_id' => $sid, 'exam_type_id' => $exam,
+                'snapshot_json' => json_encode(['demo' => true]), 'total_cents' => 18000, 'currency' => 'EUR',
+                'status' => 'confirmed', 'payment_status' => 'paid', 'confirmed_at' => gmdate('Y-m-d H:i:s'),
+            ]);
+        }
+    }
+}

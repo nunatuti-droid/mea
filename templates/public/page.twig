@@ -1,0 +1,10 @@
+{% extends 'layout/base.twig' %}
+{% import 'partials/macros.twig' as ui %}
+{% set seo_title = page.seo_title ?: page.title ~ ' – MEA Bildungszentrum' %}
+{% set seo_description = page.seo_description ?: page.intro %}
+{% set canonical = '/' ~ page.slug ~ '/' %}
+{% block content %}
+  {% include 'partials/page_hero.twig' with {title: page.title, intro: page.intro, media_id: page.hero_media_id, crumbs: [{label: page.title}]} %}
+  <section class="section"><div class="container"><div class="prose">{{ page.body_html|raw }}</div></div></section>
+  <section class="section section--alt"><div class="container">{{ ui.cta_band('Fragen? Wir sind für Sie da.', 'Schreiben Sie uns oder rufen Sie an.', site.company) }}</div></section>
+{% endblock %}

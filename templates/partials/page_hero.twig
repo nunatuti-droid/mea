@@ -1,0 +1,19 @@
+{# Variablen: title, intro, media_id, crumbs, actions (optional Block) #}
+{% import 'partials/macros.twig' as ui %}
+<section class="page-hero">
+  <div class="container page-hero__grid{{ media_id ? '' : ' page-hero__grid--single' }}">
+    <div>
+      {{ ui.breadcrumbs(crumbs) }}
+      {% if eyebrow ?? false %}<span class="eyebrow">{{ eyebrow }}</span>{% endif %}
+      <h1>{{ title }}</h1>
+      {% if intro %}<p class="lead">{{ intro }}</p>{% endif %}
+      {% if cta_url ?? false %}
+        <div class="btn-row">
+          <a class="btn" href="{{ cta_url }}">{{ cta_label }}{{ icon('arrow-right') }}</a>
+          {% if cta2_url ?? false %}<a class="btn btn--secondary" href="{{ cta2_url }}">{{ cta2_label }}</a>{% endif %}
+        </div>
+      {% endif %}
+    </div>
+    {% if media_id %}<div class="page-hero__media">{{ img(media_id, '(max-width: 860px) 100vw, 520px', {loading: 'eager', fetchpriority: 'high'}) }}</div>{% endif %}
+  </div>
+</section>

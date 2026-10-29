@@ -1,0 +1,116 @@
+{% extends 'layout/base.twig' %}
+{% import 'partials/macros.twig' as ui %}
+{% set url = (parent ? '/' ~ parent.slug : '') ~ '/' ~ service.slug ~ '/' %}
+{% set seo_title = service.seo_title ?: service.title ~ ' – MEA Bildungszentrum' %}
+{% set seo_description = service.seo_description ?: service.teaser %}
+{% set canonical = url %}
+{% set og_image = service.hero_media_id ? media_url(service.hero_media_id, 1440) : null %}
+{% set crumbs = parent
+  ? [{label: 'Leistungen', url: '/leistungen/'}, {label: parent.menu_title ?: parent.title, url: '/' ~ parent.slug ~ '/'}, {label: service.title}]
+  : [{label: 'Leistungen', url: '/leistungen/'}, {label: service.menu_title ?: service.title}] %}
+
+{% block content %}
+  {% include 'partials/page_hero.twig' with {
+    title: service.title, intro: service.intro ?: service.teaser, media_id: service.hero_media_id, crumbs: crumbs,
+    eyebrow: parent ? (parent.menu_title ?: parent.title) : 'Leistung',
+    cta_url: service.cta_url, cta_label: service.cta_label ?: 'Beratung anfragen',
+    cta2_url: 'tel:' ~ (site.company.phone|tel), cta2_label: 'Anrufen: ' ~ site.company.phone_display
+  } %}
+
+  {% if service.facts.facts is defined %}
+    <section class="section">
+      <div class="container split">
+        <div class="box box--brand reveal">
+          <h2 class="mb-0">Auf einen Blick</h2>
+          <ul class="facts mt-5">
+            {% for f in service.facts.facts %}<li><span>{{ f.label }}</span><strong>{{ f.value }}</strong></li>{% endfor %}
+          </ul>
+        </div>
+        <div class="prose">
+          {{ service.body_html|raw }}
+          <a class="btn" href="{{ service.cta_url ?: '/kontakt/' }}">{{ service.cta_label ?: 'Beratung anfragen' }}{{ icon('arrow-right') }}</a>
+        </div>
+      </div>
+    </section>
+  {% elseif service.body_html %}
+    <section class="section"><div class="container"><div class="prose">{{ service.body_html|raw }}</div></div></section>
+  {% endif %}
+
+  {% if service.facts.modules is defined %}
+    <section class="section {{ service.body_html ? 'section--alt' : '' }}">
+      <div class="container">
+        <div class="section-head"><span class="eyebrow">Unser Angebot</span><h2>Das gehört dazu</h2></div>
+        <div class="grid grid--3">
+          {% for m in service.facts.modules %}
+            <div class="card reveal"><div class="card__body"><span class="card__icon">{{ icon(m.icon) }}</span><h3>{{ m.title }}</h3><p>{{ m.text }}</p></div></div>
+          {% endfor %}
+        </div>
+      </div>
+    </section>
+  {% endif %}
+
+  {% if service.facts.process is defined %}
+    <section class="section section--alt">
+      <div class="container">
+        <div class="section-head"><span class="eyebrow">Ablauf</span><h2>Unser Rekrutierungsprozess im Überblick</h2></div>
+        <ol class="steps">
+          {% for st in service.facts.process %}<li class="reveal"><h3>{{ st.title }}</h3><p>{{ st.text }}</p></li>{% endfor %}
+        </ol>
+      </div>
+    </section>
+  {% endif %}
+
+  {% if children is not empty %}
+    <section class="section">
+      <div class="container">
+        <div class="section-head"><span class="eyebrow">Unsere Maßnahmen</span><h2>Das passende Coaching für Ihre Situation</h2></div>
+        <div class="grid grid--3">
+          {% for c in children %}
+            <article class="card reveal">
+              <div class="card__media">{{ img(c.card_media_id, '(max-width: 700px) 100vw, 380px', {alt: ''}) }}</div>
+              <div class="card__body">
+                <h3><a href="/{{ service.slug }}/{{ c.slug }}/">{{ c.title }}</a></h3>
+                <p>{{ c.teaser }}</p>
+                {% if c.facts.facts is defined %}
+                  <ul class="facts">{% for f in c.facts.facts %}<li><span>{{ f.label }}</span><strong>{{ f.value }}</strong></li>{% endfor %}</ul>
+                {% endif %}
+                <span class="link-arrow" aria-hidden="true">Details{{ icon('arrow-right') }}</span>
+              </div>
+            </article>
+          {% endfor %}
+        </div>
+      </div>
+    </section>
+  {% endif %}
+
+  {% if siblings|length > 1 %}
+    <section class="section section--alt">
+      <div class="container">
+        <div class="section-head"><h2>Weitere Maßnahmen</h2></div>
+        <div class="grid grid--3">
+          {% for c in siblings|filter(c => c.id != service.id) %}{{ ui.service_card(c, '/' ~ parent.slug ~ '/' ~ c.slug ~ '/') }}{% endfor %}
+        </div>
+      </div>
+    </section>
+  {% endif %}
+
+  {% if faqs is not empty %}
+    <section class="section"><div class="container"><div class="section-head"><h2>Häufige Fragen</h2></div>{{ ui.faq_list(faqs) }}</div></section>
+  {% endif %}
+
+  {% if not parent and other_services is not empty %}
+    <section class="section section--alt">
+      <div class="container">
+        <div class="section-head"><span class="eyebrow">Mehr von MEA</span><h2>Weitere Leistungen</h2></div>
+        <div class="grid grid--3">{% for s in other_services|slice(0, 3) %}{{ ui.service_card(s) }}{% endfor %}</div>
+      </div>
+    </section>
+  {% endif %}
+
+  <section class="section"><div class="container">{{ ui.cta_band('Lassen Sie sich persönlich beraten', 'Wir nehmen uns Zeit für Ihre Fragen – am Telefon, per WhatsApp oder vor Ort.', site.company) }}</div></section>
+{% endblock %}
+
+{% block schema %}
+  <script type="application/ld+json">{{ {'@context': 'https://schema.org', '@type': 'Service', name: service.title, description: service.teaser, provider: {'@type': 'EducationalOrganization', name: site.company.legal_name}, areaServed: 'Ruhrgebiet'}|json_ld }}</script>
+  {{ ui.faq_schema(faqs) }}
+{% endblock %}
