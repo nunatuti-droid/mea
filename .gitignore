@@ -1,0 +1,10 @@
+/vendor/
+/node_modules/
+/.env
+/storage/*
+!/storage/.gitkeep
+/public/media/
+/tests/E2E/output/
+/.phpunit.cache/
+/test-results/
+/playwright-report/
