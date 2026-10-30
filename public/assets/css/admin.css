@@ -120,7 +120,8 @@ fieldset.card > legend + * { clear: both; }
 .tbl--compact th, .tbl--compact td { padding: 8px 12px; }
 .pager { display: flex; gap: 16px; align-items: center; margin: 12px 0; font-size: .9rem; }
 .toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 16px; }
-.toolbar input[type="search"] { min-width: 240px; }
+.toolbar input[type="search"] { flex: 1 1 240px; width: auto; min-width: 0; }
+.toolbar select { width: auto; flex: 0 1 220px; }
 
 /* Formulare */
 .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 20px; }

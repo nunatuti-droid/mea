@@ -20,14 +20,15 @@ final class ExamController
 
     public function index(Request $req): Response
     {
-        $filter = ['provider' => $req->input('anbieter'), 'level' => $req->input('niveau')];
+        $filter = ['provider' => $req->input('anbieter'), 'level' => $req->input('niveau'), 'category' => $req->input('kategorie')];
         return Response::html($this->view->render('public/exams_index.twig', [
             'page' => $this->content->publishedPage('telc-pruefungszentrum'),
             'exams' => $this->exams->listed($filter),
             'filter' => $filter,
             'options' => $this->exams->filterOptions(),
+            'categories' => $this->exams->categories(),
             'faqs' => $this->content->faqsFor('faq_page'),
-            'is_filtered' => $filter['provider'] !== '' || $filter['level'] !== '',
+            'is_filtered' => $filter['provider'] !== '' || $filter['level'] !== '' || $filter['category'] !== '',
         ]));
     }
 
@@ -37,6 +38,9 @@ final class ExamController
         if ($exam === null) {
             if ($this->exams->isArchived($slug)) {
                 return Response::redirect('/telc-pruefungszentrum/', 301);
+            }
+            if ($this->exams->isDisabled($slug)) {
+                return Response::redirect('/telc-pruefungszentrum/', 302);
             }
             throw HttpException::notFound();
         }

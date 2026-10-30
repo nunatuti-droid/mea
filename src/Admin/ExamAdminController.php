@@ -22,6 +22,7 @@ final class ExamAdminController
         $k->post('/verwaltung/pruefungen/{id:\d+}/dokumente/', 'exams', $this->addDocument(...));
         $k->post('/verwaltung/pruefungen/{id:\d+}/dokumente/{doc:\d+}/entfernen/', 'exams', $this->removeDocument(...));
         $k->post('/verwaltung/pruefungen/{id:\d+}/kopieren/', 'exams', $this->copy(...));
+        $k->post('/verwaltung/pruefungen/{id:\d+}/status/', 'exams', $this->setStatus(...));
     }
 
     private function exam(string $id): array
@@ -165,5 +166,36 @@ final class ExamAdminController
         $this->app->audit->record('exam_type.created', 'Prüfungsart kopiert aus ' . $e['public_name'], 'exam_type', $newId);
         AdminKernel::flash('Kopie als Entwurf angelegt. Passen Sie Name und URL-Kennung an.');
         return Response::redirect('/verwaltung/pruefungen/' . $newId . '/', 303);
+    }
+
+    /** Schnellschalter aus der Liste: veröffentlichen oder deaktivieren (ausblenden). */
+    public function setStatus(Request $req, AdminContext $ctx, string $id): Response
+    {
+        $e = $this->exam($id);
+        $to = $req->input('value');
+        if (!in_array($to, ['published', 'disabled'], true) || $to === $e['status']) {
+            return Response::redirect('/verwaltung/pruefungen/', 303);
+        }
+        if ($to === 'published') {
+            $missing = [];
+            if (trim((string) $e['short_text']) === '') {
+                $missing[] = 'Kurzbeschreibung';
+            }
+            if ($e['base_price_cents'] === null && (int) $this->app->db->value('SELECT COUNT(*) FROM exam_sessions WHERE exam_type_id = ? AND price_cents IS NULL AND starts_at > UTC_TIMESTAMP()', [(int) $id]) > 0) {
+                $missing[] = 'Grundpreis (es gibt Termine ohne eigenen Preis)';
+            }
+            if ($missing !== []) {
+                AdminKernel::flash('„' . $e['public_name'] . '“ wurde nicht veröffentlicht. Es fehlt: ' . implode(', ', $missing) . '.', 'error');
+                return Response::redirect('/verwaltung/pruefungen/' . (int) $id . '/', 303);
+            }
+        }
+        $this->app->db->run(
+            'UPDATE exam_types SET status = ?, published_at = COALESCE(published_at, IF(? = \'published\', UTC_TIMESTAMP(), NULL)) WHERE id = ?',
+            [$to, $to, (int) $id],
+        );
+        $label = $to === 'published' ? 'veröffentlicht' : 'deaktiviert';
+        $this->app->audit->record('exam_type.status', 'Prüfung ' . $label . ': ' . $e['public_name'], 'exam_type', (int) $id, ['vorher' => $e['status'], 'nachher' => $to]);
+        AdminKernel::flash('„' . $e['public_name'] . '“ ist jetzt ' . $label . '.' . ($to === 'disabled' ? ' Sie ist auf der Website nicht mehr sichtbar.' : ' Sie ist auf der Website sichtbar.'));
+        return Response::redirect('/verwaltung/pruefungen/', 303);
     }
 }

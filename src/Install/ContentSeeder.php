@@ -378,6 +378,7 @@ final class ContentSeeder
             'refund_allowed' => 1, 'is_default' => 1,
             'required_fields_json' => json_encode(['first_name', 'last_name', 'birth_date', 'birth_place', 'email', 'phone', 'address']),
         ]);
+        $general = $this->db->value("SELECT id FROM exam_categories WHERE slug = 'allgemeinsprachlich'");
         $parts = '<p>Die Prüfung besteht aus den Teilen <strong>Lesen, Hören, Schreiben</strong> und <strong>Sprechen</strong>.</p>';
         $levels = [
             ['A1', 'Für Einsteigerinnen und Einsteiger, die vertraute Alltagsausdrücke und einfache Sätze verstehen und verwenden können.',
@@ -395,7 +396,7 @@ final class ContentSeeder
             $this->db->insert('exam_types', [
                 'provider_id' => $provider, 'slug' => 'telc-deutsch-' . strtolower($lvl),
                 'internal_name' => 'telc Deutsch ' . $lvl, 'public_name' => 'telc Deutsch ' . $lvl,
-                'level_label' => $lvl, 'category' => 'Deutsch', 'exam_format' => 'Schriftliche und mündliche Prüfung',
+                'level_label' => $lvl, 'category' => 'Deutsch', 'category_id' => $general, 'exam_format' => 'Schriftliche und mündliche Prüfung',
                 'short_text' => $short, 'body_html' => $body . $parts,
                 'requirements_html' => '<p>Für die Teilnahme ist kein vorheriger Kurs erforderlich. Wir empfehlen eine gezielte Vorbereitung; sprechen Sie uns gerne an.</p>',
                 'booking_rule_id' => $rule,
@@ -409,7 +410,7 @@ final class ContentSeeder
         $this->db->insert('exam_types', [
             'provider_id' => $provider, 'slug' => 'telc-deutsch-a2-b1',
             'internal_name' => 'telc Deutsch A2-B1 (Beispiel)', 'public_name' => 'telc Deutsch A2-B1',
-            'level_label' => 'A2-B1', 'category' => 'Deutsch', 'exam_format' => 'Skalierte Prüfung',
+            'level_label' => 'A2-B1', 'category' => 'Deutsch', 'category_id' => $general, 'exam_format' => 'Skalierte Prüfung',
             'short_text' => 'Eine Prüfung, zwei mögliche Niveaus: Je nach Ergebnis erhalten Sie ein Zertifikat auf A2 oder B1.',
             'body_html' => '<p>telc Deutsch A2-B1 ist eine skalierte Sprachprüfung für Deutschlernende, die ihre Kenntnisse auf den Niveaustufen A2 oder B1 des Gemeinsamen Europäischen Referenzrahmens nachweisen möchten. Je nach erreichter Leistung erhalten Sie ein telc-Zertifikat auf A2 oder B1.</p>' . $parts
                 . '<p>Arbeitgeber, Behörden und Bildungseinrichtungen erkennen das Zertifikat an.</p>',

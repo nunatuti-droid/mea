@@ -40,3 +40,21 @@ Jede Änderung wird hier festgehalten. Das Gesamt-Update wird erst erstellt, wen
 **Nach dem Hochladen nötig:** `migrate` ausführen.
 
 **Geprüft:** alle automatischen Tests grün (3 neue), Seiten am Bildschirm angesehen.
+
+## Punkt 9: Prüfungsverwaltung im Backend
+
+**Was neu ist**
+- **Prüfungskategorien** (Verwaltung → Prüfungen → Prüfungskategorien): Name, Kurzname, Einleitungstext, Sortierung, aktiv/inaktiv. Start mit drei Kategorien nach telc.net: „Allgemeinsprachliche Deutschprüfungen“, „Berufsbezogene Deutschprüfungen“, „Deutschprüfungen für Pflege und Medizin“. Eine Kategorie mit zugeordneten Prüfungen kann nicht gelöscht werden.
+- Jede Prüfung bekommt im Formular eine **Kategorie** zur Auswahl (ersetzt das freie Textfeld). Die bisherigen Prüfungen A1 bis C1 und A2-B1 sind „Allgemeinsprachlich“ zugeordnet.
+- **Schnellschalter in der Prüfungsliste**: „Deaktivieren“ bzw. „Wieder veröffentlichen“ mit einem Klick (mit Rückfrage). Vor dem Veröffentlichen wird geprüft, ob Kurzbeschreibung und Preis vorhanden sind.
+- **Deaktiviert heißt jetzt: öffentlich ausgeblendet.** Deaktivierte Prüfungen erscheinen nicht mehr in Übersicht, Startseite, Preisliste und Sitemap, sind nicht buchbar, und ihre Seite leitet vorübergehend auf die Prüfungsübersicht um. Vorher waren sie sichtbar, aber nicht buchbar.
+- Texte jeder Prüfung (Kurzbeschreibung, Beschreibung, Für wen, Voraussetzungen, Ablauf) waren schon im Formular bearbeitbar; unverändert.
+- Liste der Prüfungsarten: neue Spalte und neuer Filter „Kategorie“.
+- **Website:** Die Prüfungsübersicht ist nach Kategorien gegliedert (Überschrift und Einleitung je Kategorie). Sobald es Prüfungen in mehr als einer Kategorie gibt, filtern die Schaltflächen oben nach Kategorie statt nach Niveau. Auf Karten und Prüfungsseiten steht „telc · Kurzname der Kategorie“.
+- Jede Statusänderung steht im Änderungsprotokoll.
+
+**Dateien:** `migrations/20261103100014_exam_categories.php` (neu), `src/Admin/Resources/ExamCategoryResource.php` (neu), `src/Admin/Resources/ExamTypeResource.php`, `src/Admin/ExamAdminController.php`, `src/Admin/Crud/Resource.php`, `src/Admin/AdminModule.php`, `src/Admin/MediaController.php`, `templates/admin/crud/index.twig`, `templates/admin/layout.twig`, `public/assets/css/admin.css`, `src/Module/Exams/ExamRepository.php`, `src/Module/Exams/ExamController.php`, `templates/public/exams_index.twig`, `templates/public/exam_show.twig`, `templates/partials/macros.twig`, `public/assets/css/app.css`, `src/Install/ContentSeeder.php`, Tests.
+
+**Nach dem Hochladen nötig:** `migrate` ausführen.
+
+**Geprüft:** 108 automatische Tests grün, Liste in der Verwaltung und Übersicht auf der Website angesehen.

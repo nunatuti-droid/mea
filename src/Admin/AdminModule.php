@@ -34,6 +34,7 @@ final class AdminModule
             new Resources\ExamTypeResource($db, fn(array $row) => $app->view->render('public/exam_show.twig', [
                 'exam' => $app->exams->previewRow($row), 'faqs' => [], 'others' => [], 'notice' => null,
             ])),
+            new Resources\ExamCategoryResource($db),
             new Resources\ProviderResource($db),
             new Resources\BookingRuleResource($db),
             new Resources\SessionResource($db, fn(int $sessionId, string $template, string $message) => $app->bookings()->notifySession($sessionId, $template, $message)),
