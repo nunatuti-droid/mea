@@ -776,6 +776,17 @@ a[href^="tel:"]:hover, a[href^="https://wa.me"]:hover, .location-card h2 a:hover
 .g-card__link, .site-footer a.g-card__link:not(.btn) { display: inline-flex; align-items: center; gap: 6px; margin-top: 6px; font-weight: 600; color: var(--c-action); text-decoration: none; font-size: var(--fs-sm); justify-self: start; }
 .g-card__link:hover, .site-footer a.g-card__link:not(.btn):hover { color: var(--c-action-hover); text-decoration: underline; }
 .g-card__link .icon { width: 14px; height: 14px; }
+.footer__greviews { display: grid; align-content: start; gap: var(--s-3); min-width: 0; }
+.g-reviews { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--s-4); }
+.g-review { display: grid; align-content: start; gap: 8px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.12); border-radius: var(--r-md); padding: var(--s-4); color: #fff; font-size: var(--fs-sm); line-height: 1.5; }
+.g-review p { margin: 0; color: var(--c-on-dark-muted); }
+.g-review__head { display: flex; align-items: center; gap: 10px; }
+.g-review__head > span:nth-child(2) { display: grid; line-height: 1.25; min-width: 0; flex: 1; }
+.g-review__head strong, .site-footer .g-review__head a:not(.btn) { color: #fff; text-decoration: none; overflow-wrap: anywhere; }
+.site-footer .g-review__head a:not(.btn):hover { text-decoration: underline; }
+.g-review__head small { color: var(--c-on-dark-muted); font-size: var(--fs-xs); }
+.g-review__avatar { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: var(--c-brand-light); color: var(--c-ink); font-weight: 700; flex: none; }
+.g-review .stars .icon { width: 15px; height: 15px; }
 @media (max-width: 900px) { .footer__reviews { grid-template-columns: 1fr; } }
 @media (prefers-reduced-motion: reduce) { .g-hero, .g-hero:hover { transition: none; transform: none; } }
 

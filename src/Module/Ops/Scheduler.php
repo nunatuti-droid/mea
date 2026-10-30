@@ -27,6 +27,7 @@ final class Scheduler
         'integrity' => ['nightly', 'Dateiwächter'],
         'holidays' => ['nightly', 'Feiertage für das Folgejahr anlegen'],
         'health' => ['nightly', 'Systemprüfung und Meldung kritischer Fehler'],
+        'google_reviews' => ['nightly', 'Google-Bewertungen abrufen'],
         'backup_reminder' => ['monthly', 'Erinnerung: Sicherung extern speichern'],
     ];
 
@@ -102,6 +103,16 @@ final class Scheduler
     private function notifier(): Notifier
     {
         return new Notifier($this->app->db, $this->app->mailer);
+    }
+
+    private function jobGoogleReviews(\DateTimeImmutable $now): string
+    {
+        $g = $this->app->googleReviews();
+        if (!$g->isConfigured()) {
+            return 'nicht eingerichtet';
+        }
+        $r = $g->sync($now);
+        return ($r['rating'] === null ? 'ohne Gesamtwert' : number_format($r['rating'], 1, ',', '') . ' Sterne, ' . $r['count'] . ' Bewertungen') . ', ' . $r['reviews'] . ' Texte';
     }
 
     private function jobReservations(): string

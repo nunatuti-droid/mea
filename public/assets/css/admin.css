@@ -298,3 +298,11 @@ h1.mono { font-size: 1.6rem; letter-spacing: .02em; }
 .list-check li { position: relative; padding-left: 22px; }
 .list-check li::before { content: ""; position: absolute; left: 4px; top: .5em; width: 8px; height: 8px; border-radius: 2px; background: var(--c-brand); transform: rotate(45deg); }
 .prewrap { white-space: pre-line; }
+
+/* Google-Bewertungen: Verbindungs-Box */
+.g-admin { margin-bottom: 20px; }
+.g-admin h2 { margin-top: 0; }
+.g-admin__status { margin: 0 0 12px; }
+.g-admin__details { margin-top: 14px; border-top: 1px solid var(--c-border); padding-top: 12px; }
+.g-admin__details > summary { cursor: pointer; font-weight: 650; color: var(--c-ink); margin-bottom: 12px; }
+.g-admin .form-actions { position: static; background: none; padding-bottom: 0; margin-bottom: 0; }

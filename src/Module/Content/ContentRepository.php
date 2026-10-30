@@ -98,6 +98,14 @@ final class ContentRepository
         );
     }
 
+    /** @return list<array<string,mixed>> sichtbare Google-Bewertungen, neueste zuerst */
+    public function googleReviews(int $limit = 3): array
+    {
+        return $this->db->all(
+            'SELECT * FROM google_reviews WHERE is_active = 1 ORDER BY sort_order, published_at IS NULL, published_at DESC, id DESC LIMIT ' . max(1, $limit),
+        );
+    }
+
     /** @return array{count:int, average:float|null} nur echte, gepflegte Sternebewertungen */
     public function ratingSummary(): array
     {

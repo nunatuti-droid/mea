@@ -97,6 +97,7 @@ final class App
         $this->view->addGlobal('base_url', rtrim($baseUrl, '/'));
         $this->view->addGlobal('rating_summary', $this->content->ratingSummary());
         $this->view->addGlobal('footer_reviews', $this->content->reviews());
+        $this->view->addGlobal('google_reviews', $this->content->googleReviews(3));
 
         $pages = $this->publicPages = new PublicController($this->view, $this->content, $exams, $locations, $settings);
         $examCtl = new ExamController($this->view, $exams, $this->content);
@@ -147,6 +148,18 @@ final class App
     private ?\Mea\Module\Payments\PaymentGateway $gateway = null;
     private ?\Mea\Module\Bookings\BookingService $bookingService = null;
     private ?\Mea\Module\Applications\ApplicationService $applicationService = null;
+    private ?\Mea\Module\Content\GoogleReviewSync $googleSync = null;
+
+    public function googleReviews(): \Mea\Module\Content\GoogleReviewSync
+    {
+        return $this->googleSync ??= new \Mea\Module\Content\GoogleReviewSync($this->db, $this->settings, $this->crypto);
+    }
+
+    /** Für Tests: Google-Abruf mit eigener HTTP-Funktion. */
+    public function useGoogleHttp(\Closure $http): void
+    {
+        $this->googleSync = new \Mea\Module\Content\GoogleReviewSync($this->db, $this->settings, $this->crypto, $http);
+    }
 
     public function applications(): \Mea\Module\Applications\ApplicationService
     {

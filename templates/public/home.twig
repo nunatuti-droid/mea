@@ -31,14 +31,6 @@
         {% endfor %}
       </ul>
     </div>
-    {% if hero_reviews is not empty %}
-      {% set hr = hero_reviews|first %}
-      <figure class="hero-quote mb-0">
-        {% if hr.rating %}{{ ui.stars(hr.rating) }}{% endif %}
-        <p>„{{ hr.body }}“</p>
-        <footer><strong>{{ hr.display_name }}</strong>{% if hr.role_label %}, {{ hr.role_label }}{% endif %}</footer>
-      </figure>
-    {% endif %}
   </div>
 </section>
 

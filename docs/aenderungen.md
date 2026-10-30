@@ -254,3 +254,20 @@ Grundlage: Firmendaten von der bisherigen Datenschutzseite (meabildungszentrum.d
 - Das Dashboard steht als einzelner Link ganz oben.
 
 **Dateien:** `templates/public/home.twig`, `templates/admin/layout.twig`, `public/assets/css/admin.css`, `public/assets/js/admin.js`, Test `AdminSecurityTest` (Anzahl E-Mail-Vorlagen auf 13 korrigiert).
+
+# Update 0.7.3
+
+## Startseite: Zitat-Karte im Startbereich entfernt
+- Die Karte „Eine großartige Erfahrung! … Michael D., Fachlagerist“ rechts im Startbereich erscheint nicht mehr. Die eigenen Stimmen gibt es weiter auf „Über uns“; der Schalter „Im oberen Bereich der Startseite zeigen“ entfällt.
+
+## Google-Bewertungen aus dem Unternehmensprofil
+- Neue Seite in der Verwaltung: Inhalte → **Google-Bewertungen**. Dort stehen Profil-Link, Gesamtwert (Sterne, Anzahl, Stand) und die einzelnen Bewertungen. Jede Bewertung lässt sich mit einem Klick ausblenden oder wieder anzeigen, Bewertungen lassen sich auch von Hand anlegen.
+- **Automatischer Abruf:** Mit einem Google API-Schlüssel (Places API) holt die Website jede Nacht Gesamtwert, Anzahl und die bis zu fünf Bewertungen, die Google liefert. Knopf „Jetzt von Google abrufen“ für sofort. Der Schlüssel wird verschlüsselt gespeichert. Besucher laden dabei nichts von Google.
+- **Startseite:** Sterne mit Gesamtwert und Anzahl unter den Knöpfen im Startbereich.
+- **Fußbereich jeder Seite:** Karte mit Gesamtwert und daneben die drei neuesten sichtbaren Google-Bewertungen (ohne Google-Bewertungen wie bisher eine eigene Stimme).
+- Der Profil-Link zum MEA-Profil wird beim Update eingetragen, falls noch keiner gesetzt war. Die Google-Felder sind aus „Firmendaten & SEO“ auf die neue Seite umgezogen.
+- Im Menü heißt der bisherige Punkt „Bewertungen“ jetzt „Stimmen (eigene)“.
+
+**Dateien:** `migrations/20261104100021_create_google_reviews.php` (neu), `src/Module/Content/GoogleReviewSync.php` (neu), `src/Admin/GoogleReviewAdminController.php` (neu), `src/Admin/Resources/GoogleReviewResource.php` (neu), `templates/admin/google_reviews_panel.twig` (neu), `src/Admin/AdminModule.php`, `src/Admin/SettingsController.php`, `src/Admin/Resources/ReviewResource.php`, `src/Core/App.php`, `src/Module/Content/ContentRepository.php`, `src/Module/Content/PublicController.php`, `src/Module/Ops/Scheduler.php`, `templates/public/home.twig`, `templates/partials/footer.twig`, `templates/admin/layout.twig`, `public/assets/css/app.css`, `public/assets/css/admin.css`, Test `GoogleReviewSyncTest` (neu).
+
+**Nach dem Einspielen:** nichts weiter nötig (die Datenbank wird vom Update selbst aktualisiert). Für den automatischen Abruf den API-Schlüssel eintragen.

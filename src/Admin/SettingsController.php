@@ -49,12 +49,6 @@ final class SettingsController
             ['name' => 'seo_home__title', 'label' => 'SEO-Titel der Startseite', 'max' => 70, 'counter' => 60, 'group' => 'Suchmaschinen'],
             ['name' => 'seo_home__description', 'label' => 'Meta-Beschreibung der Startseite', 'type' => 'textarea', 'max' => 170, 'counter' => 160, 'rows' => 2, 'group' => 'Suchmaschinen'],
 
-            ['name' => 'google__profile_url', 'label' => 'Link zum Google-Unternehmensprofil', 'type' => 'url', 'max' => 255, 'group' => 'Google-Bewertungen',
-                'help' => 'Leer = kein Hinweis auf Google. Beim Seitenaufruf werden keine Daten an Google übertragen; erst der Klick führt zu Google.'],
-            ['name' => 'google__rating', 'label' => 'Sternebewertung laut Google', 'max' => 3, 'group' => 'Google-Bewertungen', 'help' => 'z. B. 4,8 – genau so übernehmen, wie Google sie anzeigt. Leer = nur Link.'],
-            ['name' => 'google__count', 'label' => 'Anzahl der Bewertungen laut Google', 'type' => 'int', 'min' => 0, 'maxValue' => 100000, 'group' => 'Google-Bewertungen'],
-            ['name' => 'google__as_of', 'label' => 'Stand', 'max' => 20, 'group' => 'Google-Bewertungen', 'help' => 'z. B. 10/2026. Bitte regelmäßig aktualisieren.'],
-
             ['name' => 'consent__ga_id', 'label' => 'Google Analytics: Mess-ID', 'max' => 20, 'group' => 'Cookies und Dienste',
                 'help' => 'Format G-XXXXXXX. Leer = Google Analytics wird nicht verwendet. Geladen wird es nur nach Einwilligung „Statistik“. Datenschutzerklärung anpassen!'],
             ['name' => 'consent__meta_pixel_id', 'label' => 'Meta-Pixel: Pixel-ID', 'max' => 20, 'group' => 'Cookies und Dienste',
@@ -136,13 +130,6 @@ final class SettingsController
                 }
             }
             $structured[$key][$sub] = $v;
-        }
-        $gr = trim(str_replace(',', '.', (string) ($structured['google']['rating'] ?? '')));
-        if ($gr !== '' && (!is_numeric($gr) || (float) $gr < 1 || (float) $gr > 5)) {
-            $errors['google__rating'] = 'Bitte eine Zahl von 1,0 bis 5,0 eintragen oder leer lassen.';
-        }
-        if ($gr !== '' && (int) ($structured['google']['count'] ?? 0) < 1) {
-            $errors['google__count'] = 'Bitte auch die Anzahl der Bewertungen eintragen.';
         }
         $ga = strtoupper(trim((string) ($structured['consent']['ga_id'] ?? '')));
         if ($ga !== '' && !preg_match('/^G-[A-Z0-9]{4,15}$/', $ga)) {

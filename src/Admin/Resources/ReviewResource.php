@@ -13,7 +13,7 @@ final class ReviewResource extends Resource
     public string $singular = 'Bewertung';
     public string $plural = 'Bewertungen';
     public string $entity = 'review';
-    public string $intro = 'Manuell gepflegte Stimmen von Teilnehmenden. Bitte nur echte Rückmeldungen mit Einverständnis eintragen. Mit „Ausblenden“ und „Anzeigen“ schalten Sie eine Stimme mit einem Klick ab oder an. Es gibt keine Verbindung zu Google; die Google-Sterne pflegen Sie unter Firmendaten & SEO → Google-Bewertungen.';
+    public string $intro = 'Manuell gepflegte Stimmen von Teilnehmenden. Bitte nur echte Rückmeldungen mit Einverständnis eintragen. Mit „Ausblenden“ und „Anzeigen“ schalten Sie eine Stimme mit einem Klick ab oder an. Bewertungen von Google pflegen Sie unter „Google-Bewertungen“.';
     public string $orderBy = 'sort_order, id';
 
     public function columns(): array
@@ -23,7 +23,6 @@ final class ReviewResource extends Resource
             ['key' => 'role_label', 'label' => 'Beschreibung'],
             ['key' => 'rating', 'label' => 'Sterne', 'format' => 'int'],
             ['key' => 'is_active', 'label' => 'Aktiv', 'format' => 'status:bool'],
-            ['key' => 'show_in_hero', 'label' => 'Startseite oben', 'format' => 'status:bool'],
         ];
     }
 
@@ -37,7 +36,6 @@ final class ReviewResource extends Resource
                 'help' => 'Nur eintragen, wenn die Person selbst eine Sternebewertung abgegeben hat.'],
             ['name' => 'source_note', 'label' => 'Quelle (intern)', 'max' => 200, 'help' => 'z. B. „Feedbackbogen 03/2026, Einverständnis liegt vor“'],
             ['name' => 'is_active', 'label' => 'Auf der Website anzeigen', 'type' => 'checkbox', 'default' => 1],
-            ['name' => 'show_in_hero', 'label' => 'Im oberen Bereich der Startseite zeigen', 'type' => 'checkbox'],
             ['name' => 'sort_order', 'label' => 'Sortierung', 'type' => 'int', 'default' => 0],
         ];
     }

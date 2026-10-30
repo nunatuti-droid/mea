@@ -37,7 +37,26 @@
     {% if footer_reviews is not empty or g_on %}
       <div class="footer__reviews{{ g_on ? '' : ' footer__reviews--plain' }}">
         {% if g_on %}{% include 'partials/google_rating.twig' with {variant: 'card'} %}{% endif %}
-        {% if footer_reviews is not empty %}
+        {% if g_on and google_reviews is not empty %}
+          {% import 'partials/macros.twig' as ui %}
+          <div class="footer__greviews">
+            <h2 class="footer__voice-title">Das sagen unsere Teilnehmenden auf Google</h2>
+            <ul class="g-reviews">
+              {% for gr in google_reviews %}
+                <li class="g-review">
+                  <div class="g-review__head">
+                    <span class="g-review__avatar" aria-hidden="true">{{ gr.author_name|slice(0, 1)|upper }}</span>
+                    <span><strong>{% if gr.author_url %}<a href="{{ gr.author_url }}" target="_blank" rel="noopener nofollow">{{ gr.author_name }}<span class="visually-hidden"> (Profil bei Google, öffnet in neuem Fenster)</span></a>{% else %}{{ gr.author_name }}{% endif %}</strong>
+                    {% if gr.published_at %}<small>{{ gr.published_at|date('m/Y', false) }}</small>{% endif %}</span>
+                    {% include 'partials/google_g.twig' with {size: 16} %}
+                  </div>
+                  {{ ui.stars(gr.rating) }}
+                  {% if gr.body %}<p>{{ gr.body|length > 220 ? gr.body|slice(0, 210)|trim ~ ' …' : gr.body }}</p>{% endif %}
+                </li>
+              {% endfor %}
+            </ul>
+          </div>
+        {% elseif footer_reviews is not empty %}
           {% set fr = footer_reviews|first %}
           <div class="footer__voice">
             <h2 class="footer__voice-title">Stimmen unserer Teilnehmenden</h2>

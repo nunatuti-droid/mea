@@ -23,7 +23,7 @@ final class AdminModule
             new ExamAdminController($app), new SessionAdminController($app), new MediaController($app),
             new SettingsController($app), new BookingAdminController($app), new UserController($app),
             new EmailLogController($app), new AuditController($app), new ConsentAdminController($app), new SystemController($app),
-            new SiteStatusController($app), new ReviewAdminController($app), new ApplicationAdminController($app), new SecurityController($app), new BackupController($app), new UpdateController($app),
+            new SiteStatusController($app), new ReviewAdminController($app), new GoogleReviewAdminController($app), new ApplicationAdminController($app), new SecurityController($app), new BackupController($app), new UpdateController($app),
         ] as $controller) {
             $controller->register($k);
         }
@@ -42,6 +42,7 @@ final class AdminModule
             new Resources\ServiceResource($db, fn(array $row) => $app->publicPages->serviceHtml($row)),
             new Resources\FaqResource($db),
             new Resources\ReviewResource($db),
+            new Resources\GoogleReviewResource($db),
             new Resources\MenuItemResource($db),
             new Resources\RedirectResource($db),
             new Resources\LocationResource($db),

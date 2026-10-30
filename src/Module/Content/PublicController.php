@@ -27,7 +27,6 @@ final class PublicController
             'exams' => $this->exams->listed(),
             'next_sessions' => $this->exams->nextBookableSessions(6),
             'reviews' => $this->content->reviews(),
-            'hero_reviews' => $this->content->reviews(true),
             'rating' => $this->content->ratingSummary(),
             'faqs' => $this->content->faqsFor('home'),
             'home' => $this->settings->get('home', []),

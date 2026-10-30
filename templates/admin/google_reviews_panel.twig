@@ -1,0 +1,33 @@
+{% set c = r.connection() %}
+<section class="card g-admin" aria-labelledby="g-conn-title">
+  <h2 id="g-conn-title">Verbindung zum Google-Unternehmensprofil</h2>
+  {% if c.last_error %}
+    <div class="alert alert--error">{{ icon('circle-alert') }}<div><p><strong>Letzter Abruf fehlgeschlagen{% if c.last_error_at %} ({{ c.last_error_at|utc|date('d.m.Y H:i') }}){% endif %}:</strong> {{ c.last_error }}</p></div></div>
+  {% endif %}
+  <p class="g-admin__status">
+    {% if c.rating and c.count %}<strong>{{ c.rating }} von 5</strong> aus {{ c.count }} Bewertungen{% if c.as_of %} · Stand {{ c.as_of }}{% endif %}{% else %}Noch kein Gesamtwert eingetragen.{% endif %}
+    {% if c.has_key %}<br>Automatischer Abruf: <strong>eingerichtet</strong>, jede Nacht.{% if c.last_sync_at %} Zuletzt: {{ c.last_sync_at|utc|date('d.m.Y H:i') }}.{% endif %}{% else %}<br>Automatischer Abruf: <strong>nicht eingerichtet</strong> (API-Schlüssel fehlt). Sie können Werte und Bewertungen auch von Hand eintragen.{% endif %}
+  </p>
+  {% if c.has_key %}
+    <form method="post" action="/verwaltung/google-bewertungen/abrufen/" class="row">
+      <input type="hidden" name="_csrf" value="{{ csrf }}">
+      <button class="btn btn--primary btn--sm" type="submit">{{ icon('refresh-cw') }}Jetzt von Google abrufen</button>
+    </form>
+  {% endif %}
+  <details class="g-admin__details"{% if not c.profile_url or not c.has_key %} open{% endif %}>
+    <summary>Einstellungen</summary>
+    <form method="post" action="/verwaltung/google-bewertungen/verbindung/" class="adm-form" novalidate>
+      <input type="hidden" name="_csrf" value="{{ csrf }}">
+      <div class="form-grid">
+        <div class="field field--wide"><label for="g-url">Link zum Google-Unternehmensprofil</label><input id="g-url" type="text" inputmode="url" name="profile_url" value="{{ c.profile_url }}" maxlength="1000"><p class="field__help">Leer = kein Hinweis auf Google auf der Website. Beim Seitenaufruf werden keine Daten an Google übertragen; erst der Klick führt zu Google.</p></div>
+        <div class="field"><label for="g-key">Google API-Schlüssel (Places API)</label><input id="g-key" type="password" name="api_key" value="" autocomplete="off" placeholder="{{ c.has_key ? '•••••••• gespeichert' : 'AIza…' }}"><p class="field__help">Für den automatischen Abruf. Wird verschlüsselt gespeichert. Leer lassen = unverändert.</p>
+          {% if c.has_key %}<label class="check"><input type="checkbox" name="remove_key" value="1"> <span>Gespeicherten Schlüssel löschen</span></label>{% endif %}</div>
+        <div class="field"><label for="g-place">Place-ID (optional)</label><input id="g-place" type="text" name="place_id" value="{{ c.place_id }}" maxlength="300"><p class="field__help">Wird beim ersten Abruf automatisch ermittelt.</p></div>
+        <div class="field"><label for="g-rating">Sterne laut Google</label><input id="g-rating" type="text" name="rating" value="{{ c.rating }}" maxlength="3" inputmode="decimal"><p class="field__help">z. B. 4,9. Wird beim Abruf automatisch überschrieben.</p></div>
+        <div class="field"><label for="g-count">Anzahl der Bewertungen</label><input id="g-count" type="text" name="count" value="{{ c.count }}" inputmode="numeric"></div>
+        <div class="field"><label for="g-asof">Stand</label><input id="g-asof" type="text" name="as_of" value="{{ c.as_of }}" maxlength="20"><p class="field__help">z. B. 10/2026</p></div>
+      </div>
+      <div class="form-actions"><button class="btn btn--primary" type="submit">{{ icon('check') }}Speichern</button></div>
+    </form>
+  </details>
+</section>
