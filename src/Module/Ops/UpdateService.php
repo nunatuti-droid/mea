@@ -302,7 +302,8 @@ final class UpdateService
         // Eigenständiger PHP-Prozess lädt den neuen Programmstand (feste Befehlszeile, keine Benutzereingaben)
         $php = self::cliPhp();
         $cmd = [$php, $this->root . '/bin/console', 'selftest'];
-        $proc = @proc_open($cmd, [1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes, $this->root);
+        // Eingabe fest auf /dev/null: sonst erbt der Prozess im Webserver die Verbindung und wartet ewig
+        $proc = @proc_open($cmd, [0 => ['file', '/dev/null', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes, $this->root);
         if (is_resource($proc)) {
             $out = stream_get_contents($pipes[1]) . stream_get_contents($pipes[2]);
             if (proc_close($proc) !== 0) {
