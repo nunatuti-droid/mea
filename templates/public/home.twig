@@ -6,15 +6,19 @@
 {% set og_image = media_url(home.hero_media_id, 1440) %}
 
 {% block head %}
-  <link rel="preload" as="image" href="{{ media_url(home.hero_media_id, 960) }}" fetchpriority="high">
+  <link rel="preload" as="image" href="{{ media_url(home.hero_media_id, 960) }}" imagesrcset="{{ media_url(home.hero_media_id, 960) }} 960w, {{ media_url(home.hero_media_id, 1440) }} 1440w" imagesizes="100vw" fetchpriority="high">
 {% endblock %}
 
 {% block content %}
 <section class="hero" aria-labelledby="hero-title">
-  <div class="container hero__grid">
-    <div>
-      <span class="eyebrow">{{ home.eyebrow }}</span>
-      <h1 id="hero-title">{{ home.title }}</h1>
+  <div class="hero__bg">
+    {{ img(home.hero_media_id, '100vw', {loading: 'eager', fetchpriority: 'high', alt: ''}) }}
+  </div>
+  <div class="container hero__inner">
+    <div class="hero__content">
+      <span class="hero__badge"><span class="hero__badge-icon">{{ icon('map-pin') }}</span>{{ home.eyebrow }}</span>
+      {% set parts = home.title|split(':', 2) %}
+      <h1 id="hero-title">{% if parts|length == 2 %}{{ parts[0] }}:<br><em>{{ parts[1]|trim }}</em>{% else %}{{ home.title }}{% endif %}</h1>
       <p class="hero__lead">{{ home.lead }}</p>
       <div class="btn-row">
         <a class="btn" href="/telc-pruefungszentrum/">{{ icon('calendar') }}Prüfungstermin finden</a>
@@ -26,18 +30,15 @@
         {% endfor %}
       </ul>
     </div>
-    <div class="hero__media">
-      {{ img(home.hero_media_id, '(max-width: 960px) 100vw, 560px', {loading: 'eager', fetchpriority: 'high'}) }}
-      {% if rating.count > 0 %}
-        <div class="hero-quote">{{ ui.stars(rating.average) }}<p><strong>{{ rating.average|number_format(1, ',') }} von 5</strong> aus {{ rating.count }} Bewertungen</p></div>
-      {% elseif hero_reviews is not empty %}
-        {% set hr = hero_reviews|first %}
-        <figure class="hero-quote mb-0">
-          <p>„{{ hr.body }}“</p>
-          <footer><strong>{{ hr.display_name }}</strong>{% if hr.role_label %}, {{ hr.role_label }}{% endif %}</footer>
-        </figure>
-      {% endif %}
-    </div>
+    {% if rating.count > 0 %}
+      <div class="hero-quote">{{ ui.stars(rating.average) }}<p><strong>{{ rating.average|number_format(1, ',') }} von 5</strong> aus {{ rating.count }} Bewertungen</p></div>
+    {% elseif hero_reviews is not empty %}
+      {% set hr = hero_reviews|first %}
+      <figure class="hero-quote mb-0">
+        <p>„{{ hr.body }}“</p>
+        <footer><strong>{{ hr.display_name }}</strong>{% if hr.role_label %}, {{ hr.role_label }}{% endif %}</footer>
+      </figure>
+    {% endif %}
   </div>
 </section>
 
