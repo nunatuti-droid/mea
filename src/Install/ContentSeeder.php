@@ -13,6 +13,8 @@ use Mea\Module\Media\ImageVariantGenerator;
  */
 final class ContentSeeder
 {
+    public const EXAM_REQUIREMENTS = '<p>Für die Teilnahme ist kein vorheriger Kurs erforderlich. Wir empfehlen eine gezielte Vorbereitung; sprechen Sie uns gerne an.</p>';
+
     /** @var array<string,int> */
     private array $m = [];
 
@@ -380,46 +382,21 @@ final class ContentSeeder
             'required_fields_json' => json_encode(['first_name', 'last_name', 'birth_date', 'birth_place', 'email', 'phone', 'address']),
         ]);
         $general = $this->db->value("SELECT id FROM exam_categories WHERE slug = 'allgemeinsprachlich'");
-        $parts = '<p>Die Prüfung besteht aus den Teilen <strong>Lesen, Hören, Schreiben</strong> und <strong>Sprechen</strong>.</p>';
-        $levels = [
-            ['A1', 'Für Einsteigerinnen und Einsteiger, die vertraute Alltagsausdrücke und einfache Sätze verstehen und verwenden können.',
-                '<p>Auf dem Niveau A1 können Sie sich und andere vorstellen, einfache Fragen stellen und beantworten und sich verständigen, wenn Ihr Gegenüber langsam und deutlich spricht.</p>'],
-            ['A2', 'Für alle, die sich in einfachen, routinemäßigen Situationen des Alltags verständigen können.',
-                '<p>Auf dem Niveau A2 verstehen Sie Sätze und häufig gebrauchte Ausdrücke aus Bereichen wie Familie, Einkaufen, Arbeit und nähere Umgebung und können einfache Informationen austauschen.</p>'],
-            ['B1', 'Der häufig verlangte Nachweis für Ausbildung, Beruf, Aufenthaltstitel und Einbürgerung.',
-                '<p>Auf dem Niveau B1 verstehen Sie die Hauptpunkte, wenn klare Standardsprache über vertraute Themen aus Arbeit, Schule und Freizeit verwendet wird, und können sich zusammenhängend zu Erfahrungen, Zielen und Plänen äußern.</p>'],
-            ['B2', 'Für Beruf und Studium: selbstständige Sprachverwendung auch bei komplexeren Themen.',
-                '<p>Auf dem Niveau B2 verstehen Sie die Hauptinhalte komplexer Texte, auch Fachdiskussionen im eigenen Gebiet, und können sich spontan und fließend verständigen.</p>'],
-            ['C1', 'Für anspruchsvolle berufliche und akademische Ziele.',
-                '<p>Auf dem Niveau C1 verstehen Sie ein breites Spektrum anspruchsvoller, längerer Texte und können sich klar, strukturiert und ausführlich zu komplexen Sachverhalten äußern.</p>'],
-        ];
-        foreach ($levels as $i => [$lvl, $short, $body]) {
-            $this->db->insert('exam_types', [
-                'provider_id' => $provider, 'slug' => 'telc-deutsch-' . strtolower($lvl),
-                'internal_name' => 'telc Deutsch ' . $lvl, 'public_name' => 'telc Deutsch ' . $lvl,
-                'level_label' => $lvl, 'category' => 'Deutsch', 'category_id' => $general, 'exam_format' => 'Schriftliche und mündliche Prüfung',
-                'short_text' => $short, 'body_html' => $body . $parts,
-                'requirements_html' => '<p>Für die Teilnahme ist kein vorheriger Kurs erforderlich. Wir empfehlen eine gezielte Vorbereitung; sprechen Sie uns gerne an.</p>',
+        $i = 0;
+        foreach (TelcGermanExams::all() as $slug => $e) {
+            $lvl = $e['level_label'];
+            $img = $slug === 'telc-deutsch-a2-b1' ? 'exam_a2b1' : ($i % 2 === 0 ? 'exam_writing' : 'exam_room');
+            $this->db->insert('exam_types', $e + [
+                'provider_id' => $provider, 'slug' => $slug, 'category' => 'Deutsch', 'category_id' => $general,
+                'requirements_html' => self::EXAM_REQUIREMENTS,
                 'booking_rule_id' => $rule,
-                'card_media_id' => $this->m[$i % 2 === 0 ? 'exam_writing' : 'exam_room'],
-                'hero_media_id' => $this->m[$i % 2 === 0 ? 'exam_writing' : 'exam_room'],
-                'seo_title' => "telc Deutsch $lvl Prüfung in Herne",
-                'seo_description' => mb_substr("telc Deutsch $lvl beim MEA Bildungszentrum: Ablauf, Voraussetzungen, Termine, Preise und Online-Anmeldung.", 0, 170),
-                'status' => 'draft', 'sort_order' => ($i + 1) * 10,
+                'card_media_id' => $this->m[$img], 'hero_media_id' => $this->m[$slug === 'telc-deutsch-a2-b1' ? 'exam_writing' : $img],
+                'seo_title' => mb_substr($e['public_name'] . ' Prüfung in Herne', 0, 70),
+                'seo_description' => mb_substr($e['public_name'] . ' beim MEA Bildungszentrum im telc-Prüfungszentrum Herne: Ablauf, Termine, Preise und Online-Anmeldung.', 0, 170),
+                'status' => 'draft',
             ]);
+            $i++;
         }
-        $this->db->insert('exam_types', [
-            'provider_id' => $provider, 'slug' => 'telc-deutsch-a2-b1',
-            'internal_name' => 'telc Deutsch A2-B1 (Beispiel)', 'public_name' => 'telc Deutsch A2-B1',
-            'level_label' => 'A2-B1', 'category' => 'Deutsch', 'category_id' => $general, 'exam_format' => 'Skalierte Prüfung',
-            'short_text' => 'Eine Prüfung, zwei mögliche Niveaus: Je nach Ergebnis erhalten Sie ein Zertifikat auf A2 oder B1.',
-            'body_html' => '<p>telc Deutsch A2-B1 ist eine skalierte Sprachprüfung für Deutschlernende, die ihre Kenntnisse auf den Niveaustufen A2 oder B1 des Gemeinsamen Europäischen Referenzrahmens nachweisen möchten. Je nach erreichter Leistung erhalten Sie ein telc-Zertifikat auf A2 oder B1.</p>' . $parts
-                . '<p>Arbeitgeber, Behörden und Bildungseinrichtungen erkennen das Zertifikat an.</p>',
-            'booking_rule_id' => $rule, 'card_media_id' => $this->m['exam_a2b1'], 'hero_media_id' => $this->m['exam_writing'],
-            'seo_title' => 'telc Deutsch A2-B1 Prüfung in Herne',
-            'seo_description' => 'telc Deutsch A2-B1: skalierte Deutschprüfung mit Zertifikat auf A2 oder B1. Termine, Preise und Online-Anmeldung beim MEA Bildungszentrum.',
-            'status' => 'draft', 'sort_order' => 25,
-        ]);
     }
 
     private function faq(string $q, string $a, array $targets, string $cat = 'Prüfungen'): void
