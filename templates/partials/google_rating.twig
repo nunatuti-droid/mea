@@ -1,0 +1,13 @@
+{# Google-Bewertungen: Link zum Profil und selbst eingetragene Sternebewertung (kein automatischer Abruf, keine Daten an Google beim Seitenaufruf) #}
+{% set g = site.google ?? {} %}
+{% if g.profile_url ?? false %}
+  {% import 'partials/macros.twig' as ui %}
+  {% set rating = (g.rating ?? '')|replace({',': '.'}) %}
+  <div class="g-rating{{ dark ?? false ? ' g-rating--dark' }}">
+    {% if rating and (g.count ?? 0) > 0 %}
+      {{ ui.stars(rating + 0) }}
+      <p><strong>{{ (rating + 0)|number_format(1, ',') }} von 5</strong> aus {{ g.count }} Google-Bewertungen{% if g.as_of ?? false %} <span class="g-rating__date">(Stand: {{ g.as_of }})</span>{% endif %}</p>
+    {% endif %}
+    <a href="{{ g.profile_url }}" target="_blank" rel="noopener">Bewertungen auf Google ansehen{{ icon('external-link') }}<span class="visually-hidden"> (öffnet in neuem Fenster)</span></a>
+  </div>
+{% endif %}

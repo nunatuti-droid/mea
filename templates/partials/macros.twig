@@ -1,7 +1,7 @@
 {% macro stars(value) %}
-  {%- set full = value|round -%}
+  {%- set full = value|round(0, 'floor') + ((value - value|round(0, 'floor')) >= 0.75 ? 1 : 0) -%}
   <span class="stars" role="img" aria-label="{{ value|number_format(1, ',') }} von 5 Sternen">
-    {%- for i in 1..5 -%}<svg class="icon{{ i > full ? ' is-empty' : '' }}" aria-hidden="true"><use href="#i-star"></use></svg>{%- endfor -%}
+    {%- for i in 1..5 -%}<svg class="icon{{ i > full ? ' is-empty' : '' }}" aria-hidden="true"><use href="#{{ i > full ? 'i-star' : 'i-star-fill' }}"></use></svg>{%- endfor -%}
   </span>
 {% endmacro %}
 

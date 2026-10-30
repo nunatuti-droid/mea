@@ -127,3 +127,18 @@ Jede Änderung wird hier festgehalten. Das Gesamt-Update wird erst erstellt, wen
 **Nach dem Hochladen nötig:** `migrate` ausführen.
 
 **Geprüft:** 114 automatische Tests grün (3 neue), Banner, Einstellungen, Speichern und erneutes Laden im Browser getestet, Barrierefreiheit (axe) ohne Befund.
+
+## Punkt 2 (Teil): Google-Bewertungen als Link und Sternebewertung
+
+Entscheidung von Nuna: **„Link und Sternebewertung“** (kein automatischer Abruf über die Google-Schnittstelle).
+
+**Was neu ist**
+- Verwaltung → Firmendaten & SEO → **Google-Bewertungen**: Link zum Unternehmensprofil, Sternebewertung, Anzahl, Stand. Die Werte werden von Hand so übernommen, wie Google sie anzeigt. Es wird nichts erfunden oder automatisch abgerufen.
+- Anzeige auf „Über uns“ (Abschnitt „Was unsere Teilnehmenden sagen“) und im Fußbereich: Sterne, „4,8 von 5 aus 37 Google-Bewertungen (Stand …)“ und Link „Bewertungen auf Google ansehen“. Die Zahlen hier sind nur ein Beispiel.
+- Datenschutz: Beim Seitenaufruf werden keine Daten an Google übertragen, erst der Klick auf den Link führt zu Google. Deshalb ist dafür keine Cookie-Einwilligung nötig.
+- Ohne eingetragenen Link erscheint nichts.
+- Nebenbei behoben: Die Sterne bei Bewertungen waren nur als Umriss zu sehen. Jetzt sind sie gefüllt, bei Werten wie 4,8 werden fünf Sterne gezeigt, bei 4,5 vier.
+
+**Noch offen:** Link zum Google-Profil sowie Google Maps statt OpenStreetMap auf den Standortseiten.
+
+**Dateien:** `templates/partials/google_rating.twig` (neu), `templates/public/page_about.twig`, `templates/partials/footer.twig`, `templates/partials/macros.twig`, `templates/_icons.svg`, `src/Admin/SettingsController.php`, `public/assets/css/app.css`, `tests/Integration/GoogleRatingTest.php` (neu).

@@ -514,7 +514,7 @@ body.nav-open { overflow: hidden; }
 .footer__locations { display: grid; gap: var(--s-4); }
 .footer__social { display: flex; gap: var(--s-3); margin-top: var(--s-4); }
 .footer__social a { display: inline-flex; align-items: center; gap: 6px; padding: 8px 12px; border: 1px solid rgba(255,255,255,.2); border-radius: var(--r-pill); }
-.footer__reviews { border-top: 1px solid rgba(255,255,255,.12); padding-block: var(--s-6); display: grid; grid-template-columns: auto 1fr auto; gap: var(--s-6); align-items: center; }
+.footer__reviews { border-top: 1px solid rgba(255,255,255,.12); padding-block: var(--s-6); display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: var(--s-6); align-items: center; }
 .footer__reviews blockquote { margin: 0; color: #fff; font-size: 1rem; }
 .footer__reviews cite { font-style: normal; color: var(--c-on-dark-muted); display: block; margin-top: 4px; font-size: var(--fs-xs); }
 .footer__bottom { border-top: 1px solid rgba(255,255,255,.12); padding-block: var(--s-5); display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--s-4); }
@@ -734,3 +734,19 @@ a[href^="tel:"]:hover, a[href^="https://wa.me"]:hover, .location-card h2 a:hover
 @media (prefers-reduced-motion: reduce) { .switch__track, .switch__track::after { transition: none; } }
 .map__consent .link-quiet { background: none; border: 0; padding: 4px; font: 500 var(--fs-xs)/1.4 var(--font); color: var(--c-muted); text-decoration: underline; cursor: pointer; }
 .map__consent .link-quiet:hover { color: var(--c-action); }
+
+/* Google-Bewertungen (Link und selbst eingetragene Sterne) */
+.g-rating { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin-top: var(--s-4); font-size: var(--fs-sm); }
+.g-rating p { margin: 0; color: var(--c-text); }
+.g-rating__date { color: var(--c-muted); font-size: var(--fs-xs); }
+.g-rating a { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; text-decoration: none; }
+.g-rating a:hover { text-decoration: underline; }
+.g-rating a .icon { width: 14px; height: 14px; }
+.g-rating--dark { margin-top: 0; }
+.g-rating--dark p, .g-rating--dark .g-rating__date { color: var(--c-on-dark-muted); }
+.g-rating--dark a { color: #fff; }
+.footer__reviews-links { display: grid; gap: var(--s-2); justify-items: start; }
+.footer__reviews-links { justify-items: end; text-align: right; }
+.footer__reviews-links .g-rating { justify-content: flex-end; max-width: 360px; }
+@media (max-width: 900px) { .footer__reviews { grid-template-columns: 1fr; } .footer__reviews-links { justify-items: start; text-align: left; } .footer__reviews-links .g-rating { justify-content: flex-start; } }
+.g-rating__date { white-space: nowrap; }

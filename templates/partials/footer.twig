@@ -45,7 +45,7 @@
           {% endif %}
         </div>
         <blockquote>„{{ fr.body }}“<cite>{{ fr.display_name }}{% if fr.role_label %}, {{ fr.role_label }}{% endif %}</cite></blockquote>
-        <a href="/ueber-uns/#stimmen">Alle {{ footer_reviews|length }} Stimmen</a>
+        <div class="footer__reviews-links"><a href="/ueber-uns/#stimmen">Alle {{ footer_reviews|length }} Stimmen</a>{% include 'partials/google_rating.twig' with {dark: true} %}</div>
       </div>
     {% endif %}
     <div class="footer__bottom">
