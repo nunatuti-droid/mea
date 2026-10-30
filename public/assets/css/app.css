@@ -28,8 +28,9 @@
   --c-text: #22394a;
   --c-muted: #4a5b66;
   --c-surface: #ffffff;
-  --c-surface-alt: #f4f8f7;
-  --c-border: #dbe6e3;
+  --c-surface-alt: #eaf1ef;
+  --c-page: #f6f9f8;
+  --c-border: #d3e0dc;
   --c-accent: #e8a33d;
   --c-accent-soft: #fdf3e1;
   --c-success: #276b44;
@@ -61,6 +62,7 @@
   --r-shape: 24px 24px 24px 6px;
   --sh-1: 0 1px 2px rgba(14, 48, 66, 0.06), 0 1px 3px rgba(14, 48, 66, 0.05);
   --sh-2: 0 18px 40px -18px rgba(14, 48, 66, 0.35);
+  --sh-card: 0 1px 2px rgba(14, 48, 66, 0.06), 0 10px 28px -14px rgba(14, 48, 66, 0.22);
   --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
   --header-h: 76px;
   --quickbar-h: 0px;
@@ -75,7 +77,7 @@ body {
   font-size: var(--fs-base);
   line-height: 1.65;
   color: var(--c-text);
-  background: var(--c-surface);
+  background: var(--c-page);
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   padding-bottom: var(--quickbar-h);
@@ -291,9 +293,9 @@ body.nav-open { overflow: hidden; }
 
 .card {
   position: relative; display: flex; flex-direction: column; background: #fff; border: 1px solid var(--c-border);
-  border-radius: var(--r-md); overflow: hidden; transition: transform .25s var(--ease), box-shadow .25s var(--ease), border-color .25s var(--ease);
+  border-radius: var(--r-md); overflow: hidden; box-shadow: var(--sh-card); transition: transform .25s var(--ease), box-shadow .25s var(--ease), border-color .25s var(--ease);
 }
-.card:hover { transform: translateY(-2px); box-shadow: var(--sh-2); border-color: transparent; }
+.card:hover { transform: translateY(-3px); box-shadow: var(--sh-2); border-color: #bcd2cc; }
 .card__media { position: relative; aspect-ratio: 3 / 2; background: var(--c-surface-alt); overflow: hidden; }
 .card__media img { width: 100%; height: 100%; object-fit: cover; transition: transform .5s var(--ease); }
 .card:hover .card__media img { transform: scale(1.03); }
@@ -605,3 +607,6 @@ body.nav-open { overflow: hidden; }
 .mb-5 { margin-bottom: var(--s-5); }
 .preview-bar { position: sticky; top: 0; z-index: 100; background: var(--c-accent); color: var(--c-ink); padding: 10px 16px; text-align: center; font-weight: 700; font-size: var(--fs-sm); }
 .preview-bar a { color: var(--c-ink); }
+
+/* Weiße Flächen heben sich vom hellen Seitenhintergrund ab */
+.steps li, .box, .faq details, .quote-card, .booking-summary, .status-card, .table--stack tr { box-shadow: var(--sh-card); }
