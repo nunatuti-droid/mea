@@ -357,10 +357,7 @@ final class ContentSeeder
             'seo_title' => 'Impressum – MEA Bildungszentrum GmbH',
             'seo_description' => 'Impressum der MEA Bildungszentrum GmbH, Barkhausstraße 22, 45768 Marl.',
         ]);
-        $this->page('datenschutz', 'Datenschutzerklärung',
-            '<p><strong>Hinweis:</strong> Die Datenschutzerklärung für die neue Website wird derzeit fachlich erstellt und geprüft. Bis dahin gilt die Datenschutzerklärung der bisherigen Website.</p>'
-            . '<h2>Verantwortlicher</h2><p>MEA Bildungszentrum GmbH, Barkhausstraße 22, 45768 Marl. Vertreten durch Elmedina Mernica und Saudin Cizmic.</p>'
-            . '<h2>Was diese Website technisch tut</h2><ul><li>Keine Tracking- oder Marketing-Cookies, keine Analysedienste.</li><li>Schriften und Bilder werden vom eigenen Server geladen.</li><li>Kartendienste (OpenStreetMap) werden erst nach Ihrem Klick geladen.</li><li>Ein technisch notwendiges Sitzungs-Cookie wird nur beim Absenden von Formularen gesetzt.</li></ul>', [
+        $this->page('datenschutz', 'Datenschutzerklärung', PrivacyPolicy::html(), [
             'template' => 'legal', 'is_system' => 1,
             'seo_title' => 'Datenschutzerklärung – MEA Bildungszentrum',
             'seo_description' => 'Informationen zum Datenschutz auf der Website des MEA Bildungszentrums.',

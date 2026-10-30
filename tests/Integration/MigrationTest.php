@@ -124,9 +124,9 @@ final class MigrationTest extends IntegrationTestCase
         foreach ((new \Mea\Module\Ops\GoLiveCheck($this->app))->run() as $r) {
             $rows[$r['group'] . '/' . $r['label']] = $r['status'];
         }
-        // Startdaten enthalten Platzhalter in den Rechtstexten; PayPal ist im Test nicht eingerichtet
+        // AGB enthält noch den Platzhalter; die Datenschutzerklärung ist ausformuliert. PayPal ist im Test nicht eingerichtet
         self::assertSame('error', $rows['Livegang/AGB']);
-        self::assertSame('error', $rows['Livegang/Datenschutzerklärung']);
+        self::assertSame('ok', $rows['Livegang/Datenschutzerklärung']);
         self::assertSame('error', $rows['Livegang/PayPal-Modus']);
         self::assertArrayHasKey('Livegang/Alte Adressen', $rows);
     }

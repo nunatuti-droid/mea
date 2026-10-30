@@ -173,3 +173,27 @@ Grundlage: Lizenz des Prüfungszentrums Herne für „Deutsch A1 bis C2“ (Anga
 **Dateien:** `templates/public/location.twig`, `templates/partials/location_card.twig`, `public/assets/js/app.js`, `src/Core/App.php`, `src/Module/Consent/ConsentConfig.php`.
 
 **Geprüft:** Karte im Browser geladen (Google-Einbettung, keine CSP-Fehler), 116 automatische Tests grün.
+
+## Punkt 1: Datenschutzerklärung (Entwurf, muss fachlich geprüft werden)
+
+Grundlage: Firmendaten von der bisherigen Datenschutzseite (meabildungszentrum.de/datenschutz) und die Funktionen, die die neue Website tatsächlich nutzt. Keine Analyse-, Marketing- oder Videodienste, weil derzeit keine genutzt werden.
+
+**Inhalt (18 Abschnitte):** Verantwortlicher, Hosting bei netcup und Server-Logdateien, Schutz vor Angriffen (gekürzte IP, 90 Tage), Verschlüsselung, Cookies („mea“, „mea_consent“) und Einwilligungsnachweis, Schriften vom eigenen Server, Kontaktformular (Anonymisierung nach 12 Monaten), Anmeldung zu telc-Prüfungen (Weitergabe an telc, Aufbewahrung), PayPal, E-Mails (Protokoll 180 Tage), Google Maps (Sprungmarke `#karten`, nur nach Klick oder Einwilligung), Links zu Google, WhatsApp, Facebook und Instagram, Analyse- und Marketingdienste (derzeit keine), Bewerbungen, Empfänger und Drittländer, Rechte inklusive Widerspruch, Beschwerde bei der LDI NRW, Pflicht zur Bereitstellung, Änderungen. Die Speicherfristen entsprechen den Einstellungen der Website.
+
+**Technisch**
+- Der Text ersetzt nur den ursprünglichen Platzhalter. Wurde die Seite in der Verwaltung schon bearbeitet, bleibt sie unverändert.
+- Überschriften im Seiteneditor dürfen jetzt eine Sprungmarke (`id`) haben, damit Links wie `/datenschutz/#karten` funktionieren. Andere Elemente bekommen weiterhin keine `id`.
+- Keine E-Mail-Adresse im Klartext; Kontakt über Formular, Telefon und Post.
+
+**Bitte vor dem Livegang von einer fachkundigen Person prüfen lassen**, besonders:
+1. Datenschutzbeauftragter: Die alte Seite nennt keinen. Ob ihr einen benennen müsst (z. B. ab 20 Personen, die regelmäßig mit personenbezogenen Daten arbeiten), bitte klären.
+2. Vertrag zur Auftragsverarbeitung mit netcup: abschließen bzw. bestätigen (im netcup-Kundenbereich möglich).
+3. Weitergabe an telc: welche Angaben genau übermittelt werden.
+4. Bewerbungen: Löschfrist von sechs Monaten so einhalten.
+5. Werden später Google Analytics, Meta-Pixel oder YouTube eingeschaltet, muss die Datenschutzerklärung vorher ergänzt werden.
+
+**Dateien:** `src/Install/PrivacyPolicy.php` (neu), `migrations/20261103100018_privacy_policy.php` (neu), `src/Install/ContentSeeder.php`, `src/Core/HtmlSanitizer.php`, `tests/Integration/PrivacyPolicyTest.php` (neu), `tests/Integration/MigrationTest.php`.
+
+**Nach dem Hochladen nötig:** `migrate` ausführen.
+
+**Geprüft:** 118 automatische Tests grün (2 neue), Seite im Browser angesehen, Barrierefreiheit (axe) ohne Befund.
