@@ -271,3 +271,10 @@ Grundlage: Firmendaten von der bisherigen Datenschutzseite (meabildungszentrum.d
 **Dateien:** `migrations/20261104100021_create_google_reviews.php` (neu), `src/Module/Content/GoogleReviewSync.php` (neu), `src/Admin/GoogleReviewAdminController.php` (neu), `src/Admin/Resources/GoogleReviewResource.php` (neu), `templates/admin/google_reviews_panel.twig` (neu), `src/Admin/AdminModule.php`, `src/Admin/SettingsController.php`, `src/Admin/Resources/ReviewResource.php`, `src/Core/App.php`, `src/Module/Content/ContentRepository.php`, `src/Module/Content/PublicController.php`, `src/Module/Ops/Scheduler.php`, `templates/public/home.twig`, `templates/partials/footer.twig`, `templates/admin/layout.twig`, `public/assets/css/app.css`, `public/assets/css/admin.css`, Test `GoogleReviewSyncTest` (neu).
 
 **Nach dem Einspielen:** nichts weiter nötig (die Datenbank wird vom Update selbst aktualisiert). Für den automatischen Abruf den API-Schlüssel eintragen.
+
+# Update 0.7.4
+
+- Google-Sterne im Startbereich: kompakter und halb durchsichtig, nur noch „4,9 (10)“ ohne den Text „Google-Bewertungen“ (für Screenreader bleibt er erhalten).
+- Google-Karte im Fußbereich: halb durchsichtig statt weiß, passend zu den Bewertungskarten daneben.
+
+**Dateien:** `templates/partials/google_rating.twig`, `public/assets/css/app.css`.

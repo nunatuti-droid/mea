@@ -10,9 +10,9 @@
     <a class="g-hero" href="{{ g.profile_url }}" target="_blank" rel="noopener">
       <span class="g-hero__logo">{% include 'partials/google_g.twig' with {size: 22} %}</span>
       {% if has_stars %}
-        <span class="g-hero__body">{{ ui.stars(rating + 0) }}<span><strong>{{ (rating + 0)|number_format(1, ',') }}</strong> von 5 · {{ g.count }} Google-Bewertungen</span></span>
+        <span class="g-hero__body">{{ ui.stars(rating + 0) }}<span><strong>{{ (rating + 0)|number_format(1, ',') }}</strong> ({{ g.count }})</span><span class="visually-hidden"> aus {{ g.count }} Google-Bewertungen</span></span>
       {% else %}
-        <span class="g-hero__body"><span>Bewertungen auf Google ansehen</span></span>
+        <span class="g-hero__body"><span>Bewertungen ansehen</span><span class="visually-hidden"> auf Google</span></span>
       {% endif %}
       <span class="visually-hidden"> (öffnet in neuem Fenster)</span>
     </a>
