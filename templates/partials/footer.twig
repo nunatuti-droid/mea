@@ -4,7 +4,7 @@
       <div class="footer__brand">
         <a href="/" aria-label="{{ company.name }} – Startseite">{{ img(company.logo_media_id, '160px', {alt: company.name}) }}</a>
         <p>{{ company.claim }} Wir begleiten Menschen und Unternehmen auf dem Weg in Arbeit, Sprache und Beruf.</p>
-        <a class="btn btn--light btn--sm" href="/kontakt/" data-m="{{ company.email|obfuscate }}">{{ icon('mail') }}E-Mail schreiben</a>
+        <a class="btn btn--light btn--sm" href="/kontakt/#formular">{{ icon('mail') }}E-Mail schreiben</a>
         <div class="footer__social">
           {% if company.facebook %}<a href="{{ company.facebook }}" rel="noopener" target="_blank">Facebook<span class="visually-hidden"> (öffnet in neuem Fenster)</span></a>{% endif %}
           {% if company.instagram %}<a href="{{ company.instagram }}" rel="noopener" target="_blank">Instagram<span class="visually-hidden"> (öffnet in neuem Fenster)</span></a>{% endif %}
