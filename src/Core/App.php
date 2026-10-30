@@ -48,6 +48,8 @@ final class App
     public readonly \Psr\Clock\ClockInterface $clock;
     public readonly string $baseUrl;
     private Router $router;
+    /** Nur für den Selbsttest: Wartungsmodus und Offline-Schalter übergehen, damit nach einem Update der neue Stand geprüft werden kann. */
+    public bool $bypassMaintenance = false;
     public readonly ContentRepository $content;
     public readonly PublicController $publicPages;
     public readonly \Mea\Module\Security\Firewall $firewall;
@@ -257,12 +259,12 @@ final class App
     private function guard(Request $req): ?Response
     {
         $isAdmin = str_starts_with($req->path, '/verwaltung/');
-        if (is_file(self::maintenanceFlag($this->root)) && !$isAdmin) {
+        if (is_file(self::maintenanceFlag($this->root)) && !$isAdmin && !$this->bypassMaintenance) {
             return self::staticPage(503, 'Wartungsarbeiten', 'Die Website wird gerade aktualisiert. Bitte versuchen Sie es in wenigen Minuten erneut.')
                 ->withHeader('Retry-After', '300');
         }
         // Website im Backend offline geschaltet: Wartungsseite, Verwaltung und Zahlungsrückmeldungen bleiben erreichbar
-        if (!\Mea\Module\Ops\SiteStatus::alwaysReachable($req->path) && !$this->siteStatus->isOnline()) {
+        if (!$this->bypassMaintenance && !\Mea\Module\Ops\SiteStatus::alwaysReachable($req->path) && !$this->siteStatus->isOnline()) {
             return $this->offlinePage();
         }
         $check = $this->firewall->inspect($req);

@@ -80,6 +80,7 @@ final class UpdateService
      */
     public function install(string $package, ?int $userId): array
     {
+        self::keepRunning();
         $lock = $this->backups->lock();
         $log = [];
         $flag = App::maintenanceFlag($this->root);
@@ -130,6 +131,7 @@ final class UpdateService
     /** Letztes installiertes Update zurücknehmen (Programmdateien und Datenbankstand vor dem Update). @return list<string> */
     public function revertLast(?int $userId): array
     {
+        self::keepRunning();
         $u = $this->db->one("SELECT * FROM app_updates WHERE status = 'installed' ORDER BY id DESC LIMIT 1");
         if ($u === null) {
             throw new UpdateException('Es gibt kein installiertes Update, das zurückgenommen werden kann.');
@@ -258,6 +260,31 @@ final class UpdateService
         }
     }
 
+    /**
+     * Update nicht abbrechen, wenn der Browser oder der vorgeschaltete Webserver aufhört zu warten
+     * (z. B. 504 nach 60 Sekunden). Ein halb eingespieltes Update wäre schlimmer als ein langsames.
+     */
+    private static function keepRunning(): void
+    {
+        @ignore_user_abort(true);
+        @set_time_limit(0);
+    }
+
+    /** Kommandozeilen-PHP finden; im Webserver ist PHP_BINARY oft php-cgi oder php-fpm. */
+    private static function cliPhp(): string
+    {
+        $bin = (string) PHP_BINARY;
+        if ($bin !== '' && preg_match('/(fpm|cgi)/', basename($bin)) !== 1) {
+            return $bin;
+        }
+        foreach ([PHP_BINDIR . '/php', dirname($bin) . '/php'] as $c) {
+            if (is_file($c) && is_executable($c)) {
+                return $c;
+            }
+        }
+        return 'php';
+    }
+
     /** @return list<string> Fehler */
     private function runSelfTest(): array
     {
@@ -273,7 +300,7 @@ final class UpdateService
             }
         }
         // Eigenständiger PHP-Prozess lädt den neuen Programmstand (feste Befehlszeile, keine Benutzereingaben)
-        $php = PHP_BINARY && !str_contains(basename(PHP_BINARY), 'fpm') ? PHP_BINARY : 'php';
+        $php = self::cliPhp();
         $cmd = [$php, $this->root . '/bin/console', 'selftest'];
         $proc = @proc_open($cmd, [1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes, $this->root);
         if (is_resource($proc)) {
