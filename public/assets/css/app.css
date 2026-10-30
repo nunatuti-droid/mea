@@ -569,6 +569,10 @@ body.nav-open { overflow: hidden; }
 .booking-summary .facts li span:first-child, .booking-summary .facts li span { color: var(--c-text); }
 .booking-summary .facts .icon { color: var(--c-action); margin-top: 2px; }
 .booking-summary .hint { display: flex; gap: 8px; align-items: flex-start; margin: 0; }
+.pay-badge { margin-top: var(--s-4); padding: var(--s-4); border: 1px solid var(--c-border); border-radius: var(--r-md); background: var(--c-surface-alt); display: grid; gap: var(--s-3); }
+.pay-badge__head { display: flex; align-items: center; justify-content: space-between; gap: var(--s-3); flex-wrap: wrap; font-size: var(--fs-sm); font-weight: 600; color: var(--c-ink); }
+.pay-badge__head img { height: 29px; width: auto; }
+.booking-summary .pay-badge .hint { font-size: var(--fs-sm); }
 .price-table { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); }
 .price-table th { text-align: left; font-weight: 500; color: var(--c-muted); padding: 6px 0; }
 .price-table td { text-align: right; padding: 6px 0; white-space: nowrap; }

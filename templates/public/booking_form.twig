@@ -139,7 +139,10 @@
           {% if optional_fees is not empty %}<p class="hint">Gewählte Zusatzleistungen kommen hinzu.</p>{% endif %}
         {% endif %}
         {% if session.notes_public %}<p class="hint">{{ session.notes_public }}</p>{% endif %}
-        <p class="hint">{{ icon('shield-check') }} Die Zahlung läuft über PayPal. Kartendaten werden nicht bei uns gespeichert.</p>
+        <div class="pay-badge">
+          <div class="pay-badge__head"><span>Sicher bezahlen mit</span><img src="/assets/img/paypal.svg" width="104" height="29" alt="PayPal" loading="lazy" decoding="async"></div>
+          <p class="hint">{{ icon('shield-check') }} Kartendaten werden nicht bei uns gespeichert.</p>
+        </div>
       </aside>
     </div>
   </section>
