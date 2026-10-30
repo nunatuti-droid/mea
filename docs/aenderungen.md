@@ -197,3 +197,48 @@ Grundlage: Firmendaten von der bisherigen Datenschutzseite (meabildungszentrum.d
 **Nach dem Hochladen nötig:** `migrate` ausführen.
 
 **Geprüft:** 118 automatische Tests grün (2 neue), Seite im Browser angesehen, Barrierefreiheit (axe) ohne Befund.
+
+---
+
+# Zweite Runde (Wünsche vom 30.10.2026 abends)
+
+## 1. Startseite: Leistungen zuerst
+- Neue Reihenfolge: Startbereich → Zulassungen und Partner → **Leistungen** → Warum MEA → Prüfungen → nächste Termine → vier Schritte → Stimmen → Fragen → Kontakt.
+- Die Schaltflächen im Startbereich lauten jetzt „Unsere Leistungen“ (Hauptschaltfläche) und „Prüfungstermine“.
+
+## 2. Menüpunkt „Startseite“
+- Steht jetzt an erster Stelle im Hauptmenü (auf dem Handy im Menü). In der Verwaltung unter Inhalte → Menüs änderbar.
+
+## 3. Logo auf dem Anmeldeformular
+- Die Anmeldeseite der Verwaltung (und „Passwort vergessen“, Zwei-Faktor usw.) zeigt jetzt das MEA-Logo aus den Firmendaten.
+
+## 4. Zulassungen und Partner
+- Logos stehen jetzt in gleich großen Kacheln mit Namen darunter, auf weißem Hintergrund mit Trennlinie und Überschrift. 6 nebeneinander am Computer, 3 auf dem Tablet, 2 auf dem Handy.
+
+## 5. Google-Bewertungen und Stimmen
+- **Startbereich:** Zeile mit Google-Logo, Sternen, „4,8 von 5 · 37 Google-Bewertungen“, verlinkt zum Google-Profil. Erscheint nur, wenn ein Profil-Link eingetragen ist.
+- **Fußbereich:** Modul (weiße Karte) mit Google-Logo, großer Note, Sternen, Anzahl, Stand und Link „Bewertungen ansehen“. Daneben eine Stimme von Teilnehmenden.
+- **Pflege:** Verwaltung → Firmendaten & SEO → Google-Bewertungen (Link, Note, Anzahl, Stand). Beim Seitenaufruf wird nichts an Google übertragen; das Logo ist auf dem eigenen Server.
+- **Die drei Stimmen von Teilnehmenden:** in der Liste Inhalte → Bewertungen gibt es jetzt je Zeile „Ausblenden“ bzw. „Anzeigen“ (ein Klick, wird protokolliert).
+
+## 6. Bewerbungsformular mit Upload
+- Neue Seite **/karriere/bewerbung/**, verlinkt auf der Karriereseite (Text und Schaltfläche „Jetzt online bewerben“).
+- Felder: Stelle (Jobcoach / Dozent:in, Sprachdozent:in, Initiativbewerbung), Vorname, Nachname, E-Mail, Telefon (optional), Unterlagen, Nachricht (optional), Datenschutz-Bestätigung.
+- **Unterlagen:** nur PDF (Inhalt wird geprüft, nicht nur die Endung), höchstens 3 Dateien mit je 5 MB.
+- **Sicherheit:** Dateien liegen außerhalb des öffentlichen Ordners und werden verschlüsselt gespeichert (libsodium, Schlüssel aus APP_KEY). Spam-Schutz wie beim Kontaktformular. Das Büro bekommt eine E-Mail **ohne Anhänge**.
+- **Verwaltung → Kontakt → Bewerbungen:** Liste mit Filter, Detailansicht, Unterlagen herunterladen, „Abschließen“, „Wieder öffnen“, „Löschen“. Nur Administratoren haben Zugriff (neues Recht „Bewerbungen und Unterlagen“). Jeder Download wird protokolliert.
+- **Löschfristen:** abgeschlossene Bewerbungen werden 6 Monate nach Abschluss automatisch mit allen Unterlagen gelöscht, nie abgeschlossene nach 12 Monaten (nächtliche Aufgabe, braucht den Cron-Job).
+- Datenschutzerklärung, Abschnitt 13, ist entsprechend ergänzt (nur wenn der Text noch der ursprünglichen Fassung entspricht).
+- Sicherungen enthalten die Bewerbungsunterlagen bewusst nicht (Löschpflicht).
+
+**Wichtig für den Server:** In Plesk → PHP-Einstellungen muss `upload_max_filesize` mindestens **8M** und `post_max_size` mindestens **20M** sein. Sonst lehnt der Server größere PDFs ab (die Seite zeigt dann einen verständlichen Hinweis).
+
+## 7. Kein E-Mail-Programm
+- Auf der Kontaktseite gibt es keinen E-Mail-Link mehr, der ein Mailprogramm öffnet. Kontakt nur über Formular, Telefon und WhatsApp. Der zugehörige Programmcode ist entfernt.
+
+## 8. „Direkter Draht“ → „Kontakt“
+- Die Überschrift im Kasten auf der Kontaktseite heißt jetzt „Kontakt“.
+
+**Dateien (1–8):** `templates/public/home.twig`, `templates/public/contact.twig`, `templates/public/page.twig`, `templates/public/application.twig` (neu), `templates/partials/footer.twig`, `templates/partials/google_rating.twig`, `templates/partials/google_g.twig` (neu), `templates/admin/layout.twig`, `templates/admin/crud/index.twig`, `templates/admin/applications/*` (neu), `templates/_icons.svg`, `public/assets/css/app.css`, `public/assets/css/admin.css`, `public/assets/js/app.js`, `src/Core/Request.php`, `src/Core/App.php`, `src/Admin/AdminModule.php`, `src/Admin/ReviewAdminController.php` (neu), `src/Admin/ApplicationAdminController.php` (neu), `src/Admin/Resources/ReviewResource.php`, `src/Module/Applications/*` (neu), `src/Module/Auth/Roles.php`, `src/Module/Ops/Scheduler.php`, `src/Install/ContentSeeder.php`, `src/Install/EmailTemplateSeeder.php`, `src/Install/PrivacyPolicy.php`, `migrations/20261103100019_menu_home_item.php` (neu), `migrations/20261103100020_create_applications.php` (neu), Tests `ApplicationTest` (neu), `GoogleRatingTest`.
+
+**Nach dem Hochladen nötig:** `migrate` ausführen, PHP-Upload-Grenzen in Plesk prüfen.
