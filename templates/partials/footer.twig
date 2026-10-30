@@ -50,7 +50,7 @@
     {% endif %}
     <div class="footer__bottom">
       <p class="mb-0">© {{ 'now'|date('Y') }} {{ company.legal_name }}</p>
-      <ul>{% for c in legal_menu %}<li><a href="{{ c.url }}">{{ c.label }}</a></li>{% endfor %}</ul>
+      <ul>{% for c in legal_menu %}<li><a href="{{ c.url }}">{{ c.label }}</a></li>{% endfor %}<li><button type="button" class="footer__consent" data-consent-open>Cookie-Einstellungen</button></li></ul>
     </div>
   </div>
 </footer>

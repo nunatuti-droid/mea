@@ -106,3 +106,24 @@ Jede Änderung wird hier festgehalten. Das Gesamt-Update wird erst erstellt, wen
 **Dateien:** `src/Module/Security/Firewall.php`, `src/Core/App.php`, `src/Admin/AuthController.php`, `src/Admin/SecurityController.php`, `templates/admin/security.twig`, `templates/admin/auth/login.twig`, `public/assets/css/admin.css`, `public/.htaccess`, `bin/console`, `tests/Integration/FirewallTest.php`.
 
 **Geprüft:** 111 automatische Tests grün (3 neue).
+
+## Punkt 3: Cookie-Einwilligung (Grundgerüst, fertig nutzbar)
+
+**Was neu ist**
+- **Banner beim ersten Besuch** mit drei gleichwertigen Schaltflächen: „Alle akzeptieren“, „Nur notwendige“, „Einstellungen“. Kein Vorab-Häkchen, kein Ablehnen-Verstecken.
+- **Einstellungen** mit Schaltern je Kategorie: Notwendig (immer an), Statistik, Marketing, Externe Medien. Jede Kategorie erklärt Zweck, Anbieter und mögliche Übermittlung in die USA.
+- **Nichts Optionales vor der Einwilligung:** Google Analytics und Meta-Pixel werden erst nach Zustimmung nachgeladen. Sind sie in der Verwaltung nicht eingetragen, werden sie nie geladen, nicht angezeigt und auch in der Sicherheitsrichtlinie (CSP) nicht freigegeben.
+- **Karten:** werden ohne Einwilligung erst nach Klick geladen; mit Einwilligung „Externe Medien“ automatisch. Der Kartenlader akzeptiert bereits Google-Maps-Einbettungen (für Punkt 2).
+- **Widerruf und Änderung jederzeit** über „Cookie-Einstellungen“ im Fußbereich jeder Seite und auf der Karte. Beim Widerruf wird die Seite neu geladen, damit bereits geladene Dienste wegfallen.
+- **Nachweis (Art. 7 Abs. 1 DSGVO):** jede Auswahl wird mit zufälliger Kennung, Auswahl, Version und Zeitpunkt gespeichert, **ohne IP-Adresse**. Ansicht: Verwaltung → System → Cookie-Einwilligungen (mit Suche nach Kennung). Löschung automatisch nach 3 Jahren.
+- **Neue Abfrage bei Änderungen:** Kommen Dienste hinzu oder wird die „Version der Cookie-Hinweise“ erhöht, werden alle Besucher erneut gefragt.
+- **Verwaltung → Firmendaten & SEO → Cookies und Dienste:** Google-Analytics-Mess-ID, Meta-Pixel-ID, YouTube ja/nein, Version. Mit Formatprüfung.
+- Cookie „mea_consent“: 12 Monate, nur eigene Domain, SameSite=Lax, bei HTTPS „Secure“.
+
+**Noch offen:** Die tatsächlich genutzten Dienste (GA, Meta-Pixel, YouTube) und die passende Datenschutzerklärung (Punkt 1). Die Texte im Banner sollten zusammen mit der Datenschutzerklärung von einer fachkundigen Person geprüft werden.
+
+**Dateien:** `src/Module/Consent/ConsentConfig.php` (neu), `src/Module/Consent/ConsentController.php` (neu), `src/Admin/ConsentAdminController.php` (neu), `templates/partials/consent.twig` (neu), `templates/admin/consent.twig` (neu), `public/assets/js/consent.js` (neu), `migrations/20261103100016_create_consent_log.php` (neu), `src/Core/App.php`, `src/Admin/SettingsController.php`, `src/Admin/AdminModule.php`, `src/Module/Ops/Scheduler.php`, `templates/layout/base.twig`, `templates/partials/footer.twig`, `templates/public/location.twig`, `templates/admin/layout.twig`, `public/assets/js/app.js`, `public/assets/css/app.css`, `tests/Integration/ConsentTest.php` (neu).
+
+**Nach dem Hochladen nötig:** `migrate` ausführen.
+
+**Geprüft:** 114 automatische Tests grün (3 neue), Banner, Einstellungen, Speichern und erneutes Laden im Browser getestet, Barrierefreiheit (axe) ohne Befund.

@@ -22,6 +22,7 @@
   <link rel="icon" href="{{ media_url(company.logo_icon_media_id, 480) }}">
   {% block head %}{% endblock %}
   <script src="{{ asset('js/app.js') }}" defer></script>
+  <script src="{{ asset('js/consent.js') }}" defer></script>
 </head>
 <body>
   {{ source('_icons.svg') }}
@@ -35,6 +36,7 @@
   </main>
   {% include 'partials/footer.twig' %}
   {% include 'partials/quickbar.twig' %}
+  {% include 'partials/consent.twig' %}
   {% block schema %}{% endblock %}
 </body>
 </html>

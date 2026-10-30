@@ -1,0 +1,26 @@
+{% extends 'admin/layout.twig' %}
+{% block content %}
+  <div class="adm-head"><div><h1>Cookie-Einwilligungen</h1><p class="adm-head__intro">Nachweis, wer wann welche Auswahl getroffen hat. Gespeichert werden nur eine zufällige Kennung (steht auch im Cookie des Besuchers), die Auswahl, die Version der Hinweise und der Zeitpunkt – keine IP-Adresse. Einträge werden nach 3 Jahren gelöscht. Aktuelle Version: <span class="mono">{{ version }}</span>. Dienste tragen Sie unter „Firmendaten &amp; SEO → Cookies und Dienste“ ein.</p></div></div>
+  <div class="grid-4">
+    {% for k, l in actions %}
+      {% set n = (stats|filter(s => s.action == k)|first).n ?? 0 %}
+      <div class="stat"><span class="stat__label">{{ l }}, 30 Tage</span><span class="stat__value">{{ n }}</span></div>
+    {% endfor %}
+  </div>
+  <section class="card mt">
+    <div class="row row--between"><h2 class="h3">{{ kennung ? 'Einträge zur Kennung' : 'Letzte 100 Einträge' }}</h2>
+      <form method="get" class="row"><label class="visually-hidden" for="f-k">Kennung</label><input id="f-k" name="kennung" value="{{ kennung }}" placeholder="Kennung suchen" class="mono"><button class="btn btn--ghost btn--sm" type="submit">Suchen</button></form></div>
+    {% if rows is empty %}<p class="text-muted">Noch keine Einträge.</p>{% else %}
+      <div class="table-wrap" tabindex="0"><table class="tbl tbl--compact"><caption class="visually-hidden">Einwilligungen</caption>
+        <thead><tr><th scope="col">Zeit</th><th scope="col">Auswahl</th><th scope="col">Kategorien</th><th scope="col">Version</th><th scope="col">Kennung</th></tr></thead>
+        <tbody>{% for r in rows %}<tr>
+          <td class="nowrap">{{ r.created_at|utc|date('d.m.Y H:i') }}</td>
+          <td>{{ actions[r.action] ?? r.action }}</td>
+          <td>{{ (r.categories_json|json_decode)|map(c => categories[c] ?? c)|join(', ') }}</td>
+          <td class="mono">{{ r.version }}</td>
+          <td class="mono text-sm"><a href="?kennung={{ r.consent_id }}">{{ r.consent_id|slice(0, 8) }}…</a></td>
+        </tr>{% endfor %}</tbody>
+      </table></div>
+    {% endif %}
+  </section>
+{% endblock %}

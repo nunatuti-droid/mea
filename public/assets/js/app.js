@@ -68,19 +68,23 @@
     items.forEach((el) => el.classList.add('is-visible'));
   }
 
-  // Karte erst nach Klick laden (Datenschutz)
+  // Karte erst nach Klick oder mit Einwilligung „Externe Medien“ laden (Datenschutz)
+  const loadMap = (box) => {
+    const src = box?.dataset.mapSrc;
+    if (!box || !src || box.querySelector('iframe')) return;
+    if (!src.startsWith('https://www.openstreetmap.org/') && !src.startsWith('https://www.google.com/maps/embed')) return;
+    const frame = document.createElement('iframe');
+    frame.src = src;
+    frame.title = box.dataset.mapTitle || 'Karte';
+    frame.loading = 'lazy';
+    frame.referrerPolicy = 'strict-origin-when-cross-origin';
+    box.replaceChildren(frame);
+  };
   document.querySelectorAll('[data-map-load]').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const box = btn.closest('.map');
-      const src = box?.dataset.mapSrc;
-      if (!box || !src || !src.startsWith('https://www.openstreetmap.org/')) return;
-      const frame = document.createElement('iframe');
-      frame.src = src;
-      frame.title = box.dataset.mapTitle || 'Karte';
-      frame.loading = 'lazy';
-      frame.referrerPolicy = 'no-referrer';
-      box.replaceChildren(frame);
-    });
+    btn.addEventListener('click', () => loadMap(btn.closest('.map')));
+  });
+  document.addEventListener('mea:consent', (e) => {
+    if (Array.isArray(e.detail) && e.detail.includes('media')) document.querySelectorAll('.map[data-map-src]').forEach(loadMap);
   });
 
   // E-Mail-Adresse erst bei Klick zusammensetzen (Schutz vor einfachem Auslesen)

@@ -52,6 +52,7 @@ final class App
     public readonly PublicController $publicPages;
     public readonly \Mea\Module\Security\Firewall $firewall;
     public readonly \Mea\Module\Ops\SiteStatus $siteStatus;
+    public readonly \Mea\Module\Consent\ConsentConfig $consent;
 
     public function __construct(public readonly string $root, ?Config $config = null, ?Database $db = null, ?\Psr\Clock\ClockInterface $clock = null)
     {
@@ -72,6 +73,7 @@ final class App
 
         $settings = $this->settings = new SettingsRepository($this->db);
         $this->siteStatus = new \Mea\Module\Ops\SiteStatus($settings, $this->config);
+        $this->consent = new \Mea\Module\Consent\ConsentConfig($settings);
         $this->content = new ContentRepository($this->db);
         $locations = $this->locations = new LocationRepository($this->db);
         $exams = $this->exams = new ExamRepository($this->db, new PriceCalculator());
@@ -87,6 +89,7 @@ final class App
         $this->view->addGlobal('legal_menu', $this->content->menu('legal'));
         $this->view->addGlobal('all_locations', $locations->active());
         $this->view->addGlobal('exam_center', $locations->examCenter());
+        $this->view->addGlobal('consent', ['categories' => $this->consent->categories(), 'client' => $this->consent->clientConfig()]);
         $this->view->addGlobal('noindex', !$this->siteStatus->indexingAllowed());
         $this->view->addGlobal('site_live', ['online' => true, 'indexing' => true]);
         $this->view->addGlobal('base_url', rtrim($baseUrl, '/'));
@@ -127,6 +130,7 @@ final class App
         $r->get('/standorte/{slug:[a-z0-9-]+}/', $locCtl->show(...));
         $r->get('/kontakt/', $contact->show(...));
         $r->post('/kontakt/', $contact->submit(...));
+        $r->post('/einwilligung/', (new \Mea\Module\Consent\ConsentController($this->db, $this->consent, $limiter))->record(...));
         $r->get('/sitemap.xml', $seo->sitemap(...));
         $r->get('/robots.txt', $seo->robots(...));
         $r->get('/{parent:[a-z0-9-]+}/{slug:[a-z0-9-]+}/', $pages->childService(...));
@@ -330,8 +334,11 @@ final class App
     /** Sicherheitsheader für jede Antwort. */
     private function secure(Response $r, Request $req): Response
     {
-        $csp = "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; "
-            . "frame-src 'self' https://www.openstreetmap.org; connect-src 'self'; form-action 'self'; "
+        // Fremde Quellen nur für Dienste, die in der Verwaltung eingetragen sind; geladen werden sie erst nach Einwilligung
+        $x = $this->consent->cspSources();
+        $add = fn(array $l): string => $l !== [] ? ' ' . implode(' ', $l) : '';
+        $csp = "default-src 'self'; script-src 'self'" . $add($x['script']) . "; style-src 'self'; img-src 'self' data:" . $add($x['img']) . "; font-src 'self'; "
+            . "frame-src 'self' https://www.openstreetmap.org" . $add($x['frame']) . "; connect-src 'self'" . $add($x['connect']) . "; form-action 'self'; "
             . "base-uri 'self'; frame-ancestors 'none'; object-src 'none'";
         $h = [
             'Content-Security-Policy' => $csp,

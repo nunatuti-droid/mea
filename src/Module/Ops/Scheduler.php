@@ -170,7 +170,9 @@ final class Scheduler
         $db->run("UPDATE payment_events SET payload_json = '{}' WHERE created_at < ? - INTERVAL ? YEAR", [$t, $years]);
         $mail = $db->run("DELETE FROM email_outbox WHERE status IN ('sent','failed') AND created_at < ? - INTERVAL ? DAY", [$t, max(30, (int) ($r['email_log_days'] ?? 180))]);
         $audit = $db->run('DELETE FROM audit_log WHERE created_at < ? - INTERVAL ? YEAR', [$t, max(1, (int) ($r['audit_years'] ?? 3))]);
-        return "Anfragen $inq, unbezahlt $unpaid, bezahlt $paid anonymisiert; $mail E-Mails, $audit Protokolleinträge gelöscht";
+        // Einwilligungsnachweise: 3 Jahre (übliche Verjährungsfrist), danach löschen
+        $consent = $db->run('DELETE FROM consent_log WHERE created_at < ? - INTERVAL 3 YEAR', [$t]);
+        return "Anfragen $inq, unbezahlt $unpaid, bezahlt $paid anonymisiert; $mail E-Mails, $audit Protokolleinträge, $consent Einwilligungsnachweise gelöscht";
     }
 
     private function jobReminders(\DateTimeImmutable $now): string
