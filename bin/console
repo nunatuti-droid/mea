@@ -16,16 +16,45 @@ use Mea\Install\DemoSeeder;
 use Mea\Module\Media\ImageVariantGenerator;
 
 $cmd = $argv[1] ?? 'help';
+
+// Erstinstallation ohne SSH: .env aus der Vorlage mit frischen Schlüsseln anlegen (nie überschreiben)
+if ($cmd === 'env:init') {
+    $target = $root . '/.env';
+    if (is_file($target)) {
+        fwrite(STDERR, ".env ist bereits vorhanden und wird nicht verändert.\n");
+        exit(1);
+    }
+    $tpl = (string) file_get_contents($root . '/.env.example');
+    foreach (['APP_KEY', 'BACKUP_KEY'] as $k) {
+        $tpl = (string) preg_replace('/^' . $k . '=.*$/m', $k . '=' . base64_encode(random_bytes(32)), $tpl, 1);
+    }
+    $old = umask(0077);
+    $ok = file_put_contents($target, $tpl, LOCK_EX);
+    umask($old);
+    if ($ok === false) {
+        fwrite(STDERR, ".env konnte nicht geschrieben werden.\n");
+        exit(1);
+    }
+    @chmod($target, 0600);
+    echo ".env angelegt (APP_KEY und BACKUP_KEY neu erzeugt). Jetzt Datenbank, APP_URL und APP_NOINDEX eintragen\n";
+    echo "und die Datei zusätzlich getrennt aufbewahren (Passwortmanager).\n";
+    exit(0);
+}
+
 $config = Config::fromEnvironment($root);
-$phinx = escapeshellarg($root . '/vendor/bin/phinx') . ' --configuration=' . escapeshellarg($root . '/phinx.php');
+
+// Phinx läuft im selben Prozess: funktioniert auch, wenn der Hoster passthru/exec sperrt
+$phinx = static function (array $args) use ($root): int {
+    $app = new \Phinx\Console\PhinxApplication();
+    $app->setAutoExit(false);
+    return $app->run(new \Symfony\Component\Console\Input\ArrayInput($args + ['--configuration' => $root . '/phinx.php']));
+};
 
 switch ($cmd) {
     case 'migrate':
-        passthru("$phinx migrate", $rc);
-        exit($rc);
+        exit($phinx(['command' => 'migrate']));
     case 'migrate:rollback':
-        passthru("$phinx rollback", $rc);
-        exit($rc);
+        exit($phinx(['command' => 'rollback']));
     case 'seed':
         $db = Database::fromConfig($config);
         $gen = new ImageVariantGenerator($db, $root . '/storage/uploads', $root . '/public/media');
@@ -257,5 +286,5 @@ switch ($cmd) {
         passthru('php -S 127.0.0.1:' . (int) $port . ' -t ' . escapeshellarg($root . '/public') . ' ' . escapeshellarg($root . '/public/index.php'));
         exit(0);
     default:
-        echo "Befehle:\n  migrate            Datenbank auf den neuesten Stand bringen\n  migrate:rollback   letzte Migration zurücknehmen\n  seed [--demo]      Startdaten anlegen (--demo: Beispieltermine, nur Vorschau)\n  seed:emails        fehlende E-Mail-Vorlagen ergänzen\n  user:create-admin <email> <name>  erstes Administratorkonto einladen\n  mail:send [n]      E-Mail-Warteschlange abarbeiten\n  cron [job …]       jede Minute: Wartungsjobs (mit Job-Namen: sofort ausführen)\n  selftest           Startet die Anwendung und prüft wichtige Seiten\n  golive:check       Prüfliste vor der Umschaltung auf die neue Website\n  backup:create | backup:list | backup:restore <id> --ja\n  integrity:check    Dateiwächter: Programmdateien mit signierter Referenz vergleichen\n  update:install <paket.zip> --ja | update:revert --ja\n  maintenance:on | maintenance:off\n  security:unblock <ip>|--alle   automatische IP-Sperren aufheben\n  user:reset-2fa <email>         Zwei-Faktor-Anmeldung zurücksetzen\n  release:keygen | release:build | release:sign-manifest   nur Entwicklungsrechner\n  serve [port]       lokaler Entwicklungsserver\n";
+        echo "Befehle:\n  env:init           .env mit neuen Schlüsseln anlegen (Erstinstallation)\n  migrate            Datenbank auf den neuesten Stand bringen\n  migrate:rollback   letzte Migration zurücknehmen\n  seed [--demo]      Startdaten anlegen (--demo: Beispieltermine, nur Vorschau)\n  seed:emails        fehlende E-Mail-Vorlagen ergänzen\n  user:create-admin <email> <name>  erstes Administratorkonto einladen\n  mail:send [n]      E-Mail-Warteschlange abarbeiten\n  cron [job …]       jede Minute: Wartungsjobs (mit Job-Namen: sofort ausführen)\n  selftest           Startet die Anwendung und prüft wichtige Seiten\n  golive:check       Prüfliste vor der Umschaltung auf die neue Website\n  backup:create | backup:list | backup:restore <id> --ja\n  integrity:check    Dateiwächter: Programmdateien mit signierter Referenz vergleichen\n  update:install <paket.zip> --ja | update:revert --ja\n  maintenance:on | maintenance:off\n  security:unblock <ip>|--alle   automatische IP-Sperren aufheben\n  user:reset-2fa <email>         Zwei-Faktor-Anmeldung zurücksetzen\n  release:keygen | release:build | release:sign-manifest   nur Entwicklungsrechner\n  serve [port]       lokaler Entwicklungsserver\n";
 }
