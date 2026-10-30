@@ -140,6 +140,7 @@ switch ($cmd) {
         // Prüft, ob die Anwendung mit dem aktuellen Programmstand startet und Seiten ausliefert (nach Updates)
         try {
             $app = new \Mea\Core\App($root);
+            $app->bypassMaintenance = true;
             foreach (['/', '/telc-pruefungszentrum/', '/kontakt/', '/sitemap.xml'] as $path) {
                 $res = $app->handle(new \Mea\Core\Request('GET', $path, [], [], ['REMOTE_ADDR' => '127.0.0.1']));
                 if ($res->status !== 200) {
