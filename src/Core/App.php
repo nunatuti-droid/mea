@@ -51,6 +51,7 @@ final class App
     public readonly ContentRepository $content;
     public readonly PublicController $publicPages;
     public readonly \Mea\Module\Security\Firewall $firewall;
+    public readonly \Mea\Module\Ops\SiteStatus $siteStatus;
 
     public function __construct(public readonly string $root, ?Config $config = null, ?Database $db = null, ?\Psr\Clock\ClockInterface $clock = null)
     {
@@ -64,13 +65,13 @@ final class App
 
         $baseUrl = $this->baseUrl = $this->config->get('APP_URL', 'http://localhost') ?? '';
         $debug = $this->config->bool('APP_DEBUG');
-        $noindex = $this->config->bool('APP_NOINDEX');
         $media = $this->media = new MediaRepository($this->db);
         $this->crypto = Crypto::fromConfig($this->config);
         $this->html = new HtmlSanitizer($root . '/storage/cache/htmlpurifier');
         $this->view = new View($root, $debug, $media, $baseUrl);
 
         $settings = $this->settings = new SettingsRepository($this->db);
+        $this->siteStatus = new \Mea\Module\Ops\SiteStatus($settings, $this->config);
         $this->content = new ContentRepository($this->db);
         $locations = $this->locations = new LocationRepository($this->db);
         $exams = $this->exams = new ExamRepository($this->db, new PriceCalculator());
@@ -85,7 +86,8 @@ final class App
         $this->view->addGlobal('footer_menu', $this->content->menu('footer'));
         $this->view->addGlobal('legal_menu', $this->content->menu('legal'));
         $this->view->addGlobal('all_locations', $locations->active());
-        $this->view->addGlobal('noindex', $noindex);
+        $this->view->addGlobal('noindex', !$this->siteStatus->indexingAllowed());
+        $this->view->addGlobal('site_live', ['online' => true, 'indexing' => true]);
         $this->view->addGlobal('base_url', rtrim($baseUrl, '/'));
         $this->view->addGlobal('rating_summary', $this->content->ratingSummary());
         $this->view->addGlobal('footer_reviews', $this->content->reviews());
@@ -101,7 +103,7 @@ final class App
             $this->content,
             $this->mailer,
         );
-        $seo = new SeoController($this->content, $exams, $locations, $baseUrl, $noindex);
+        $seo = new SeoController($this->content, $exams, $locations, $baseUrl, fn(): bool => !$this->siteStatus->indexingAllowed());
 
         $r = $this->router = new Router();
         // Verwaltung zuerst, damit die allgemeinen Seiten-Routen sie nicht überdecken
@@ -196,6 +198,9 @@ final class App
     {
         $guard = null;
         try {
+            // Einstellung kann sich zwischen Anfragen ändern (Schalter in der Verwaltung)
+            $this->view->addGlobal('noindex', !$this->siteStatus->indexingAllowed());
+            $this->view->addGlobal('site_live', ['online' => $this->siteStatus->isOnline(), 'indexing' => $this->siteStatus->indexingAllowed()]);
             $guard = $this->guard($req);
             $response = $guard ?? $this->dispatch($req);
         } catch (HttpException $e) {
@@ -240,6 +245,10 @@ final class App
             return self::staticPage(503, 'Wartungsarbeiten', 'Die Website wird gerade aktualisiert. Bitte versuchen Sie es in wenigen Minuten erneut.')
                 ->withHeader('Retry-After', '300');
         }
+        // Website im Backend offline geschaltet: Wartungsseite, Verwaltung und Zahlungsrückmeldungen bleiben erreichbar
+        if (!\Mea\Module\Ops\SiteStatus::alwaysReachable($req->path) && !$this->siteStatus->isOnline()) {
+            return $this->offlinePage();
+        }
         $check = $this->firewall->inspect($req);
         return match ($check['action']) {
             'block' => self::staticPage(403, 'Zugriff vorübergehend gesperrt', 'Von Ihrer Verbindung kamen auffällige Anfragen. Der Zugriff ist deshalb vorübergehend gesperrt. Wenn Sie uns erreichen möchten, rufen Sie uns bitte an.'),
@@ -247,6 +256,18 @@ final class App
             'probe' => $this->errorPage(404),
             default => null,
         };
+    }
+
+    private function offlinePage(): Response
+    {
+        try {
+            $body = $this->view->render('public/offline.twig', ['message' => $this->siteStatus->offlineMessage()]);
+        } catch (\Throwable $e) {
+            $this->log->error('Wartungsseite: ' . $e->getMessage());
+            return self::staticPage(503, 'Wartungsarbeiten', $this->siteStatus->offlineMessage());
+        }
+        return Response::html($body, 503)->withHeader('Retry-After', '3600')->withHeader('Cache-Control', 'no-store')
+            ->withHeader('X-Robots-Tag', 'noindex');
     }
 
     public static function maintenanceFlag(string $root): string
@@ -321,7 +342,7 @@ final class App
         if ($req->isSecure()) {
             $h['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains';
         }
-        if ($this->config->bool('APP_NOINDEX')) {
+        if (!$this->siteStatus->indexingAllowed()) {
             $h['X-Robots-Tag'] = 'noindex, nofollow';
         }
         foreach ($h as $k => $v) {

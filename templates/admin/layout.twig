@@ -46,6 +46,7 @@
           {url: '/verwaltung/email-protokoll/', label: 'E-Mail-Protokoll', icon: 'mail-check', perm: 'emails'},
           {url: '/verwaltung/benutzer/', label: 'Benutzer', icon: 'users', perm: 'users'},
           {url: '/verwaltung/protokoll/', label: 'Änderungsprotokoll', icon: 'history', perm: 'audit'},
+          {url: '/verwaltung/website-status/', label: 'Website-Status', icon: 'monitor-smartphone', perm: 'system'},
           {url: '/verwaltung/sicherheit/', label: 'Sicherheit', icon: 'shield', perm: 'system'},
           {url: '/verwaltung/sicherungen/', label: 'Sicherungen', icon: 'database', perm: 'system'},
           {url: '/verwaltung/updates/', label: 'Updates', icon: 'package', perm: 'system'},
@@ -80,6 +81,11 @@
         </div>
       </header>
       <main id="inhalt" class="adm-content" tabindex="-1">
+        {% if not site_live.online %}
+          <p class="site-banner site-banner--danger">{{ icon('circle-alert') }}<span>Die Website ist offline. Besucher sehen die Wartungsseite.{% if can.system %} <a href="/verwaltung/website-status/">Ändern</a>{% endif %}</span></p>
+        {% elseif not site_live.indexing %}
+          <p class="site-banner">{{ icon('info') }}<span>Suchmaschinen-Indexierung ist gesperrt.{% if can.system %} <a href="/verwaltung/website-status/">Ändern</a>{% endif %}</span></p>
+        {% endif %}
         {% if flash %}
           <div class="alert alert--{{ flash.type }}" role="status">{{ icon(flash.type == 'error' ? 'circle-alert' : 'circle-check') }}<p>{{ flash.message }}</p></div>
         {% endif %}

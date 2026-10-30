@@ -610,3 +610,23 @@ body.nav-open { overflow: hidden; }
 
 /* Weiße Flächen heben sich vom hellen Seitenhintergrund ab */
 .steps li, .box, .faq details, .quote-card, .booking-summary, .status-card, .table--stack tr { box-shadow: var(--sh-card); }
+
+/* ---------- Wartungsseite (Website offline) ---------- */
+body.offline { min-height: 100vh; display: grid; place-items: center; padding: var(--s-6) var(--gutter); padding-bottom: var(--s-6);
+  background: radial-gradient(circle at 15% 10%, rgba(63,141,123,.35), transparent 45%), linear-gradient(160deg, #0e3042 0%, #163f55 60%, #1f5a5a 100%); }
+.offline__card { width: min(680px, 100%); background: #fff; border-radius: var(--r-lg) var(--r-lg) var(--r-lg) 8px; padding: clamp(28px, 5vw, 48px);
+  box-shadow: 0 30px 60px -30px rgba(0,0,0,.5); text-align: center; }
+.offline__logo { display: flex; justify-content: center; margin-bottom: var(--s-5); }
+.offline__logo img { height: 56px; width: auto; }
+.offline__badge { display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: var(--r-pill); background: var(--c-accent-soft); color: var(--c-warning); font-weight: 700; font-size: var(--fs-sm); margin-bottom: var(--s-4); }
+.offline__badge .icon { width: 16px; height: 16px; }
+.offline h1 { font-size: clamp(1.5rem, 1.1rem + 1.6vw, 2.05rem); text-wrap: balance; margin-bottom: var(--s-3); }
+.offline__text { color: var(--c-muted); font-size: var(--fs-lead); margin: 0 auto var(--s-6); max-width: 46ch; }
+.offline__contact { list-style: none; padding: 0; margin: 0 0 var(--s-5); display: grid; gap: var(--s-3); grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+.offline__contact a { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border: 1px solid var(--c-border); border-radius: var(--r-md); text-decoration: none; color: var(--c-ink); font-weight: 700; text-align: left; transition: border-color .2s, box-shadow .2s; }
+.offline__contact a:hover { border-color: var(--c-brand); box-shadow: var(--sh-card); }
+.offline__contact .icon { width: 22px; height: 22px; color: var(--c-brand); flex: none; }
+.offline__contact small { display: block; font-weight: 500; color: var(--c-muted); font-size: var(--fs-xs); }
+.offline__places { display: grid; gap: var(--s-2); grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); font-size: var(--fs-sm); color: var(--c-muted); border-top: 1px solid var(--c-border); padding-top: var(--s-5); }
+.offline__places p { margin: 0; }
+.offline__places strong { color: var(--c-ink); }

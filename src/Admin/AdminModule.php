@@ -23,7 +23,7 @@ final class AdminModule
             new ExamAdminController($app), new SessionAdminController($app), new MediaController($app),
             new SettingsController($app), new BookingAdminController($app), new UserController($app),
             new EmailLogController($app), new AuditController($app), new SystemController($app),
-            new SecurityController($app), new BackupController($app), new UpdateController($app),
+            new SiteStatusController($app), new SecurityController($app), new BackupController($app), new UpdateController($app),
         ] as $controller) {
             $controller->register($k);
         }
