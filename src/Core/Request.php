@@ -10,6 +10,7 @@ final class Request
      * @param array<string,mixed> $post
      * @param array<string,mixed> $server
      * @param array<string,string> $cookies
+     * @param array<string,mixed> $files hochgeladene Dateien im Format von $_FILES
      */
     public function __construct(
         public readonly string $method,
@@ -18,6 +19,7 @@ final class Request
         public readonly array $post = [],
         public readonly array $server = [],
         public readonly array $cookies = [],
+        public readonly array $files = [],
     ) {}
 
     public static function fromGlobals(): self
@@ -31,6 +33,7 @@ final class Request
             $_POST,
             $_SERVER,
             $_COOKIE,
+            $_FILES,
         );
     }
 

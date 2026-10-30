@@ -91,7 +91,7 @@ final class AuthService
             $until = $this->clock->now()->modify('+' . self::LOCK_MINUTES . ' minutes')->format('Y-m-d H:i:s');
             $this->db->run('UPDATE users SET failed_logins = 0, locked_until = ? WHERE id = ?', [$until, $user['id']]);
             $this->audit->record('auth.locked', 'Konto nach Fehlversuchen vorübergehend gesperrt', 'user', (int) $user['id'], [], (int) $user['id']);
-            $this->securityMail($user, 'Ihr Konto wurde nach mehreren fehlgeschlagenen Anmeldeversuchen für ' . self::LOCK_MINUTES . ' Minuten gesperrt. Wenn Sie das nicht waren, ändern Sie bitte Ihr Passwort.', 'lock-' . $user['id'] . '-' . $until);
+            $this->securityMail($user, 'Ihr Konto wurde nach mehreren fehlgeschlagenen Anmeldeversuchen für ' . self::LOCK_MINUTES . ' Minuten gesperrt.', 'lock-' . $user['id'] . '-' . $until);
         } else {
             $this->db->run('UPDATE users SET failed_logins = ? WHERE id = ?', [$failed, $user['id']]);
         }
@@ -164,7 +164,7 @@ final class AuthService
         } else {
             $this->db->insert('user_devices', ['user_id' => $uid, 'device_hash' => $dHash, 'first_seen_at' => $now, 'last_seen_at' => $now]);
             if ($hadDevices) {
-                $this->securityMail($user, 'Es gab eine Anmeldung von einem neuen Gerät oder Browser (' . self::browserLabel($userAgent) . ', ' . $this->clock->now()->setTimezone(new \DateTimeZone('Europe/Berlin'))->format('d.m.Y H:i') . ' Uhr). Wenn Sie das nicht waren, ändern Sie sofort Ihr Passwort und melden Sie alle Sitzungen ab.', 'newdev-' . $uid . '-' . $dHash);
+                $this->securityMail($user, 'Es gab eine Anmeldung von einem neuen Gerät oder Browser (' . self::browserLabel($userAgent) . ', ' . $this->clock->now()->setTimezone(new \DateTimeZone('Europe/Berlin'))->format('d.m.Y H:i') . ' Uhr).', 'newdev-' . $uid . '-' . $dHash);
             }
         }
         $this->db->run('UPDATE users SET last_login_at = ? WHERE id = ?', [$now, $uid]);
@@ -414,7 +414,7 @@ final class AuthService
         }
         $this->changePassword((int) $row['id'], $password);
         $this->db->run('UPDATE users SET failed_logins = 0, locked_until = NULL WHERE id = ?', [$row['id']]);
-        $this->securityMail($row, 'Ihr Passwort wurde geändert. Alle Sitzungen wurden abgemeldet. Wenn Sie das nicht waren, wenden Sie sich sofort an einen Administrator.', 'pwchanged-' . $row['id'] . '-' . $row['token_id']);
+        $this->securityMail($row, 'Ihr Passwort wurde geändert. Alle Sitzungen wurden abgemeldet.', 'pwchanged-' . $row['id'] . '-' . $row['token_id']);
         return true;
     }
 

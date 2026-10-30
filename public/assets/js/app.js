@@ -68,30 +68,31 @@
     items.forEach((el) => el.classList.add('is-visible'));
   }
 
-  // Karte erst nach Klick laden (Datenschutz)
+  // Karte erst nach Klick oder mit Einwilligung „Externe Medien“ laden (Datenschutz)
+  const loadMap = (box) => {
+    const src = box?.dataset.mapSrc;
+    if (!box || !src || box.querySelector('iframe')) return;
+    if (!src.startsWith('https://www.google.com/maps')) return;
+    const frame = document.createElement('iframe');
+    frame.src = src;
+    frame.title = box.dataset.mapTitle || 'Karte';
+    frame.loading = 'lazy';
+    frame.referrerPolicy = 'strict-origin-when-cross-origin';
+    box.replaceChildren(frame);
+  };
   document.querySelectorAll('[data-map-load]').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const box = btn.closest('.map');
-      const src = box?.dataset.mapSrc;
-      if (!box || !src || !src.startsWith('https://www.openstreetmap.org/')) return;
-      const frame = document.createElement('iframe');
-      frame.src = src;
-      frame.title = box.dataset.mapTitle || 'Karte';
-      frame.loading = 'lazy';
-      frame.referrerPolicy = 'no-referrer';
-      box.replaceChildren(frame);
-    });
+    btn.addEventListener('click', () => loadMap(btn.closest('.map')));
   });
-
-  // E-Mail-Adresse erst bei Klick zusammensetzen (Schutz vor einfachem Auslesen)
-  document.querySelectorAll('[data-m]').forEach((a) => {
-    a.addEventListener('click', (e) => {
-      try {
-        const addr = atob(a.dataset.m).split('').reverse().join('');
-        if (!/^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test(addr)) return;
-        e.preventDefault();
-        window.location.href = 'mailto:' + addr;
-      } catch (_) { /* Fallback: Link zum Kontaktformular */ }
+  document.addEventListener('mea:consent', (e) => {
+    if (Array.isArray(e.detail) && e.detail.includes('media')) document.querySelectorAll('.map[data-map-src]').forEach(loadMap);
+  });
+  // Bewerbungsformular: gewählte Dateien anzeigen
+  document.querySelectorAll('.upload__input').forEach((input) => {
+    const out = input.parentElement.querySelector('[data-upload-names]');
+    if (!out) return;
+    input.addEventListener('change', () => {
+      const names = Array.from(input.files || []).map((f) => f.name);
+      out.textContent = names.length ? names.join(', ') : 'Noch keine Datei ausgewählt';
     });
   });
 })();

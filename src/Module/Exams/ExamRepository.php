@@ -12,7 +12,7 @@ use Mea\Core\Database;
 final class ExamRepository
 {
     /** Status, die eine öffentliche Detailseite haben. */
-    public const VISIBLE_STATUSES = ['published', 'disabled'];
+    public const VISIBLE_STATUSES = ['published'];
 
     /** Belegte Plätze: bestätigte Buchungen und noch gültige Reservierungen. */
     private const TAKEN_SQL = "(SELECT COUNT(*) FROM bookings b WHERE b.exam_session_id = s.id
@@ -20,16 +20,31 @@ final class ExamRepository
 
     public function __construct(private Database $db, private PriceCalculator $prices) {}
 
+    /** @return list<array<string,mixed>> Aktive Kategorien mit mindestens einer sichtbaren Prüfung */
+    public function categories(): array
+    {
+        return $this->db->all(
+            "SELECT c.* FROM exam_categories c WHERE c.is_active = 1
+               AND EXISTS (SELECT 1 FROM exam_types e WHERE e.category_id = c.id AND e.status = 'published' AND e.is_listed = 1)
+             ORDER BY c.sort_order, c.name",
+        );
+    }
+
     /**
-     * @param array{provider?:string, level?:string} $filter
+     * @param array{provider?:string, level?:string, category?:string} $filter
      * @return list<array<string,mixed>>
      */
     public function listed(array $filter = []): array
     {
-        $sql = "SELECT e.*, p.name AS provider_name FROM exam_types e
+        $sql = "SELECT e.*, p.name AS provider_name, c.short_name AS category_short, c.slug AS category_slug FROM exam_types e
                 LEFT JOIN exam_providers p ON p.id = e.provider_id
-                WHERE e.status IN ('published','disabled') AND e.is_listed = 1";
+                LEFT JOIN exam_categories c ON c.id = e.category_id AND c.is_active = 1
+                WHERE e.status = 'published' AND e.is_listed = 1";
         $params = [];
+        if (($filter['category'] ?? '') !== '') {
+            $sql .= ' AND c.slug = ?';
+            $params[] = $filter['category'];
+        }
         if (($filter['provider'] ?? '') !== '') {
             $sql .= ' AND p.name = ?';
             $params[] = $filter['provider'];
@@ -48,11 +63,11 @@ final class ExamRepository
         return [
             'providers' => array_column($this->db->all(
                 "SELECT DISTINCT p.name FROM exam_types e JOIN exam_providers p ON p.id = e.provider_id
-                 WHERE e.status IN ('published','disabled') AND e.is_listed = 1 ORDER BY p.name",
+                 WHERE e.status = 'published' AND e.is_listed = 1 ORDER BY p.name",
             ), 'name'),
             'levels' => array_column($this->db->all(
                 "SELECT DISTINCT level_label FROM exam_types
-                 WHERE status IN ('published','disabled') AND is_listed = 1 AND level_label IS NOT NULL
+                 WHERE status = 'published' AND is_listed = 1 AND level_label IS NOT NULL
                  ORDER BY level_label",
             ), 'level_label'),
         ];
@@ -61,10 +76,11 @@ final class ExamRepository
     /** @return array<string,mixed>|null */
     public function bySlug(string $slug, bool $includeDrafts = false): ?array
     {
-        $statuses = $includeDrafts ? "'draft','published','disabled'" : "'published','disabled'";
+        $statuses = $includeDrafts ? "'draft','published','disabled'" : "'published'";
         $e = $this->db->one(
-            "SELECT e.*, p.name AS provider_name, p.website AS provider_website FROM exam_types e
+            "SELECT e.*, p.name AS provider_name, p.website AS provider_website, c.short_name AS category_short FROM exam_types e
              LEFT JOIN exam_providers p ON p.id = e.provider_id
+             LEFT JOIN exam_categories c ON c.id = e.category_id AND c.is_active = 1
              WHERE e.slug = ? AND e.status IN ($statuses)",
             [$slug],
         );
@@ -77,12 +93,19 @@ final class ExamRepository
         $p = isset($row['provider_id']) && $row['provider_id'] !== null ? $this->db->one('SELECT name, website FROM exam_providers WHERE id = ?', [$row['provider_id']]) : null;
         $row['provider_name'] = $p['name'] ?? null;
         $row['provider_website'] = $p['website'] ?? null;
+        $row['category_short'] = isset($row['category_id']) && $row['category_id'] ? $this->db->value('SELECT short_name FROM exam_categories WHERE id = ?', [$row['category_id']]) : null;
         return $this->decorate($row, true);
     }
 
     public function isArchived(string $slug): bool
     {
         return $this->db->value("SELECT 1 FROM exam_types WHERE slug = ? AND status = 'archived'", [$slug]) !== null;
+    }
+
+    /** Deaktiviert = vorübergehend ausgeblendet (öffentlich nicht sichtbar, nicht buchbar). */
+    public function isDisabled(string $slug): bool
+    {
+        return $this->db->value("SELECT 1 FROM exam_types WHERE slug = ? AND status = 'disabled'", [$slug]) !== null;
     }
 
     /** @return list<array<string,mixed>> Kommende, sichtbare Termine einer Prüfungsart */
@@ -138,7 +161,7 @@ final class ExamRepository
     /** @return list<array<string,mixed>> */
     public function sitemapEntries(): array
     {
-        return $this->db->all("SELECT slug, updated_at FROM exam_types WHERE status IN ('published','disabled')");
+        return $this->db->all("SELECT slug, updated_at FROM exam_types WHERE status = 'published'");
     }
 
     /** @param array<string,mixed> $e @return array<string,mixed> */

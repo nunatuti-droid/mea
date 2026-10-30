@@ -1,0 +1,25 @@
+{% extends 'admin/layout.twig' %}
+{% import 'admin/partials/ui.twig' as ui %}
+{% block content %}
+  <div class="adm-head"><div><h1>Bewerbungen</h1><p class="adm-head__intro">Bewerbungen aus dem Formular auf der Karriereseite. Die Unterlagen liegen verschlüsselt auf dem Server und werden nicht per E-Mail verschickt. Abgeschlossene Bewerbungen werden nach sechs Monaten automatisch gelöscht, nicht abgeschlossene nach zwölf Monaten.</p></div></div>
+  <section class="card">
+    <div class="row row--between">
+      <h2 class="h3">{{ status ? status_map[status].label : 'Alle Bewerbungen' }}</h2>
+      <form method="get" class="row"><label class="visually-hidden" for="f-s">Status</label>
+        <select id="f-s" name="status"><option value="">Alle</option>{% for k, s in status_map %}<option value="{{ k }}"{% if status == k %} selected{% endif %}>{{ s.label }}</option>{% endfor %}</select>
+        <button class="btn btn--ghost btn--sm" type="submit">Filtern</button></form>
+    </div>
+    {% if rows is empty %}<p class="text-muted">Noch keine Bewerbungen.</p>{% else %}
+      <div class="table-wrap" tabindex="0"><table class="tbl"><caption class="visually-hidden">Bewerbungen</caption>
+        <thead><tr><th scope="col">Name</th><th scope="col">Stelle</th><th scope="col">Unterlagen</th><th scope="col">Eingang</th><th scope="col">Status</th></tr></thead>
+        <tbody>{% for r in rows %}<tr>
+          <th scope="row"><a href="/verwaltung/bewerbungen/{{ r.id }}/">{{ r.first_name }} {{ r.last_name }}</a></th>
+          <td>{{ positions[r.position] ?? r.position }}</td>
+          <td>{{ r.files }} PDF</td>
+          <td class="nowrap">{{ r.created_at|utc|date('d.m.Y H:i') }}</td>
+          <td>{{ ui.status(r.status, status_map) }}</td>
+        </tr>{% endfor %}</tbody>
+      </table></div>
+    {% endif %}
+  </section>
+{% endblock %}

@@ -9,7 +9,7 @@
   {% if reviews is not empty %}
     <section class="section section--alt" id="stimmen" aria-labelledby="stimmen-title">
       <div class="container">
-        <div class="section-head"><span class="eyebrow">Stimmen</span><h2 id="stimmen-title">Was unsere Teilnehmenden sagen</h2></div>
+        <div class="section-head"><span class="eyebrow">Stimmen</span><h2 id="stimmen-title">Was unsere Teilnehmenden sagen</h2>{% include 'partials/google_rating.twig' %}</div>
         <div class="grid grid--3">
           {% for r in reviews %}
             <figure class="quote-card reveal">{{ icon('quote') }}{% if r.rating %}{{ ui.stars(r.rating) }}{% endif %}<blockquote>„{{ r.body }}“</blockquote><figcaption><strong>{{ r.display_name }}</strong>{{ r.role_label }}</figcaption></figure>
@@ -28,5 +28,5 @@
       </div>
     </div>
   </section>
-  <section class="section section--alt"><div class="container">{{ ui.cta_band('Lernen Sie uns kennen', 'Wir freuen uns auf Ihre Nachricht oder Ihren Anruf.', site.company) }}</div></section>
+  <section class="section section--alt"><div class="container">{{ ui.cta_band('Lernen Sie uns kennen', 'Wir freuen uns auf Ihre Nachricht oder Ihren Anruf und beraten Sie gerne persönlich an einem unserer Standorte.', site.company) }}</div></section>
 {% endblock %}

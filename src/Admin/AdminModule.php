@@ -22,8 +22,8 @@ final class AdminModule
         foreach ([
             new ExamAdminController($app), new SessionAdminController($app), new MediaController($app),
             new SettingsController($app), new BookingAdminController($app), new UserController($app),
-            new EmailLogController($app), new AuditController($app), new SystemController($app),
-            new SecurityController($app), new BackupController($app), new UpdateController($app),
+            new EmailLogController($app), new AuditController($app), new ConsentAdminController($app), new SystemController($app),
+            new SiteStatusController($app), new ReviewAdminController($app), new ApplicationAdminController($app), new SecurityController($app), new BackupController($app), new UpdateController($app),
         ] as $controller) {
             $controller->register($k);
         }
@@ -34,6 +34,7 @@ final class AdminModule
             new Resources\ExamTypeResource($db, fn(array $row) => $app->view->render('public/exam_show.twig', [
                 'exam' => $app->exams->previewRow($row), 'faqs' => [], 'others' => [], 'notice' => null,
             ])),
+            new Resources\ExamCategoryResource($db),
             new Resources\ProviderResource($db),
             new Resources\BookingRuleResource($db),
             new Resources\SessionResource($db, fn(int $sessionId, string $template, string $message) => $app->bookings()->notifySession($sessionId, $template, $message)),
@@ -42,6 +43,7 @@ final class AdminModule
             new Resources\FaqResource($db),
             new Resources\ReviewResource($db),
             new Resources\MenuItemResource($db),
+            new Resources\RedirectResource($db),
             new Resources\LocationResource($db),
             new Resources\HolidayResource($db),
             new Resources\InquiryResource($db),

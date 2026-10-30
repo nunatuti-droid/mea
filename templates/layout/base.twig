@@ -22,12 +22,13 @@
   <link rel="icon" href="{{ media_url(company.logo_icon_media_id, 480) }}">
   {% block head %}{% endblock %}
   <script src="{{ asset('js/app.js') }}" defer></script>
+  <script src="{{ asset('js/consent.js') }}" defer></script>
 </head>
 <body>
   {{ source('_icons.svg') }}
   <a class="skip-link" href="#inhalt">Zum Inhalt springen</a>
   {% if site.demo_notice ?? false %}
-    <div class="demo-banner" role="note">Vorschau mit Beispieldaten: Preise und Termine sind nicht echt. Die Online-Buchung folgt in Phase 4.</div>
+    <div class="demo-banner" role="note">Vorschau mit Beispieldaten: Preise und Termine sind nicht echt.</div>
   {% endif %}
   {% include 'partials/header.twig' %}
   <main id="inhalt" tabindex="-1">
@@ -35,6 +36,7 @@
   </main>
   {% include 'partials/footer.twig' %}
   {% include 'partials/quickbar.twig' %}
+  {% include 'partials/consent.twig' %}
   {% block schema %}{% endblock %}
 </body>
 </html>

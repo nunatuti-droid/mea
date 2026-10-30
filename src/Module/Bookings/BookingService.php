@@ -87,27 +87,7 @@ final class BookingService
             $terms = $this->termsVersion($rule);
             $minutes = max(5, (int) ($rule['reservation_minutes'] ?? 20));
             $ref = $this->newReference();
-            $snapshot = [
-                'exam' => [
-                    'id' => (int) $e['id'], 'slug' => $e['slug'], 'public_name' => $e['public_name'], 'level' => $e['level_label'],
-                    'provider' => $e['provider_name'], 'format' => $e['exam_format'], 'duration' => $e['duration_text'],
-                ],
-                'session' => [
-                    'id' => (int) $s['id'], 'starts_at' => $s['starts_at'], 'ends_at' => $s['ends_at'],
-                    'registration_until' => $s['registration_until'], 'notes_public' => $s['notes_public'],
-                    'location' => $location,
-                ],
-                'price' => $price,
-                'rule' => [
-                    'id' => $rule['id'] ?? null, 'name' => $rule['name'] ?? null,
-                    'free_cancellation_days' => $rule['free_cancellation_days'] ?? null,
-                    'cancellation_fee_cents' => $rule['cancellation_fee_cents'] ?? null,
-                    'cancellation_fee_percent' => $rule['cancellation_fee_percent'] ?? null,
-                    'refund_allowed' => (int) ($rule['refund_allowed'] ?? 1),
-                ],
-                'terms_version_id' => $terms,
-                'booked_at' => $now,
-            ];
+            $snapshot = $this->snapshot($e, $s, $location, $price, $rule, $terms, $now);
             $id = $this->db->insert('bookings', [
                 'public_ref' => $ref, 'access_key_hash' => $this->crypto->hash($key, 'booking'),
                 'exam_session_id' => $sessionId, 'exam_type_id' => $examId,
@@ -125,6 +105,88 @@ final class BookingService
         });
         $this->audit->record('booking.reserved', 'Platz reserviert: ' . $result['ref'], 'booking', $result['id'], [], null);
         return $result + ['key' => $key];
+    }
+
+    /**
+     * Momentaufnahme der Buchung (Name, Termin, Preis, Regeln zum Buchungszeitpunkt).
+     * @param array<string,mixed> $e @param array<string,mixed> $s @param array<string,mixed>|null $location
+     * @param array<string,mixed> $price @param array<string,mixed> $rule @return array<string,mixed>
+     */
+    private function snapshot(array $e, array $s, ?array $location, array $price, array $rule, ?int $terms, string $now): array
+    {
+        return [
+            'exam' => [
+                'id' => (int) $e['id'], 'slug' => $e['slug'], 'public_name' => $e['public_name'], 'level' => $e['level_label'],
+                'provider' => $e['provider_name'], 'format' => $e['exam_format'], 'duration' => $e['duration_text'],
+            ],
+            'session' => [
+                'id' => (int) $s['id'], 'starts_at' => $s['starts_at'], 'ends_at' => $s['ends_at'],
+                'registration_until' => $s['registration_until'], 'notes_public' => $s['notes_public'],
+                'location' => $location,
+            ],
+            'price' => $price,
+            'rule' => [
+                'id' => $rule['id'] ?? null, 'name' => $rule['name'] ?? null,
+                'free_cancellation_days' => $rule['free_cancellation_days'] ?? null,
+                'cancellation_fee_cents' => $rule['cancellation_fee_cents'] ?? null,
+                'cancellation_fee_percent' => $rule['cancellation_fee_percent'] ?? null,
+                'refund_allowed' => (int) ($rule['refund_allowed'] ?? 1),
+            ],
+            'terms_version_id' => $terms,
+            'booked_at' => $now,
+        ];
+    }
+
+    /**
+     * Buchung aus dem alten Shop (oder telefonisch/bar) übernehmen: sofort bestätigt, Platz wird gezählt.
+     * Mit Zahlungsreferenz wird die Zahlung als extern eingegangen vermerkt; dieselbe Referenz kann nur einmal übernommen werden.
+     * @param array<string,mixed> $participant
+     * @return array{id:int, ref:string}
+     */
+    public function importExternal(int $sessionId, array $participant, int $amountCents, bool $paid, string $externalRef, string $note, int $actor, bool $sendConfirmation): array
+    {
+        $externalRef = trim($externalRef);
+        $result = $this->db->transaction(function () use ($sessionId, $participant, $amountCents, $paid, $externalRef, $note): array {
+            $s = $this->db->one('SELECT * FROM exam_sessions WHERE id = ? FOR UPDATE', [$sessionId]);
+            if ($s === null) {
+                throw new BookingException('Dieser Termin existiert nicht.', [], 'not_found');
+            }
+            $e = $this->db->one('SELECT e.*, p.name AS provider_name FROM exam_types e LEFT JOIN exam_providers p ON p.id = e.provider_id WHERE e.id = ?', [$s['exam_type_id']]);
+            if ($s['status'] === 'cancelled') {
+                throw new BookingException('Der Termin ist abgesagt.', [], 'closed');
+            }
+            if ($externalRef !== '' && $this->db->value("SELECT 1 FROM payments WHERE provider = 'extern' AND provider_order_id = ?", [$externalRef]) !== null) {
+                throw new BookingException("Die Referenz $externalRef wurde bereits übernommen.", [], 'duplicate');
+            }
+            $now = $this->now();
+            if ((int) $this->db->value(self::TAKEN, [$sessionId, 0, $now]) >= (int) $s['capacity']) {
+                throw new BookingException('Der Termin ist voll. Bitte vorher die Teilnehmerzahl erhöhen.', [], 'full');
+            }
+            $rule = $this->ruleFor($e, $s);
+            $location = $this->db->one('SELECT name, short_name, street, address_extra, postal_code, city FROM locations WHERE id = ?', [$s['location_id']]);
+            $price = ['base_cents' => $amountCents, 'fees' => [], 'total_cents' => $amountCents, 'currency' => 'EUR', 'source' => 'übernommen'];
+            $ref = $this->newReference();
+            $snapshot = $this->snapshot($e, $s, $location, $price, $rule, null, $now);
+            $id = $this->db->insert('bookings', [
+                'public_ref' => $ref, 'access_key_hash' => null, 'exam_session_id' => $sessionId, 'exam_type_id' => (int) $s['exam_type_id'],
+                'snapshot_json' => json_encode($snapshot, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR),
+                'total_cents' => $amountCents, 'currency' => 'EUR', 'status' => 'confirmed', 'confirmed_at' => $now,
+                'payment_status' => $paid ? 'paid' : 'none',
+                'internal_note' => mb_substr(trim('Übernommen' . ($externalRef !== '' ? " (Referenz $externalRef)" : '') . '. ' . $note), 0, 2000),
+            ]);
+            $this->db->insert('booking_participants', $participant + ['booking_id' => $id]);
+            if ($paid) {
+                $this->db->insert('payments', ['booking_id' => $id, 'provider' => 'extern', 'mode' => 'live',
+                    'provider_order_id' => $externalRef !== '' ? mb_substr($externalRef, 0, 64) : 'manuell-' . $ref,
+                    'amount_cents' => $amountCents, 'currency' => 'EUR', 'status' => 'captured', 'captured_at' => $now]);
+            }
+            return ['id' => $id, 'ref' => $ref];
+        });
+        $this->audit->record('booking.imported', 'Buchung übernommen: ' . $result['ref'] . ($externalRef !== '' ? " ($externalRef)" : ''), 'booking', $result['id'], [], $actor);
+        if ($sendConfirmation) {
+            $this->sendConfirmation($result['id']);
+        }
+        return $result;
     }
 
     /** @param array<string,mixed> $exam @param array<string,mixed> $session @return array<string,mixed> */
@@ -474,6 +536,9 @@ final class BookingService
     public function refund(int $bookingId, ?int $amountCents, string $reason, ?int $actor): int
     {
         $p = $this->db->one("SELECT * FROM payments WHERE booking_id = ? AND status IN ('captured','partially_refunded') ORDER BY id DESC LIMIT 1", [$bookingId]);
+        if ($p !== null && $p['provider'] === 'extern') {
+            throw new BookingException('Diese Zahlung lief nicht über PayPal auf dieser Website (z. B. alter Shop). Bitte dort erstatten und hier nur stornieren.');
+        }
         if ($p === null || $p['provider_capture_id'] === null) {
             throw new BookingException('Für diese Buchung gibt es keine eingezogene Zahlung.');
         }

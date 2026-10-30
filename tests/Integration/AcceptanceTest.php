@@ -53,7 +53,7 @@ final class AcceptanceTest extends IntegrationTestCase
 
     private function createSessionViaAdmin(int $examId, int $capacity = 10, string $price = '', string $start = '+40 days'): int
     {
-        $loc = (int) self::db()->value('SELECT id FROM locations ORDER BY id LIMIT 1');
+        $loc = (int) self::db()->value('SELECT id FROM locations WHERE is_exam_center = 1 ORDER BY id LIMIT 1');
         $local = (new \DateTimeImmutable($start, new \DateTimeZone('Europe/Berlin')))->setTime(9, 0)->format('Y-m-d\TH:i');
         $r = $this->adminPost('/verwaltung/termine/neu/', [
             'exam_type_id' => (string) $examId, 'location_id' => (string) $loc, 'starts_at' => $local, 'ends_at' => '', 'registration_until' => '',
@@ -207,7 +207,8 @@ final class AcceptanceTest extends IntegrationTestCase
         $this->publish($id);
         $sid = $this->createSessionViaAdmin($id);
         $this->publish($id, ['status' => 'disabled']);
-        self::assertSame(200, $this->get('/pruefungen/telc-deutsch-pflege-b1-b2/')->status, 'Seite bleibt sichtbar');
+        self::assertSame(302, $this->get('/pruefungen/telc-deutsch-pflege-b1-b2/')->status, 'Deaktivierte Prüfung ist ausgeblendet');
+        self::assertStringNotContainsString('telc-deutsch-pflege-b1-b2', $this->get('/telc-pruefungszentrum/')->body);
         $r = $this->submitBooking('telc-deutsch-pflege-b1-b2', $sid);
         self::assertNotSame(200, $r->status);
         self::assertSame(0, (int) self::db()->value('SELECT COUNT(*) FROM bookings WHERE exam_session_id = ?', [$sid]));

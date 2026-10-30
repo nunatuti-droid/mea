@@ -2,6 +2,11 @@
 Options -Indexes
 <IfModule mod_rewrite.c>
   RewriteEngine On
+  # Nur GET, HEAD und POST zulassen (TRACE, PUT, DELETE usw. abweisen)
+  RewriteCond %{REQUEST_METHOD} !^(GET|HEAD|POST)$
+  RewriteRule ^ - [R=405,L]
+  # Versteckte Dateien (.env, .git …) nie ausliefern; .well-known bleibt für SSL-Zertifikate erreichbar
+  RewriteRule (^|/)\.(?!well-known/) - [F,L]
   # Im Upload-Verzeichnis wird nie Code ausgeführt, auch keine index.php
   RewriteRule ^media/.*\.(php\d?|phtml|phar|cgi|pl|py|sh)$ - [F,L]
   RewriteCond %{REQUEST_FILENAME} !-f
@@ -32,3 +37,6 @@ Options -Indexes
     Header set Content-Disposition "inline"
   </FilesMatch>
 </IfModule>
+
+# Server-Signatur nicht preisgeben
+ServerSignature Off

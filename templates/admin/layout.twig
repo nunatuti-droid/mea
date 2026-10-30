@@ -21,6 +21,7 @@
         ]},
         {label: 'Prüfungen', items: [
           {url: '/verwaltung/pruefungen/', label: 'Prüfungsarten', icon: 'award', perm: 'exams'},
+          {url: '/verwaltung/pruefungskategorien/', label: 'Prüfungskategorien', icon: 'list', perm: 'exams'},
           {url: '/verwaltung/termine/', label: 'Termine', icon: 'calendar-days', perm: 'sessions'},
           {url: '/verwaltung/kalender/', label: 'Kalender', icon: 'calendar-range', perm: 'sessions'},
           {url: '/verwaltung/buchungen/', label: 'Buchungen', icon: 'ticket', perm: 'bookings'},
@@ -29,6 +30,7 @@
         ]},
         {label: 'Kontakt', items: [
           {url: '/verwaltung/anfragen/', label: 'Anfragen', icon: 'inbox', perm: 'inquiries'},
+          {url: '/verwaltung/bewerbungen/', label: 'Bewerbungen', icon: 'file-check', perm: 'applications'},
         ]},
         {label: 'Inhalte', items: [
           {url: '/verwaltung/seiten/', label: 'Seiten', icon: 'file-text', perm: 'content'},
@@ -36,6 +38,7 @@
           {url: '/verwaltung/faq/', label: 'FAQ', icon: 'info', perm: 'content'},
           {url: '/verwaltung/bewertungen/', label: 'Bewertungen', icon: 'star', perm: 'content'},
           {url: '/verwaltung/menues/', label: 'Menüs', icon: 'list', perm: 'content'},
+          {url: '/verwaltung/weiterleitungen/', label: 'Weiterleitungen', icon: 'signpost', perm: 'content'},
           {url: '/verwaltung/standorte/', label: 'Standorte', icon: 'map-pin', perm: 'locations'},
           {url: '/verwaltung/medien/', label: 'Mediathek', icon: 'image', perm: 'media'},
         ]},
@@ -45,6 +48,8 @@
           {url: '/verwaltung/email-protokoll/', label: 'E-Mail-Protokoll', icon: 'mail-check', perm: 'emails'},
           {url: '/verwaltung/benutzer/', label: 'Benutzer', icon: 'users', perm: 'users'},
           {url: '/verwaltung/protokoll/', label: 'Änderungsprotokoll', icon: 'history', perm: 'audit'},
+          {url: '/verwaltung/einwilligungen/', label: 'Cookie-Einwilligungen', icon: 'shield-check', perm: 'audit'},
+          {url: '/verwaltung/website-status/', label: 'Website-Status', icon: 'monitor-smartphone', perm: 'system'},
           {url: '/verwaltung/sicherheit/', label: 'Sicherheit', icon: 'shield', perm: 'system'},
           {url: '/verwaltung/sicherungen/', label: 'Sicherungen', icon: 'database', perm: 'system'},
           {url: '/verwaltung/updates/', label: 'Updates', icon: 'package', perm: 'system'},
@@ -79,6 +84,11 @@
         </div>
       </header>
       <main id="inhalt" class="adm-content" tabindex="-1">
+        {% if not site_live.online %}
+          <p class="site-banner site-banner--danger">{{ icon('circle-alert') }}<span>Die Website ist offline. Besucher sehen die Wartungsseite.{% if can.system %} <a href="/verwaltung/website-status/">Ändern</a>{% endif %}</span></p>
+        {% elseif not site_live.indexing %}
+          <p class="site-banner">{{ icon('info') }}<span>Suchmaschinen-Indexierung ist gesperrt.{% if can.system %} <a href="/verwaltung/website-status/">Ändern</a>{% endif %}</span></p>
+        {% endif %}
         {% if flash %}
           <div class="alert alert--{{ flash.type }}" role="status">{{ icon(flash.type == 'error' ? 'circle-alert' : 'circle-check') }}<p>{{ flash.message }}</p></div>
         {% endif %}
@@ -89,7 +99,10 @@
   {% else %}
   <main id="inhalt" class="adm-auth" tabindex="-1">
     <div class="adm-auth__card">
-      <p class="adm-auth__brand">MEA <span>Verwaltung</span></p>
+      <div class="adm-auth__brand">
+        {% if site.company.logo_media_id ?? false %}{{ img(site.company.logo_media_id, '180px', {alt: site.company.name ?? 'MEA Bildungszentrum', loading: 'eager'}) }}{% else %}<span class="adm-auth__name">MEA</span>{% endif %}
+        <span class="adm-auth__sub">Verwaltung</span>
+      </div>
       {% block auth %}{% endblock %}
     </div>
   </main>

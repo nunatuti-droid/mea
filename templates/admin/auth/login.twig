@@ -8,6 +8,7 @@
     <input type="hidden" name="_csrf" value="{{ csrf }}">
     <input type="hidden" name="weiter" value="{{ next }}">
     <div class="field"><label for="email">E-Mail-Adresse</label><input id="email" type="email" name="email" value="{{ email }}" autocomplete="username" required autofocus></div>
+    <div class="hp" aria-hidden="true"><label for="website">Website</label><input id="website" type="text" name="website" tabindex="-1" autocomplete="off"></div>
     <div class="field"><label for="password">Passwort</label><input id="password" type="password" name="password" autocomplete="current-password" required></div>
     <button class="btn btn--primary" type="submit">Weiter</button>
   </form>

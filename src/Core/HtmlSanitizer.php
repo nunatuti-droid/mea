@@ -18,7 +18,7 @@ final class HtmlSanitizer
         $config->set('Cache.SerializerPath', $cacheDir);
         $config->set('HTML.Doctype', 'HTML 4.01 Transitional');
         $config->set('HTML.Allowed', implode(',', [
-            'h2', 'h3', 'h4', 'p', 'br', 'strong', 'b', 'em', 'i', 'u', 's', 'sub', 'sup',
+            'h2[id]', 'h3[id]', 'h4', 'p', 'br', 'strong', 'b', 'em', 'i', 'u', 's', 'sub', 'sup',
             'ul', 'ol', 'li', 'blockquote', 'hr',
             'a[href|title]',
             'table', 'thead', 'tbody', 'tr', 'th[scope|colspan|rowspan]', 'td[colspan|rowspan]', 'caption',
@@ -28,6 +28,8 @@ final class HtmlSanitizer
         // Bilder nur aus der eigenen Mediathek
         $config->set('URI.DisableExternalResources', true);
         $config->set('Attr.AllowedFrameTargets', []);
+        // Sprungmarken (z. B. /datenschutz/#karten) nur an Überschriften
+        $config->set('Attr.EnableID', true);
         $config->set('AutoFormat.RemoveEmpty', true);
         $config->set('Core.Encoding', 'UTF-8');
         $this->purifier = new \HTMLPurifier($config);

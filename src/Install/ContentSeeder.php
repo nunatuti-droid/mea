@@ -13,6 +13,8 @@ use Mea\Module\Media\ImageVariantGenerator;
  */
 final class ContentSeeder
 {
+    public const EXAM_REQUIREMENTS = '<p>Für die Teilnahme ist kein vorheriger Kurs erforderlich. Wir empfehlen eine gezielte Vorbereitung; sprechen Sie uns gerne an.</p>';
+
     /** @var array<string,int> */
     private array $m = [];
 
@@ -136,7 +138,7 @@ final class ContentSeeder
             'phone' => '+49 2365 6973491', 'sort_order' => 1,
         ]);
         $this->db->insert('locations', [
-            'slug' => 'herne', 'name' => 'Standort Herne', 'short_name' => 'Herne', 'is_headquarters' => 0,
+            'slug' => 'herne', 'name' => 'Standort Herne', 'short_name' => 'Herne', 'is_headquarters' => 0, 'is_exam_center' => 1,
             'street' => 'Wilhelmstraße 98b', 'address_extra' => 'Gebäude 012', 'postal_code' => '44649', 'city' => 'Herne',
             // laut alter telc-Seite; Zuordnung zu Herne bitte von MEA bestätigen lassen
             'phone' => '+49 2325 578001', 'sort_order' => 2,
@@ -238,9 +240,10 @@ final class ContentSeeder
                 'Für erwerbsfähige Leistungsberechtigte mit komplexen Vermittlungshemmnissen.',
                 [['Betreuungsumfang', '310 UE'], ['Dauer', 'bis zu 12 Monate'], ['Coachingform', '1:1-Coaching']]],
         ];
+        $short = ['mea-plus' => 'MEA Plus', 'stabilisierung' => 'Job-Mentoring', 'ganzheitliche-betreuung' => 'Betreuung nach § 16k SGB II'];
         foreach ($children as $i => [$slug, $title, $img, $teaser, $facts]) {
             $this->service([
-                'parent_id' => $avgs, 'slug' => $slug, 'title' => $title, 'icon' => 'user-check', 'sort_order' => $i + 1,
+                'parent_id' => $avgs, 'slug' => $slug, 'title' => $title, 'menu_title' => $short[$slug], 'icon' => 'user-check', 'sort_order' => $i + 1,
                 'teaser' => $teaser, 'intro' => $teaser,
                 'body_html' => '<p>' . htmlspecialchars($teaser) . '</p><p>Die Maßnahme kann mit einem Aktivierungs- und Vermittlungsgutschein (AVGS) gefördert werden. Ob Sie einen Gutschein erhalten, klären Sie mit Ihrer Ansprechperson bei der Agentur für Arbeit oder dem Jobcenter. Wir beraten Sie gerne vorab.</p>',
                 'facts_json' => ['facts' => array_map(fn($f) => ['label' => $f[0], 'value' => $f[1]], $facts)],
@@ -293,14 +296,14 @@ final class ContentSeeder
             . '<h2>Für Unternehmen: Sprachprüfungen gezielt einsetzen</h2><p>Sie möchten die Sprachkenntnisse Ihrer Mitarbeitenden nachweisen lassen? Sprechen Sie uns an – wir beraten Sie zur passenden Prüfung.</p>', [
             'intro' => 'Zertifiziert. Anerkannt. Zukunftsorientiert. Als lizenziertes telc-Prüfungszentrum beraten wir Sie zur passenden Prüfung und führen sie professionell und transparent durch.',
             'hero_media_id' => $this->m['exam_room'], 'is_system' => 1,
-            'seo_title' => 'telc-Prüfungen in Marl & Herne – Termine und Anmeldung',
+            'seo_title' => 'telc-Prüfungen in Herne – Termine und Anmeldung',
             'seo_description' => 'Lizenziertes telc-Prüfungszentrum: Deutschprüfungen nach GER, aktuelle Termine, Preise und freie Plätze. Jetzt online anmelden.',
         ]);
         $this->page('preise', 'Preise', '', [
             'intro' => 'Alle Prüfungspreise auf einen Blick. Der Preis eines einzelnen Termins kann abweichen; maßgeblich ist der Preis, der bei der Anmeldung angezeigt wird.',
             'is_system' => 1,
             'seo_title' => 'Preise für telc-Prüfungen – MEA Bildungszentrum',
-            'seo_description' => 'Übersicht der Prüfungsgebühren für telc-Sprachprüfungen im MEA Bildungszentrum in Marl und Herne.',
+            'seo_description' => 'Übersicht der Prüfungsgebühren für telc-Sprachprüfungen im zertifizierten telc-Prüfungszentrum des MEA Bildungszentrums in Herne.',
         ]);
         $this->page('standorte', 'Unsere Standorte', '', [
             'intro' => 'Sie finden uns an mehreren Standorten im Ruhrgebiet. Wählen Sie einen Standort für Adresse, Anfahrt und Kontakt.',
@@ -337,7 +340,7 @@ final class ContentSeeder
             . '<h2>Sprachdozent:in (Freelancer)</h2><p>Sie unterstützen Teilnehmende dabei, ihre Sprachkenntnisse zu verbessern und sicher zu kommunizieren.</p>'
             . '<h3>Das bringen Sie mit</h3><ul><li>Studium oder Ausbildung in Sprachwissenschaft, Pädagogik oder einem verwandten Bereich</li><li>Erfahrung in Sprachtraining oder Coaching</li><li>Empathie, Geduld und eine klare Vermittlung</li><li>Gute Deutschkenntnisse, idealerweise weitere Sprachen</li></ul>'
             . '<h3>Das bieten wir</h3><ul><li>Ein inspirierendes Umfeld und ein unterstützendes Team</li><li>Flexible Arbeitszeiten</li><li>Raum für eigene Unterrichtskonzepte</li></ul>'
-            . '<h2>Bewerbung</h2><p>Ihre Ansprechpartner sind Frau Mernica und Herr Cizmic. Schicken Sie uns Ihre Unterlagen über das <a href="/kontakt/?thema=sonstiges">Kontaktformular</a> oder per E-Mail.</p>', [
+            . '<h2>Bewerbung</h2><p>Ihre Ansprechpartner sind Frau Mernica und Herr Cizmic. Bewerben Sie sich direkt über unser <a href="/karriere/bewerbung/">Bewerbungsformular</a>. Dort laden Sie Ihre Unterlagen als PDF hoch.</p>', [
             'intro' => 'Wir suchen Menschen, die andere auf ihrem beruflichen Weg begleiten wollen.',
             'hero_media_id' => $this->m['lecturer_m'],
             'seo_title' => 'Karriere: Jobcoach und Sprachdozent:in – MEA',
@@ -354,10 +357,7 @@ final class ContentSeeder
             'seo_title' => 'Impressum – MEA Bildungszentrum GmbH',
             'seo_description' => 'Impressum der MEA Bildungszentrum GmbH, Barkhausstraße 22, 45768 Marl.',
         ]);
-        $this->page('datenschutz', 'Datenschutzerklärung',
-            '<p><strong>Hinweis:</strong> Die Datenschutzerklärung für die neue Website wird derzeit fachlich erstellt und geprüft. Bis dahin gilt die Datenschutzerklärung der bisherigen Website.</p>'
-            . '<h2>Verantwortlicher</h2><p>MEA Bildungszentrum GmbH, Barkhausstraße 22, 45768 Marl. Vertreten durch Elmedina Mernica und Saudin Cizmic.</p>'
-            . '<h2>Was diese Website technisch tut</h2><ul><li>Keine Tracking- oder Marketing-Cookies, keine Analysedienste.</li><li>Schriften und Bilder werden vom eigenen Server geladen.</li><li>Kartendienste (OpenStreetMap) werden erst nach Ihrem Klick geladen.</li><li>Ein technisch notwendiges Sitzungs-Cookie wird nur beim Absenden von Formularen gesetzt.</li></ul>', [
+        $this->page('datenschutz', 'Datenschutzerklärung', PrivacyPolicy::html(), [
             'template' => 'legal', 'is_system' => 1,
             'seo_title' => 'Datenschutzerklärung – MEA Bildungszentrum',
             'seo_description' => 'Informationen zum Datenschutz auf der Website des MEA Bildungszentrums.',
@@ -378,46 +378,22 @@ final class ContentSeeder
             'refund_allowed' => 1, 'is_default' => 1,
             'required_fields_json' => json_encode(['first_name', 'last_name', 'birth_date', 'birth_place', 'email', 'phone', 'address']),
         ]);
-        $parts = '<p>Die Prüfung besteht aus den Teilen <strong>Lesen, Hören, Schreiben</strong> und <strong>Sprechen</strong>.</p>';
-        $levels = [
-            ['A1', 'Für Einsteigerinnen und Einsteiger, die vertraute Alltagsausdrücke und einfache Sätze verstehen und verwenden können.',
-                '<p>Auf dem Niveau A1 können Sie sich und andere vorstellen, einfache Fragen stellen und beantworten und sich verständigen, wenn Ihr Gegenüber langsam und deutlich spricht.</p>'],
-            ['A2', 'Für alle, die sich in einfachen, routinemäßigen Situationen des Alltags verständigen können.',
-                '<p>Auf dem Niveau A2 verstehen Sie Sätze und häufig gebrauchte Ausdrücke aus Bereichen wie Familie, Einkaufen, Arbeit und nähere Umgebung und können einfache Informationen austauschen.</p>'],
-            ['B1', 'Der häufig verlangte Nachweis für Ausbildung, Beruf, Aufenthaltstitel und Einbürgerung.',
-                '<p>Auf dem Niveau B1 verstehen Sie die Hauptpunkte, wenn klare Standardsprache über vertraute Themen aus Arbeit, Schule und Freizeit verwendet wird, und können sich zusammenhängend zu Erfahrungen, Zielen und Plänen äußern.</p>'],
-            ['B2', 'Für Beruf und Studium: selbstständige Sprachverwendung auch bei komplexeren Themen.',
-                '<p>Auf dem Niveau B2 verstehen Sie die Hauptinhalte komplexer Texte, auch Fachdiskussionen im eigenen Gebiet, und können sich spontan und fließend verständigen.</p>'],
-            ['C1', 'Für anspruchsvolle berufliche und akademische Ziele.',
-                '<p>Auf dem Niveau C1 verstehen Sie ein breites Spektrum anspruchsvoller, längerer Texte und können sich klar, strukturiert und ausführlich zu komplexen Sachverhalten äußern.</p>'],
-        ];
-        foreach ($levels as $i => [$lvl, $short, $body]) {
-            $this->db->insert('exam_types', [
-                'provider_id' => $provider, 'slug' => 'telc-deutsch-' . strtolower($lvl),
-                'internal_name' => 'telc Deutsch ' . $lvl, 'public_name' => 'telc Deutsch ' . $lvl,
-                'level_label' => $lvl, 'category' => 'Deutsch', 'exam_format' => 'Schriftliche und mündliche Prüfung',
-                'short_text' => $short, 'body_html' => $body . $parts,
-                'requirements_html' => '<p>Für die Teilnahme ist kein vorheriger Kurs erforderlich. Wir empfehlen eine gezielte Vorbereitung; sprechen Sie uns gerne an.</p>',
+        $general = $this->db->value("SELECT id FROM exam_categories WHERE slug = 'allgemeinsprachlich'");
+        $i = 0;
+        foreach (TelcGermanExams::all() as $slug => $e) {
+            $lvl = $e['level_label'];
+            $img = $slug === 'telc-deutsch-a2-b1' ? 'exam_a2b1' : ($i % 2 === 0 ? 'exam_writing' : 'exam_room');
+            $this->db->insert('exam_types', $e + [
+                'provider_id' => $provider, 'slug' => $slug, 'category' => 'Deutsch', 'category_id' => $general,
+                'requirements_html' => self::EXAM_REQUIREMENTS,
                 'booking_rule_id' => $rule,
-                'card_media_id' => $this->m[$i % 2 === 0 ? 'exam_writing' : 'exam_room'],
-                'hero_media_id' => $this->m[$i % 2 === 0 ? 'exam_writing' : 'exam_room'],
-                'seo_title' => "telc Deutsch $lvl Prüfung in Marl & Herne",
-                'seo_description' => mb_substr("telc Deutsch $lvl beim MEA Bildungszentrum: Ablauf, Voraussetzungen, Termine, Preise und Online-Anmeldung.", 0, 170),
-                'status' => 'draft', 'sort_order' => ($i + 1) * 10,
+                'card_media_id' => $this->m[$img], 'hero_media_id' => $this->m[$slug === 'telc-deutsch-a2-b1' ? 'exam_writing' : $img],
+                'seo_title' => mb_substr($e['public_name'] . ' Prüfung in Herne', 0, 70),
+                'seo_description' => mb_substr($e['public_name'] . ' beim MEA Bildungszentrum im telc-Prüfungszentrum Herne: Ablauf, Termine, Preise und Online-Anmeldung.', 0, 170),
+                'status' => 'draft',
             ]);
+            $i++;
         }
-        $this->db->insert('exam_types', [
-            'provider_id' => $provider, 'slug' => 'telc-deutsch-a2-b1',
-            'internal_name' => 'telc Deutsch A2-B1 (Beispiel)', 'public_name' => 'telc Deutsch A2-B1',
-            'level_label' => 'A2-B1', 'category' => 'Deutsch', 'exam_format' => 'Skalierte Prüfung',
-            'short_text' => 'Eine Prüfung, zwei mögliche Niveaus: Je nach Ergebnis erhalten Sie ein Zertifikat auf A2 oder B1.',
-            'body_html' => '<p>telc Deutsch A2-B1 ist eine skalierte Sprachprüfung für Deutschlernende, die ihre Kenntnisse auf den Niveaustufen A2 oder B1 des Gemeinsamen Europäischen Referenzrahmens nachweisen möchten. Je nach erreichter Leistung erhalten Sie ein telc-Zertifikat auf A2 oder B1.</p>' . $parts
-                . '<p>Arbeitgeber, Behörden und Bildungseinrichtungen erkennen das Zertifikat an.</p>',
-            'booking_rule_id' => $rule, 'card_media_id' => $this->m['exam_a2b1'], 'hero_media_id' => $this->m['exam_writing'],
-            'seo_title' => 'telc Deutsch A2-B1 Prüfung in Marl & Herne',
-            'seo_description' => 'telc Deutsch A2-B1: skalierte Deutschprüfung mit Zertifikat auf A2 oder B1. Termine, Preise und Online-Anmeldung beim MEA Bildungszentrum.',
-            'status' => 'draft', 'sort_order' => 25,
-        ]);
     }
 
     private function faq(string $q, string $a, array $targets, string $cat = 'Prüfungen'): void
@@ -466,6 +442,7 @@ final class ContentSeeder
         $main = $this->db->insert('menus', ['menu_key' => 'main', 'name' => 'Hauptmenü']);
         $add = fn(int $menu, string $label, string $url, int $sort, ?int $parent = null, ?string $desc = null): int
             => $this->db->insert('menu_items', ['menu_id' => $menu, 'parent_id' => $parent, 'label' => $label, 'url' => $url, 'sort_order' => $sort, 'description' => $desc]);
+        $add($main, 'Startseite', '/', 0);
         $l = $add($main, 'Leistungen', '/leistungen/', 1);
         $add($main, 'Fachkräftegewinnung', '/fachkraeftegewinnung/', 1, $l, 'Fachkräfte aus dem In- und Ausland');
         $add($main, 'Onboarding', '/onboarding/', 2, $l, 'Ankommen in Deutschland');

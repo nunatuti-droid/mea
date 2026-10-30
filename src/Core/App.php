@@ -51,6 +51,8 @@ final class App
     public readonly ContentRepository $content;
     public readonly PublicController $publicPages;
     public readonly \Mea\Module\Security\Firewall $firewall;
+    public readonly \Mea\Module\Ops\SiteStatus $siteStatus;
+    public readonly \Mea\Module\Consent\ConsentConfig $consent;
 
     public function __construct(public readonly string $root, ?Config $config = null, ?Database $db = null, ?\Psr\Clock\ClockInterface $clock = null)
     {
@@ -64,13 +66,14 @@ final class App
 
         $baseUrl = $this->baseUrl = $this->config->get('APP_URL', 'http://localhost') ?? '';
         $debug = $this->config->bool('APP_DEBUG');
-        $noindex = $this->config->bool('APP_NOINDEX');
         $media = $this->media = new MediaRepository($this->db);
         $this->crypto = Crypto::fromConfig($this->config);
         $this->html = new HtmlSanitizer($root . '/storage/cache/htmlpurifier');
         $this->view = new View($root, $debug, $media, $baseUrl);
 
         $settings = $this->settings = new SettingsRepository($this->db);
+        $this->siteStatus = new \Mea\Module\Ops\SiteStatus($settings, $this->config);
+        $this->consent = new \Mea\Module\Consent\ConsentConfig($settings);
         $this->content = new ContentRepository($this->db);
         $locations = $this->locations = new LocationRepository($this->db);
         $exams = $this->exams = new ExamRepository($this->db, new PriceCalculator());
@@ -85,7 +88,10 @@ final class App
         $this->view->addGlobal('footer_menu', $this->content->menu('footer'));
         $this->view->addGlobal('legal_menu', $this->content->menu('legal'));
         $this->view->addGlobal('all_locations', $locations->active());
-        $this->view->addGlobal('noindex', $noindex);
+        $this->view->addGlobal('exam_center', $locations->examCenter());
+        $this->view->addGlobal('consent', ['categories' => $this->consent->categories(), 'client' => $this->consent->clientConfig()]);
+        $this->view->addGlobal('noindex', !$this->siteStatus->indexingAllowed());
+        $this->view->addGlobal('site_live', ['online' => true, 'indexing' => true]);
         $this->view->addGlobal('base_url', rtrim($baseUrl, '/'));
         $this->view->addGlobal('rating_summary', $this->content->ratingSummary());
         $this->view->addGlobal('footer_reviews', $this->content->reviews());
@@ -101,7 +107,7 @@ final class App
             $this->content,
             $this->mailer,
         );
-        $seo = new SeoController($this->content, $exams, $locations, $baseUrl, $noindex);
+        $seo = new SeoController($this->content, $exams, $locations, $baseUrl, fn(): bool => !$this->siteStatus->indexingAllowed());
 
         $r = $this->router = new Router();
         // Verwaltung zuerst, damit die allgemeinen Seiten-Routen sie nicht überdecken
@@ -122,8 +128,14 @@ final class App
         $r->get('/preise/', $examCtl->prices(...));
         $r->get('/standorte/', $locCtl->index(...));
         $r->get('/standorte/{slug:[a-z0-9-]+}/', $locCtl->show(...));
+        $isTesting = $this->config->get('APP_ENV') === 'testing';
+        $apply = new \Mea\Module\Applications\ApplicationController($this->view, $this->applications(), $limiter, $this->content,
+            fn(string $tmp): bool => $isTesting ? is_file($tmp) : is_uploaded_file($tmp), $this->mailer, $this->log);
+        $r->get('/karriere/bewerbung/', $apply->show(...));
+        $r->post('/karriere/bewerbung/', $apply->submit(...));
         $r->get('/kontakt/', $contact->show(...));
         $r->post('/kontakt/', $contact->submit(...));
+        $r->post('/einwilligung/', (new \Mea\Module\Consent\ConsentController($this->db, $this->consent, $limiter))->record(...));
         $r->get('/sitemap.xml', $seo->sitemap(...));
         $r->get('/robots.txt', $seo->robots(...));
         $r->get('/{parent:[a-z0-9-]+}/{slug:[a-z0-9-]+}/', $pages->childService(...));
@@ -132,6 +144,12 @@ final class App
 
     private ?\Mea\Module\Payments\PaymentGateway $gateway = null;
     private ?\Mea\Module\Bookings\BookingService $bookingService = null;
+    private ?\Mea\Module\Applications\ApplicationService $applicationService = null;
+
+    public function applications(): \Mea\Module\Applications\ApplicationService
+    {
+        return $this->applicationService ??= new \Mea\Module\Applications\ApplicationService($this->db, $this->crypto, $this->root . '/storage/applications');
+    }
 
     public function paymentGateway(): \Mea\Module\Payments\PaymentGateway
     {
@@ -194,19 +212,45 @@ final class App
 
     public function handle(Request $req): Response
     {
+        $guard = null;
         try {
+            // Einstellung kann sich zwischen Anfragen ändern (Schalter in der Verwaltung)
+            $this->view->addGlobal('noindex', !$this->siteStatus->indexingAllowed());
+            $this->view->addGlobal('site_live', ['online' => $this->siteStatus->isOnline(), 'indexing' => $this->siteStatus->indexingAllowed()]);
             $guard = $this->guard($req);
             $response = $guard ?? $this->dispatch($req);
-            if ($guard === null && $response->status === 404 && preg_match('/\.(php\d?|asp|aspx|jsp|cgi|bak|sql|zip|tar|gz|old|swp|ini|log)$/i', $req->path)) {
-                $this->firewall->record('probe', $req, 1, 'info'); // Suche nach Dateien, die es hier nicht gibt
-            }
         } catch (HttpException $e) {
             $response = $this->errorPage($e->getCode() ?: 404);
         } catch (\Throwable $e) {
             $this->log->error($e->getMessage(), ['exception' => $e, 'path' => $req->path]);
             $response = $this->errorPage(500);
         }
+        if ($guard === null && $response->status === 404) {
+            $this->noteNotFound($req);
+        }
         return $this->secure($response, $req);
+    }
+
+    /** Nicht gefundene Adressen: Dateisuche zählt für den Anwendungsschutz, alles andere landet (ohne IP) im 404-Protokoll. */
+    private function noteNotFound(Request $req): void
+    {
+        try {
+            if (preg_match('/\.(php\d?|asp|aspx|jsp|cgi|bak|sql|zip|tar|gz|old|swp|ini|log)$/i', $req->path)) {
+                $this->firewall->record('probe', $req, 1, 'info'); // Suche nach Dateien, die es hier nicht gibt
+                return;
+            }
+            if (!in_array($req->method, ['GET', 'HEAD'], true) || str_starts_with($req->path, '/verwaltung/') || str_starts_with($req->path, '/buchung/') || strlen($req->path) > 255
+                || !preg_match('#^/[\x21-\x7E]*$#', $req->path)) {
+                return;
+            }
+            $ref = parse_url((string) ($req->server['HTTP_REFERER'] ?? ''), PHP_URL_HOST);
+            $this->db->run('INSERT INTO not_found_log (path, referrer_host) VALUES (?, ?)
+                            ON DUPLICATE KEY UPDATE hits = hits + 1, last_seen_at = UTC_TIMESTAMP(), resolved_at = NULL,
+                            referrer_host = COALESCE(VALUES(referrer_host), referrer_host)',
+                [$req->path, is_string($ref) ? mb_substr($ref, 0, 120) : null]);
+        } catch (\Throwable $e) {
+            $this->log->warning('404-Protokoll nicht schreibbar', ['error' => $e->getMessage()]);
+        }
     }
 
     /** Wartungsmodus und Anwendungsschutz vor dem Routing. */
@@ -217,13 +261,30 @@ final class App
             return self::staticPage(503, 'Wartungsarbeiten', 'Die Website wird gerade aktualisiert. Bitte versuchen Sie es in wenigen Minuten erneut.')
                 ->withHeader('Retry-After', '300');
         }
+        // Website im Backend offline geschaltet: Wartungsseite, Verwaltung und Zahlungsrückmeldungen bleiben erreichbar
+        if (!\Mea\Module\Ops\SiteStatus::alwaysReachable($req->path) && !$this->siteStatus->isOnline()) {
+            return $this->offlinePage();
+        }
         $check = $this->firewall->inspect($req);
         return match ($check['action']) {
             'block' => self::staticPage(403, 'Zugriff vorübergehend gesperrt', 'Von Ihrer Verbindung kamen auffällige Anfragen. Der Zugriff ist deshalb vorübergehend gesperrt. Wenn Sie uns erreichen möchten, rufen Sie uns bitte an.'),
             'reject' => self::staticPage(403, 'Anfrage abgelehnt', 'Diese Anfrage wurde aus Sicherheitsgründen abgelehnt.'),
             'probe' => $this->errorPage(404),
+            'method' => self::staticPage(405, 'Methode nicht erlaubt', 'Diese Anfrage wird nicht unterstützt.')->withHeader('Allow', implode(', ', \Mea\Module\Security\Firewall::METHODS)),
             default => null,
         };
+    }
+
+    private function offlinePage(): Response
+    {
+        try {
+            $body = $this->view->render('public/offline.twig', ['message' => $this->siteStatus->offlineMessage()]);
+        } catch (\Throwable $e) {
+            $this->log->error('Wartungsseite: ' . $e->getMessage());
+            return self::staticPage(503, 'Wartungsarbeiten', $this->siteStatus->offlineMessage());
+        }
+        return Response::html($body, 503)->withHeader('Retry-After', '3600')->withHeader('Cache-Control', 'no-store')
+            ->withHeader('X-Robots-Tag', 'noindex');
     }
 
     public static function maintenanceFlag(string $root): string
@@ -284,8 +345,11 @@ final class App
     /** Sicherheitsheader für jede Antwort. */
     private function secure(Response $r, Request $req): Response
     {
-        $csp = "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; "
-            . "frame-src 'self' https://www.openstreetmap.org; connect-src 'self'; form-action 'self'; "
+        // Fremde Quellen nur für Dienste, die in der Verwaltung eingetragen sind; geladen werden sie erst nach Einwilligung
+        $x = $this->consent->cspSources();
+        $add = fn(array $l): string => $l !== [] ? ' ' . implode(' ', $l) : '';
+        $csp = "default-src 'self'; script-src 'self'" . $add($x['script']) . "; style-src 'self'; img-src 'self' data:" . $add($x['img']) . "; font-src 'self'; "
+            . "frame-src 'self' https://www.google.com" . $add($x['frame']) . "; connect-src 'self'" . $add($x['connect']) . "; form-action 'self'; "
             . "base-uri 'self'; frame-ancestors 'none'; object-src 'none'";
         $h = [
             'Content-Security-Policy' => $csp,
@@ -298,7 +362,7 @@ final class App
         if ($req->isSecure()) {
             $h['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains';
         }
-        if ($this->config->bool('APP_NOINDEX')) {
+        if (!$this->siteStatus->indexingAllowed()) {
             $h['X-Robots-Tag'] = 'noindex, nofollow';
         }
         foreach ($h as $k => $v) {

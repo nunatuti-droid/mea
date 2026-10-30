@@ -12,10 +12,18 @@ Der Kern ist eine **dynamische Prüfungsverwaltung**: Jede Prüfung (z. B. telc 
 | 2 | Architektur, Datenmodell (`docs/adr/`) | fertig |
 | 3 | Öffentliche Website, Designsystem, Weiterleitungen, Tests | fertig |
 | 4 | Verwaltung mit 2FA, Prüfungs- und Terminpflege, Kalender, Buchung, PayPal, E-Mail-Warteschlange | fertig |
-| 5 | Betrieb: Schutzschicht, Dateiwächter, verschlüsselte Sicherungen, signierte Updates, nächtliche Wartung, Notfallbefehle | **dieser Stand** |
-| 6 | Umzug und Abnahme | offen |
+| 5 | Betrieb: Schutzschicht, Dateiwächter, verschlüsselte Sicherungen, signierte Updates, nächtliche Wartung, Notfallbefehle | fertig |
+| 6 | Umzug: Weiterleitungen aller alten Adressen, Buchungsübernahme, Go-live-Prüfung, Testbericht, Installations- und Go-live-Anleitung | **dieser Stand** |
 
-Anforderungen und Nachweise: [`docs/anforderungen.md`](docs/anforderungen.md). Designregeln: [`DESIGN.md`](DESIGN.md).
+| Dokument | Inhalt |
+|---|---|
+| [`docs/anforderungen.md`](docs/anforderungen.md) | Anforderungsmatrix mit Status (getestet, offen, blockiert) |
+| [`docs/testbericht.md`](docs/testbericht.md) | Testergebnisse, Ladezeit, bekannte Einschränkungen |
+| [`docs/deployment.md`](docs/deployment.md) | Installation auf dem Server (Netcup/Plesk) |
+| [`docs/golive.md`](docs/golive.md) | Go-live-Checkliste und Rollbackplan |
+| [`docs/betrieb.md`](docs/betrieb.md) | Betrieb, Sicherungen, Updates, Notfälle |
+| [`docs/migration/alte-urls.txt`](docs/migration/alte-urls.txt) | alle Adressen der alten WordPress-Sitemap |
+| [`docs/adr/`](docs/adr/README.md), [`DESIGN.md`](DESIGN.md) | Architekturentscheidungen, Designregeln |
 
 ## Voraussetzungen
 
@@ -92,9 +100,11 @@ storage/             Logs, Original-Uploads, Sicherungen, Update-Rücknahmedaten
 tests/               Unit, Integration, e2e
 ```
 
-## Betrieb auf Netcup (Vorschau)
+## Betrieb auf Netcup
 
-- Document Root auf `public/` setzen. Falls Plesk das nicht erlaubt, wird das in Phase 6 gelöst; `storage/`, `src/` und `.env` dürfen nie öffentlich erreichbar sein.
+Ausführlich in [`docs/deployment.md`](docs/deployment.md). Vor der Umschaltung: `php bin/console golive:check`.
+
+- Document Root auf `public/` setzen. Falls das nicht geht, sorgt `/.htaccess` im Projektordner dafür, dass nur `public/` erreichbar ist (mit Apache getestet).
 - `APP_NOINDEX=true` auf der Vorschau: Suchmaschinen werden ausgesperrt (`X-Robots-Tag`, `robots.txt`).
 - PHP-Version in Plesk: 8.4.
 

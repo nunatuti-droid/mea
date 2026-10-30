@@ -128,6 +128,7 @@ final class Scheduler
         $n += $db->run('DELETE FROM rate_limits WHERE window_start < ? - INTERVAL 1 DAY', [$t]);
         $n += $db->run('DELETE FROM ip_rules WHERE expires_at IS NOT NULL AND expires_at < ? - INTERVAL 30 DAY', [$t]);
         $n += $db->run('DELETE FROM security_events WHERE created_at < ? - INTERVAL 90 DAY', [$t]);
+        $n += $db->run('DELETE FROM not_found_log WHERE last_seen_at < ? - INTERVAL 180 DAY', [$t]);
         $files = 0;
         foreach (['storage/tmp' => 86400, 'storage/mail' => 7 * 86400] as $dir => $age) {
             foreach (glob($this->app->root . '/' . $dir . '/*') ?: [] as $f) {
@@ -169,7 +170,11 @@ final class Scheduler
         $db->run("UPDATE payment_events SET payload_json = '{}' WHERE created_at < ? - INTERVAL ? YEAR", [$t, $years]);
         $mail = $db->run("DELETE FROM email_outbox WHERE status IN ('sent','failed') AND created_at < ? - INTERVAL ? DAY", [$t, max(30, (int) ($r['email_log_days'] ?? 180))]);
         $audit = $db->run('DELETE FROM audit_log WHERE created_at < ? - INTERVAL ? YEAR', [$t, max(1, (int) ($r['audit_years'] ?? 3))]);
-        return "Anfragen $inq, unbezahlt $unpaid, bezahlt $paid anonymisiert; $mail E-Mails, $audit Protokolleinträge gelöscht";
+        // Einwilligungsnachweise: 3 Jahre (übliche Verjährungsfrist), danach löschen
+        $consent = $db->run('DELETE FROM consent_log WHERE created_at < ? - INTERVAL 3 YEAR', [$t]);
+        // Bewerbungen: 6 Monate nach Abschluss, nie abgeschlossene nach 12 Monaten (samt Unterlagen)
+        $apps = $this->app->applications()->purge($now);
+        return "Anfragen $inq, unbezahlt $unpaid, bezahlt $paid anonymisiert; $mail E-Mails, $audit Protokolleinträge, $consent Einwilligungsnachweise, $apps Bewerbungen gelöscht";
     }
 
     private function jobReminders(\DateTimeImmutable $now): string

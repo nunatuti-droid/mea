@@ -234,7 +234,7 @@ final class MediaController
         foreach ($db->all("SELECT s.slug, s.title, p.slug AS parent FROM services s LEFT JOIN services p ON p.id = s.parent_id WHERE s.status = 'published'") as $s) {
             $links[] = ['url' => '/' . ($s['parent'] ? $s['parent'] . '/' : '') . $s['slug'] . '/', 'label' => $s['title']];
         }
-        foreach ($db->all("SELECT slug, public_name FROM exam_types WHERE status IN ('published','disabled')") as $e) {
+        foreach ($db->all("SELECT slug, public_name FROM exam_types WHERE status = 'published'") as $e) {
             $links[] = ['url' => '/pruefungen/' . $e['slug'] . '/', 'label' => $e['public_name']];
         }
         foreach ($db->all("SELECT public_path, title FROM media WHERE kind = 'document'") as $d) {

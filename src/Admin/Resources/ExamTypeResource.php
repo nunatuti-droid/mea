@@ -33,20 +33,33 @@ final class ExamTypeResource extends Resource
 
     public function baseQuery(): string
     {
-        return "SELECT e.*, p.name AS provider_name,
+        return "SELECT e.*, p.name AS provider_name, c.short_name AS category_name,
             (SELECT COUNT(*) FROM exam_sessions s WHERE s.exam_type_id = e.id AND s.starts_at > UTC_TIMESTAMP() AND s.status <> 'cancelled') AS upcoming
-            FROM exam_types e LEFT JOIN exam_providers p ON p.id = e.provider_id";
+            FROM exam_types e LEFT JOIN exam_providers p ON p.id = e.provider_id LEFT JOIN exam_categories c ON c.id = e.category_id";
     }
 
     public function filters(): array
     {
-        return [['name' => 'status', 'label' => 'Status', 'options' => Labels::options('exam_status')]];
+        return [
+            ['name' => 'status', 'label' => 'Status', 'options' => Labels::options('exam_status')],
+            ['name' => 'kategorie', 'label' => 'Kategorie', 'options' => array_column($this->db->all('SELECT id, short_name FROM exam_categories ORDER BY sort_order, name'), 'short_name', 'id')],
+        ];
     }
 
     public function filterWhere(\Mea\Core\Request $req): array
     {
+        $where = [];
+        $params = [];
         $s = $req->input('status');
-        return isset(Labels::MAPS['exam_status'][$s]) ? ['status = ?', [$s]] : ['', []];
+        if (isset(Labels::MAPS['exam_status'][$s])) {
+            $where[] = 'status = ?';
+            $params[] = $s;
+        }
+        if (ctype_digit($req->input('kategorie'))) {
+            $where[] = 'category_id = ?';
+            $params[] = (int) $req->input('kategorie');
+        }
+        return [implode(' AND ', $where), $params];
     }
 
     public function columns(): array
@@ -54,7 +67,7 @@ final class ExamTypeResource extends Resource
         return [
             ['key' => 'public_name', 'label' => 'Prüfung'],
             ['key' => 'level_label', 'label' => 'Niveau'],
-            ['key' => 'provider_name', 'label' => 'Anbieter'],
+            ['key' => 'category_name', 'label' => 'Kategorie'],
             ['key' => 'base_price_cents', 'label' => 'Grundpreis', 'format' => 'money'],
             ['key' => 'upcoming', 'label' => 'Kommende Termine', 'format' => 'int'],
             ['key' => 'status', 'label' => 'Status', 'format' => 'status:exam_status'],
@@ -65,16 +78,18 @@ final class ExamTypeResource extends Resource
     {
         $providers = array_column($this->db->all('SELECT id, name FROM exam_providers ORDER BY name'), 'name', 'id');
         $rules = array_column($this->db->all('SELECT id, name FROM booking_rules ORDER BY is_default DESC, name'), 'name', 'id');
+        $categories = array_column($this->db->all('SELECT id, name FROM exam_categories WHERE is_active = 1 OR id = ? ORDER BY sort_order, name', [$row['category_id'] ?? 0]), 'name', 'id');
         return [
             ['name' => 'public_name', 'label' => 'Öffentlicher Name', 'required' => true, 'max' => 150, 'help' => 'So erscheint die Prüfung auf der Website, z. B. „telc Deutsch B1“.'],
             ['name' => 'internal_name', 'label' => 'Interne Bezeichnung', 'required' => true, 'max' => 150],
             ['name' => 'slug', 'label' => 'URL-Kennung', 'type' => 'slug', 'required' => true, 'from' => 'public_name', 'help' => 'Ergibt die Adresse /pruefungen/kennung/. Nach dem Veröffentlichen möglichst nicht mehr ändern.'],
             ['name' => 'provider_id', 'label' => 'Anbieter / Zertifizierung', 'type' => 'select', 'options' => $providers, 'placeholder' => '– keiner –', 'numeric' => true],
             ['name' => 'level_label', 'label' => 'Niveau oder Kategorie', 'max' => 60, 'help' => 'Frei wählbar, z. B. B1, A2-B1, C1 Hochschule. Wird im Filter angeboten.'],
-            ['name' => 'category', 'label' => 'Kategorie', 'max' => 80, 'help' => 'Optional, z. B. Deutsch, Beruf, Einbürgerung.'],
+            ['name' => 'category_id', 'label' => 'Kategorie', 'type' => 'select', 'options' => $categories, 'placeholder' => '– keine –', 'numeric' => true,
+                'help' => 'Gliederung der Prüfungsübersicht. Kategorien pflegen Sie unter „Prüfungskategorien“.'],
             ['name' => 'exam_format', 'label' => 'Prüfungsformat', 'max' => 120, 'help' => 'z. B. Gesamtprüfung, Teilprüfung Schriftlich.'],
             ['name' => 'status', 'label' => 'Status', 'type' => 'select', 'options' => Labels::options('exam_status'), 'required' => true, 'default' => 'draft',
-                'help' => 'Entwurf: unsichtbar. Veröffentlicht: sichtbar und buchbar. Deaktiviert: sichtbar, nicht buchbar. Archiviert: Seite leitet auf die Übersicht um.'],
+                'help' => 'Entwurf: noch in Arbeit, unsichtbar. Veröffentlicht: sichtbar und buchbar. Deaktiviert: vorübergehend ausgeblendet, jederzeit wieder veröffentlichbar. Archiviert: dauerhaft eingestellt.'],
             ['name' => 'is_listed', 'label' => 'In Übersichten anzeigen', 'type' => 'checkbox', 'default' => 1],
             ['name' => 'sort_order', 'label' => 'Sortierung', 'type' => 'int', 'default' => 0, 'help' => 'Kleinere Zahlen stehen weiter vorne.'],
 
@@ -121,6 +136,9 @@ final class ExamTypeResource extends Resource
         if (($values['provider_id'] ?? '') === '') {
             $values['provider_id'] = null;
         }
+        if (($values['category_id'] ?? '') === '') {
+            $values['category_id'] = null;
+        }
         return $values;
     }
 
@@ -137,12 +155,25 @@ final class ExamTypeResource extends Resource
 
     public function publicUrl(array $row): ?string
     {
-        return in_array($row['status'], ['published', 'disabled'], true) ? '/pruefungen/' . $row['slug'] . '/' : null;
+        return $row['status'] === 'published' ? '/pruefungen/' . $row['slug'] . '/' : null;
     }
 
     public function preview(array $row): ?string
     {
         return ($this->previewer)($row);
+    }
+
+    /** Schnellschalter in der Liste: deaktivieren bzw. (wieder) veröffentlichen. */
+    public function rowActions(array $row): array
+    {
+        $url = '/verwaltung/pruefungen/' . $row['id'] . '/status/';
+        return match ($row['status']) {
+            'published' => [['label' => 'Deaktivieren', 'url' => $url, 'value' => 'disabled', 'icon' => 'ban',
+                'confirm' => '„' . $row['public_name'] . '“ deaktivieren? Die Prüfung verschwindet sofort von der Website und ist nicht mehr buchbar.']],
+            'disabled', 'draft', 'archived' => [['label' => $row['status'] === 'draft' ? 'Veröffentlichen' : 'Wieder veröffentlichen', 'url' => $url, 'value' => 'published', 'icon' => 'check',
+                'confirm' => '„' . $row['public_name'] . '“ veröffentlichen? Die Prüfung erscheint sofort auf der Website.']],
+            default => [],
+        };
     }
 
     public function actions(array $row, AdminContext $ctx): array

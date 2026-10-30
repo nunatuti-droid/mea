@@ -22,6 +22,8 @@ final class BookingAdminController
         $k->get('/verwaltung/buchungen/', 'bookings', $this->index(...));
         $k->get('/verwaltung/buchungen/export.csv', 'bookings', $this->export(...));
         $k->get('/verwaltung/buchungen/{id:\d+}/', 'bookings', $this->show(...));
+        $k->get('/verwaltung/buchungen/uebernehmen/', 'bookings', $this->importForm(...));
+        $k->post('/verwaltung/buchungen/uebernehmen/', 'bookings', $this->import(...));
         $k->post('/verwaltung/buchungen/{id:\d+}/stornieren/', 'bookings', $this->cancel(...));
         $k->post('/verwaltung/buchungen/{id:\d+}/erstatten/', 'refunds', $this->refund(...));
         $k->post('/verwaltung/buchungen/{id:\d+}/bestaetigung/', 'bookings', $this->resend(...));
@@ -182,6 +184,94 @@ final class BookingAdminController
             }, $result === 'failed' ? 'error' : 'success');
         }
         return Response::redirect('/verwaltung/buchungen/' . (int) $id . '/', 303);
+    }
+
+    /** @return list<array<string,mixed>> Felder für „Buchung übernehmen“ */
+    private function importFields(): array
+    {
+        $sessions = [];
+        foreach ($this->app->db->all("SELECT s.id, s.starts_at, s.capacity, e.public_name, l.name AS loc,
+                (SELECT COUNT(*) FROM bookings b WHERE b.exam_session_id = s.id AND b.status = 'confirmed') AS taken
+                FROM exam_sessions s JOIN exam_types e ON e.id = s.exam_type_id JOIN locations l ON l.id = s.location_id
+                WHERE s.status <> 'cancelled' AND s.starts_at > UTC_TIMESTAMP() - INTERVAL 1 DAY ORDER BY s.starts_at") as $r) {
+            $sessions[(string) $r['id']] = Form::utcToLocal((string) $r['starts_at']) . ' · ' . $r['public_name'] . ' · ' . $r['loc'] . ' (' . $r['taken'] . '/' . $r['capacity'] . ' belegt)';
+        }
+        return [
+            ['name' => 'session_id', 'label' => 'Termin', 'type' => 'select', 'required' => true, 'options' => $sessions, 'placeholder' => '– Termin wählen –', 'wide' => true],
+            ['name' => 'salutation', 'label' => 'Anrede', 'max' => 20],
+            ['name' => 'first_name', 'label' => 'Vorname', 'required' => true, 'max' => 100],
+            ['name' => 'last_name', 'label' => 'Nachname', 'required' => true, 'max' => 100],
+            ['name' => 'email', 'label' => 'E-Mail', 'type' => 'email', 'required' => true, 'max' => 190],
+            ['name' => 'phone', 'label' => 'Telefon', 'type' => 'tel', 'max' => 40],
+            ['name' => 'birth_date', 'label' => 'Geburtsdatum', 'type' => 'date'],
+            ['name' => 'birth_place', 'label' => 'Geburtsort', 'max' => 100],
+            ['name' => 'street', 'label' => 'Straße und Hausnummer', 'max' => 150],
+            ['name' => 'postal_code', 'label' => 'PLZ', 'max' => 10],
+            ['name' => 'city', 'label' => 'Ort', 'max' => 80],
+            ['name' => 'amount', 'label' => 'Betrag (€)', 'type' => 'money', 'required' => true, 'help' => 'Der tatsächlich vereinbarte bzw. bezahlte Betrag.'],
+            ['name' => 'paid', 'label' => 'Bereits bezahlt', 'type' => 'checkbox'],
+            ['name' => 'external_ref', 'label' => 'Referenz', 'max' => 64, 'help' => 'z. B. WooCommerce-Bestellnummer oder PayPal-Transaktion. Jede Referenz kann nur einmal übernommen werden.'],
+            ['name' => 'note', 'label' => 'Interne Notiz', 'type' => 'textarea', 'max' => 1000, 'rows' => 2],
+            ['name' => 'send_mail', 'label' => 'Bestätigungs-E-Mail senden', 'type' => 'checkbox', 'help' => 'Nur ankreuzen, wenn die Person noch keine Bestätigung aus dem alten Shop hat.'],
+        ];
+    }
+
+    public function importForm(Request $req, AdminContext $ctx): Response
+    {
+        return $this->renderImport([], [], ctype_digit($req->input('termin')) ? ['session_id' => $req->input('termin')] : []);
+    }
+
+    /** @param array<string,string> $errors @param array<string,mixed> $values */
+    private function renderImport(array $errors, array $values, array $prefill = [], int $status = 200): Response
+    {
+        $html = $this->app->view->render('admin/bookings/import.twig', [
+            'title' => 'Buchung übernehmen', 'fields' => $this->importFields(), 'errors' => $errors, 'values' => $values ?: $prefill,
+        ]);
+        return Response::html($html, $status);
+    }
+
+    public function import(Request $req, AdminContext $ctx): Response
+    {
+        $v = [];
+        foreach ($this->importFields() as $f) {
+            $v[$f['name']] = trim(mb_substr($req->input($f['name']), 0, (int) ($f['max'] ?? 255)));
+        }
+        $errors = [];
+        foreach ($this->importFields() as $f) {
+            if (($f['required'] ?? false) && $v[$f['name']] === '') {
+                $errors[$f['name']] = 'Bitte ausfüllen.';
+            }
+        }
+        if ($v['email'] !== '' && filter_var($v['email'], FILTER_VALIDATE_EMAIL) === false) {
+            $errors['email'] = 'Bitte eine gültige E-Mail-Adresse angeben.';
+        }
+        $amount = $v['amount'] !== '' ? Form::parseMoney($v['amount']) : null;
+        if ($v['amount'] !== '' && $amount === null) {
+            $errors['amount'] = 'Bitte einen Betrag wie 189,00 angeben.';
+        }
+        if ($v['birth_date'] !== '' && \DateTimeImmutable::createFromFormat('!Y-m-d', $v['birth_date']) === false) {
+            $errors['birth_date'] = 'Bitte ein gültiges Datum angeben.';
+        }
+        if ($v['session_id'] !== '' && !array_key_exists($v['session_id'], $this->importFields()[0]['options'])) {
+            $errors['session_id'] = 'Bitte einen Termin aus der Liste wählen.';
+        }
+        if ($v['paid'] === '1' && $v['external_ref'] === '') {
+            $errors['external_ref'] = 'Für bezahlte Buchungen bitte die Referenz der Zahlung angeben.';
+        }
+        if ($errors !== []) {
+            return $this->renderImport($errors, $v, [], 422);
+        }
+        $participant = ['email' => mb_strtolower($v['email'])];
+        foreach (['salutation', 'first_name', 'last_name', 'phone', 'birth_date', 'birth_place', 'street', 'postal_code', 'city'] as $k) {
+            $participant[$k] = $v[$k] !== '' ? $v[$k] : (in_array($k, ['first_name', 'last_name'], true) ? '' : null);
+        }
+        try {
+            $r = $this->app->bookings()->importExternal((int) $v['session_id'], $participant, (int) $amount, $v['paid'] === '1', $v['external_ref'], $v['note'], (int) $ctx->user['id'], $v['send_mail'] === '1');
+        } catch (BookingException $e) {
+            return $this->renderImport(['_form' => $e->getMessage()], $v, [], 422);
+        }
+        AdminKernel::flash('Buchung ' . $r['ref'] . ' übernommen.');
+        return Response::redirect('/verwaltung/buchungen/' . $r['id'] . '/', 303);
     }
 
     public function export(Request $req, AdminContext $ctx): Response

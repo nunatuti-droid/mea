@@ -71,7 +71,7 @@ final class HttpTest extends IntegrationTestCase
     /** @return array<string,mixed> */
     private static function firstRedirect(int $code): array
     {
-        $row = self::db()->one('SELECT source_path, target_url FROM redirects WHERE status_code = ? ORDER BY id LIMIT 1', [$code]);
+        $row = self::db()->one('SELECT source_path, target_url FROM redirects WHERE status_code = ? AND source_path NOT LIKE "%*" ORDER BY id LIMIT 1', [$code]);
         self::assertNotNull($row);
         return $row;
     }

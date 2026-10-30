@@ -1,0 +1,36 @@
+{% extends 'admin/layout.twig' %}
+{% block content %}
+  <div class="adm-head"><div><h1>Website-Status</h1><p class="adm-head__intro">Hier schalten Sie die öffentliche Website mit einem Klick offline und legen fest, ob Suchmaschinen sie aufnehmen dürfen. Die Verwaltung bleibt immer erreichbar.</p></div></div>
+
+  <form method="post" action="/verwaltung/website-status/" novalidate>
+    <input type="hidden" name="_csrf" value="{{ csrf }}">
+    <section class="card">
+      <div class="switch-row">
+        <div>
+          <h2 class="h3">Website online</h2>
+          <p class="text-sm text-muted">Ausgeschaltet sehen Besucher eine Wartungsseite mit Telefonnummer und Standorten. Laufende PayPal-Zahlungen werden weiter verarbeitet.</p>
+        </div>
+        <label class="switch"><input type="checkbox" role="switch" name="online" value="1" {{ online ? 'checked' }}><span class="switch__track" aria-hidden="true"></span><span class="visually-hidden">Website online</span></label>
+      </div>
+      <p class="status-line">{% if online %}<span class="badge badge--success">Online</span><span>Die Website ist öffentlich erreichbar.</span>{% else %}<span class="badge badge--danger">Offline</span><span>Besucher sehen die <a href="/" target="_blank" rel="noopener">Wartungsseite</a>.</span>{% endif %}</p>
+      <div class="field mt">
+        <label for="f-message">Hinweistext auf der Wartungsseite</label>
+        <textarea id="f-message" name="message" rows="4" maxlength="600"{% if errors.message is defined %} aria-invalid="true" aria-describedby="e-message"{% endif %}>{{ message }}</textarea>
+        {% if errors.message is defined %}<p class="field__error" id="e-message">{{ errors.message }}</p>{% endif %}
+      </div>
+    </section>
+
+    <section class="card mt">
+      <div class="switch-row">
+        <div>
+          <h2 class="h3">Suchmaschinen dürfen die Website aufnehmen</h2>
+          <p class="text-sm text-muted">Ausgeschaltet erhält jede Seite den Hinweis „noindex“, und die Datei <a href="/robots.txt" target="_blank" rel="noopener">robots.txt</a> sperrt alle Suchmaschinen. Sinnvoll für Testumgebungen. Bereits aufgenommene Seiten verschwinden erst nach einigen Tagen aus den Suchergebnissen.</p>
+        </div>
+        <label class="switch"><input type="checkbox" role="switch" name="indexing" value="1" {{ indexing ? 'checked' }}><span class="switch__track" aria-hidden="true"></span><span class="visually-hidden">Indexierung erlauben</span></label>
+      </div>
+      <p class="status-line">{% if indexing %}<span class="badge badge--success">Erlaubt</span><span>Die Website kann bei Google und anderen Suchmaschinen erscheinen.</span>{% else %}<span class="badge badge--warning">Gesperrt</span><span>Suchmaschinen sollen die Website nicht aufnehmen.</span>{% endif %}</p>
+    </section>
+
+    <div class="row mt"><button class="btn btn--primary" type="submit">{{ icon('save') }}Speichern</button></div>
+  </form>
+{% endblock %}

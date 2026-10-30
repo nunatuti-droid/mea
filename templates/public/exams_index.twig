@@ -9,8 +9,15 @@
 
   <section class="section" id="pruefungen" aria-labelledby="list-title">
     <div class="container">
-      <div class="section-head"><h2 id="list-title">Unsere Prüfungen</h2><p>Wählen Sie eine Prüfung für Ablauf, Termine und Anmeldung.</p></div>
-      {% if options.levels|length > 1 or options.providers|length > 1 %}
+      <div class="section-head"><h2 id="list-title">Unsere Prüfungen</h2><p>Wählen Sie die passende Prüfung. Auf der jeweiligen Seite finden Sie Ablauf, Voraussetzungen, freie Termine und den Preis und können sich direkt online anmelden.</p></div>
+      {% include 'partials/exam_venue.twig' %}
+      {% if categories|length > 1 %}
+        <nav class="filters" aria-label="Prüfungen nach Kategorie filtern">
+          <span class="filters__label">Kategorie:</span>
+          <a class="chip" href="/telc-pruefungszentrum/#pruefungen"{% if not is_filtered %} aria-current="true"{% endif %}>Alle</a>
+          {% for c in categories %}<a class="chip" href="?kategorie={{ c.slug|url_encode }}#pruefungen"{% if filter.category == c.slug %} aria-current="true"{% endif %}>{{ c.short_name }}</a>{% endfor %}
+        </nav>
+      {% elseif options.levels|length > 1 or options.providers|length > 1 %}
         <nav class="filters" aria-label="Prüfungen filtern">
           <span class="filters__label">Niveau:</span>
           <a class="chip" href="/telc-pruefungszentrum/#pruefungen"{% if not is_filtered %} aria-current="true"{% endif %}>Alle</a>
@@ -24,7 +31,27 @@
         </nav>
       {% endif %}
       {% if exams is not empty %}
-        <div class="grid grid--3">{% for e in exams %}{{ ui.exam_card(e) }}{% endfor %}</div>
+        {% set grouped = categories is not empty %}
+        {% if grouped %}
+          {% for c in categories %}
+            {% set in_cat = exams|filter(e => e.category_slug == c.slug) %}
+            {% if in_cat is not empty %}
+              <div class="exam-group">
+                <div class="exam-group__head"><h3>{{ c.name }}</h3>{% if c.description %}<p>{{ c.description }}</p>{% endif %}</div>
+                <div class="grid grid--3">{% for e in in_cat %}{{ ui.exam_card(e, 'h4') }}{% endfor %}</div>
+              </div>
+            {% endif %}
+          {% endfor %}
+          {% set rest = exams|filter(e => e.category_slug is empty) %}
+          {% if rest is not empty %}
+            <div class="exam-group">
+              <div class="exam-group__head"><h3>Weitere Prüfungen</h3></div>
+              <div class="grid grid--3">{% for e in rest %}{{ ui.exam_card(e, 'h4') }}{% endfor %}</div>
+            </div>
+          {% endif %}
+        {% else %}
+          <div class="grid grid--3">{% for e in exams %}{{ ui.exam_card(e) }}{% endfor %}</div>
+        {% endif %}
       {% else %}
         <div class="notice">{{ icon('info') }}<p>{% if is_filtered %}Für diese Auswahl gibt es derzeit keine Prüfung. <a href="/telc-pruefungszentrum/">Alle Prüfungen anzeigen</a>{% else %}Unsere Prüfungen werden gerade eingetragen. <a href="/kontakt/?thema=pruefung">Fragen Sie uns nach Terminen.</a>{% endif %}</p></div>
       {% endif %}
@@ -45,7 +72,7 @@
   {% if faqs is not empty %}
     <section class="section section--alt"><div class="container"><div class="section-head"><span class="eyebrow">Häufige Fragen</span><h2>Rund um die Prüfung</h2></div>{{ ui.faq_list(faqs) }}</div></section>
   {% endif %}
-  <section class="section"><div class="container">{{ ui.cta_band('Unsicher, welche Prüfung passt?', 'Wir beraten Sie gerne – auch zu Vorbereitungskursen.', site.company) }}</div></section>
+  <section class="section"><div class="container">{{ ui.cta_band('Unsicher, welche Prüfung passt?', 'Wir beraten Sie gerne zur passenden Prüfung und zu unseren Vorbereitungskursen – telefonisch, per WhatsApp oder persönlich.', site.company) }}</div></section>
 {% endblock %}
 {% block schema %}
   {% set list = [] %}

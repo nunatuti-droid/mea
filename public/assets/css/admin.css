@@ -120,7 +120,8 @@ fieldset.card > legend + * { clear: both; }
 .tbl--compact th, .tbl--compact td { padding: 8px 12px; }
 .pager { display: flex; gap: 16px; align-items: center; margin: 12px 0; font-size: .9rem; }
 .toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 16px; }
-.toolbar input[type="search"] { min-width: 240px; }
+.toolbar input[type="search"] { flex: 1 1 240px; width: auto; min-width: 0; }
+.toolbar select { width: auto; flex: 0 1 220px; }
 
 /* Formulare */
 .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 20px; }
@@ -209,8 +210,10 @@ a.stat:hover { border-color: var(--c-brand); }
 /* Anmeldung */
 .adm-auth { min-height: 100vh; display: grid; place-items: center; padding: 24px 16px; background: radial-gradient(circle at 20% 10%, #e3f0ec, transparent 50%), var(--c-bg); }
 .adm-auth__card { width: 100%; max-width: 440px; background: #fff; border: 1px solid var(--c-border); border-radius: 24px 24px 24px 6px; padding: 32px; box-shadow: var(--shadow); }
-.adm-auth__brand { font-weight: 800; color: var(--c-ink); font-size: 1.1rem; margin-bottom: 18px; }
-.adm-auth__brand span { color: var(--c-brand); }
+.adm-auth__brand { display: flex; flex-direction: column; align-items: center; gap: 8px; margin: 0 0 22px; padding-bottom: 18px; border-bottom: 1px solid var(--c-border); text-align: center; }
+.adm-auth__brand img { display: block; width: 180px; max-width: 70%; height: auto; }
+.adm-auth__name { font-weight: 800; color: var(--c-ink); font-size: 1.25rem; }
+.adm-auth__sub { font-size: .8rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--c-brand); }
 .adm-auth form .field { margin-bottom: 14px; }
 .adm-auth .btn--primary { width: 100%; }
 .codes { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px 16px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 1.05rem; background: #f7faf9; border: 1px dashed var(--c-border-strong); border-radius: 12px; padding: 14px 18px; margin: 12px 0; }
@@ -262,3 +265,26 @@ a.stat:hover { border-color: var(--c-brand); }
 .lib__preview { max-width: 100%; height: auto; border-radius: var(--r-md); }
 h1.mono { font-size: 1.6rem; letter-spacing: .02em; }
 .card, .grid-2 > *, .grid-3 > *, .grid-4 > * { min-width: 0; } .table-wrap { max-width: 100%; position: relative; }
+
+/* Schalter (Website-Status) */
+.switch-row { display: flex; gap: 24px; align-items: flex-start; justify-content: space-between; }
+.switch-row p { margin-bottom: 0; max-width: 62ch; }
+.switch { position: relative; flex: none; cursor: pointer; margin-top: 2px; }
+.switch input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }
+.switch__track { display: block; width: 52px; height: 30px; border-radius: 999px; background: var(--c-border-strong); transition: background .15s; }
+.switch__track::after { content: ""; position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(14,48,66,.3); transition: transform .15s; }
+.switch input:checked + .switch__track { background: var(--c-action); }
+.switch input:checked + .switch__track::after { transform: translateX(22px); }
+.switch input:focus-visible + .switch__track { outline: 3px solid var(--c-brand); outline-offset: 2px; }
+.status-line { margin: 14px 0 0; padding-top: 14px; border-top: 1px solid var(--c-border); display: flex; gap: 10px; align-items: baseline; }
+.status-line .badge { flex: none; }
+.site-banner .icon { margin-top: 3px; }
+.site-banner { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 16px; padding: 10px 14px; border-radius: var(--r-md); background: var(--c-warning-soft); color: var(--c-warning); font-weight: 600; }
+.site-banner--danger { background: var(--c-danger-soft); color: var(--c-danger); }
+@media (prefers-reduced-motion: reduce) { .switch__track, .switch__track::after { transition: none; } }
+
+.hp { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }
+.list-check { list-style: none; padding: 0; margin: 0 0 4px; display: grid; gap: 6px; }
+.list-check li { position: relative; padding-left: 22px; }
+.list-check li::before { content: ""; position: absolute; left: 4px; top: .5em; width: 8px; height: 8px; border-radius: 2px; background: var(--c-brand); transform: rotate(45deg); }
+.prewrap { white-space: pre-line; }

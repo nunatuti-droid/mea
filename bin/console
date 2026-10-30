@@ -16,16 +16,45 @@ use Mea\Install\DemoSeeder;
 use Mea\Module\Media\ImageVariantGenerator;
 
 $cmd = $argv[1] ?? 'help';
+
+// Erstinstallation ohne SSH: .env aus der Vorlage mit frischen Schlüsseln anlegen (nie überschreiben)
+if ($cmd === 'env:init') {
+    $target = $root . '/.env';
+    if (is_file($target)) {
+        fwrite(STDERR, ".env ist bereits vorhanden und wird nicht verändert.\n");
+        exit(1);
+    }
+    $tpl = (string) file_get_contents($root . '/.env.example');
+    foreach (['APP_KEY', 'BACKUP_KEY'] as $k) {
+        $tpl = (string) preg_replace('/^' . $k . '=.*$/m', $k . '=' . base64_encode(random_bytes(32)), $tpl, 1);
+    }
+    $old = umask(0077);
+    $ok = file_put_contents($target, $tpl, LOCK_EX);
+    umask($old);
+    if ($ok === false) {
+        fwrite(STDERR, ".env konnte nicht geschrieben werden.\n");
+        exit(1);
+    }
+    @chmod($target, 0600);
+    echo ".env angelegt (APP_KEY und BACKUP_KEY neu erzeugt). Jetzt Datenbank, APP_URL und APP_NOINDEX eintragen\n";
+    echo "und die Datei zusätzlich getrennt aufbewahren (Passwortmanager).\n";
+    exit(0);
+}
+
 $config = Config::fromEnvironment($root);
-$phinx = escapeshellarg($root . '/vendor/bin/phinx') . ' --configuration=' . escapeshellarg($root . '/phinx.php');
+
+// Phinx läuft im selben Prozess: funktioniert auch, wenn der Hoster passthru/exec sperrt
+$phinx = static function (array $args) use ($root): int {
+    $app = new \Phinx\Console\PhinxApplication();
+    $app->setAutoExit(false);
+    return $app->run(new \Symfony\Component\Console\Input\ArrayInput($args + ['--configuration' => $root . '/phinx.php']));
+};
 
 switch ($cmd) {
     case 'migrate':
-        passthru("$phinx migrate", $rc);
-        exit($rc);
+        exit($phinx(['command' => 'migrate']));
     case 'migrate:rollback':
-        passthru("$phinx rollback", $rc);
-        exit($rc);
+        exit($phinx(['command' => 'rollback']));
     case 'seed':
         $db = Database::fromConfig($config);
         $gen = new ImageVariantGenerator($db, $root . '/storage/uploads', $root . '/public/media');
@@ -91,6 +120,22 @@ switch ($cmd) {
             }
         }
         exit(0);
+    case 'golive:check':
+        // Prüfungen vor der Umschaltung; Rückgabewert 1, solange etwas fehlt
+        $app = new \Mea\Core\App($root);
+        $errors = 0;
+        $group = '';
+        foreach ((new \Mea\Module\Ops\GoLiveCheck($app))->run() as $r) {
+            if ($r['group'] !== $group) {
+                $group = $r['group'];
+                echo "\n$group\n";
+            }
+            $mark = ['ok' => '  ok   ', 'warn' => '  !    ', 'error' => '  FEHLT'][$r['status']];
+            echo "$mark {$r['label']}: {$r['detail']}\n";
+            $errors += $r['status'] === 'error' ? 1 : 0;
+        }
+        echo $errors === 0 ? "\nBereit für den Livegang (manuelle Punkte in docs/golive.md beachten).\n" : "\n$errors Punkte offen.\n";
+        exit($errors === 0 ? 0 : 1);
     case 'selftest':
         // Prüft, ob die Anwendung mit dem aktuellen Programmstand startet und Seiten ausliefert (nach Updates)
         try {
@@ -148,9 +193,21 @@ switch ($cmd) {
             exit(1);
         }
         $kp = \Mea\Module\Security\FileGuard::generateKeyPair();
-        file_put_contents($dir . '/mea-release.secret', $kp['secret']);
-        chmod($dir . '/mea-release.secret', 0600);
-        echo "Geheimer Schlüssel: $dir/mea-release.secret (sicher aufbewahren, nie auf den Server)\n";
+        if (in_array('--sealed', $argv, true)) {
+            // Verschlüsselt ablegen; Passphrase aus MEA_RELEASE_PASSPHRASE
+            $target = $dir . '/mea-release.secret.sealed';
+            if (file_exists($target)) {
+                fwrite(STDERR, "$target existiert bereits und wird nicht überschrieben.\n");
+                exit(1);
+            }
+            file_put_contents($target, \Mea\Module\Ops\SealedKey::seal($kp['secret'], \Mea\Module\Ops\SealedKey::passphrase()));
+            @chmod($target, 0600);
+            echo "Verschlüsselter geheimer Schlüssel: $target\n";
+        } else {
+            file_put_contents($dir . '/mea-release.secret', $kp['secret']);
+            chmod($dir . '/mea-release.secret', 0600);
+            echo "Geheimer Schlüssel: $dir/mea-release.secret (sicher aufbewahren, nie auf den Server)\n";
+        }
         echo "In die .env des Servers eintragen:\nRELEASE_PUBLIC_KEY={$kp['public']}\n";
         exit(0);
     case 'release:build':
@@ -170,7 +227,7 @@ switch ($cmd) {
             fwrite(STDERR, "Aufruf: bin/console release:build <build-ordner> <version> <geheimer-schlüssel> <ziel.zip> [--changelog=datei] [--min=version]\n");
             exit(1);
         }
-        \Mea\Module\Ops\UpdateService::build(realpath($src), $version, trim((string) file_get_contents($keyFile)), $notes, $min, $out);
+        \Mea\Module\Ops\UpdateService::build(realpath($src), $version, \Mea\Module\Ops\SealedKey::load($keyFile), $notes, $min, $out);
         echo "Paket erstellt: $out (" . hash_file('sha256', $out) . ")\n";
         exit(0);
     case 'release:sign-manifest':
@@ -180,7 +237,7 @@ switch ($cmd) {
             fwrite(STDERR, "Aufruf: bin/console release:sign-manifest <geheimer-schlüssel>\n");
             exit(1);
         }
-        (new \Mea\Module\Security\FileGuard($root, null))->writeSignedManifest(trim((string) file_get_contents($keyFile)), trim((string) @file_get_contents($root . '/VERSION')));
+        (new \Mea\Module\Security\FileGuard($root, null))->writeSignedManifest(\Mea\Module\Ops\SealedKey::load($keyFile), trim((string) @file_get_contents($root . '/VERSION')));
         echo "integrity.json und integrity.sig geschrieben.\n";
         exit(0);
     case 'update:install':
@@ -224,6 +281,13 @@ switch ($cmd) {
         $app->audit->record('security.unblock', "$n automatische Sperre(n) per Kommandozeile aufgehoben", 'ip_rule', null);
         echo "$n Sperre(n) aufgehoben.\n";
         exit(0);
+    case 'security:admin-access-reset':
+        // Notfall: Verwaltung auf Netze beschränkt und eigene Adresse hat sich geändert
+        $app = new \Mea\Core\App($root);
+        $app->settings->set(\Mea\Module\Security\Firewall::ADMIN_ACCESS_KEY, ['ranges' => []]);
+        $app->audit->record('security.admin_access', 'Beschränkung des Verwaltungszugangs per Kommandozeile aufgehoben', 'setting', null);
+        echo "Verwaltung ist wieder von überall erreichbar (mit Passwort und Zwei-Faktor-Code).\n";
+        exit(0);
     case 'user:reset-2fa':
         // Notfall: Administrator hat Handy und Backup-Codes verloren
         $app = new \Mea\Core\App($root);
@@ -241,5 +305,5 @@ switch ($cmd) {
         passthru('php -S 127.0.0.1:' . (int) $port . ' -t ' . escapeshellarg($root . '/public') . ' ' . escapeshellarg($root . '/public/index.php'));
         exit(0);
     default:
-        echo "Befehle:\n  migrate            Datenbank auf den neuesten Stand bringen\n  migrate:rollback   letzte Migration zurücknehmen\n  seed [--demo]      Startdaten anlegen (--demo: Beispieltermine, nur Vorschau)\n  seed:emails        fehlende E-Mail-Vorlagen ergänzen\n  user:create-admin <email> <name>  erstes Administratorkonto einladen\n  mail:send [n]      E-Mail-Warteschlange abarbeiten\n  cron [job …]       jede Minute: Wartungsjobs (mit Job-Namen: sofort ausführen)\n  selftest           Startet die Anwendung und prüft wichtige Seiten\n  backup:create | backup:list | backup:restore <id> --ja\n  integrity:check    Dateiwächter: Programmdateien mit signierter Referenz vergleichen\n  update:install <paket.zip> --ja | update:revert --ja\n  maintenance:on | maintenance:off\n  security:unblock <ip>|--alle   automatische IP-Sperren aufheben\n  user:reset-2fa <email>         Zwei-Faktor-Anmeldung zurücksetzen\n  release:keygen | release:build | release:sign-manifest   nur Entwicklungsrechner\n  serve [port]       lokaler Entwicklungsserver\n";
+        echo "Befehle:\n  env:init           .env mit neuen Schlüsseln anlegen (Erstinstallation)\n  migrate            Datenbank auf den neuesten Stand bringen\n  migrate:rollback   letzte Migration zurücknehmen\n  seed [--demo]      Startdaten anlegen (--demo: Beispieltermine, nur Vorschau)\n  seed:emails        fehlende E-Mail-Vorlagen ergänzen\n  user:create-admin <email> <name>  erstes Administratorkonto einladen\n  mail:send [n]      E-Mail-Warteschlange abarbeiten\n  cron [job …]       jede Minute: Wartungsjobs (mit Job-Namen: sofort ausführen)\n  selftest           Startet die Anwendung und prüft wichtige Seiten\n  golive:check       Prüfliste vor der Umschaltung auf die neue Website\n  backup:create | backup:list | backup:restore <id> --ja\n  integrity:check    Dateiwächter: Programmdateien mit signierter Referenz vergleichen\n  update:install <paket.zip> --ja | update:revert --ja\n  maintenance:on | maintenance:off\n  security:unblock <ip>|--alle   automatische IP-Sperren aufheben\n  security:admin-access-reset    Beschränkung des Verwaltungszugangs aufheben\n  user:reset-2fa <email>         Zwei-Faktor-Anmeldung zurücksetzen\n  release:keygen | release:build | release:sign-manifest   nur Entwicklungsrechner\n  serve [port]       lokaler Entwicklungsserver\n";
 }

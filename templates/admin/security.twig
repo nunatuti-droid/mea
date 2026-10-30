@@ -19,6 +19,21 @@
     </section>
   {% endif %}
 
+  <section class="card mt" id="zugang">
+    <h2 class="h3">Zugang zur Verwaltung</h2>
+    <ul class="text-sm list-check">
+      <li>Anmeldung nur mit Passwort und Zwei-Faktor-Code.</li>
+      <li>Nach 5 Fehlversuchen wird das Konto vorübergehend gesperrt; bei 10 Fehlversuchen in 10 Minuten wird zusätzlich die Verbindung gesperrt.</li>
+      <li>Bekannte Angriffswerkzeuge, Bots am Anmeldeformular und unerlaubte Anfragearten werden abgewiesen.</li>
+    </ul>
+    <form method="post" action="/verwaltung/sicherheit/verwaltungszugang/" class="mt" novalidate>
+      <input type="hidden" name="_csrf" value="{{ csrf }}">
+      {{ ui.field({name: 'admin_ranges', label: 'Verwaltung nur aus diesen Netzen erlauben (optional)', type: 'textarea', rows: 3,
+        help: 'Eine IP-Adresse oder ein Bereich pro Zeile, z. B. das Büronetz. Leer lassen = von überall erreichbar. Von anderen Adressen erscheint die Verwaltung als „nicht gefunden“. Ihre aktuelle Adresse: ' ~ my_ip ~ '. Nur sinnvoll bei fester IP-Adresse; Notfall-Freigabe per Konsolenbefehl security:admin-access-reset.'}, values, errors, []) }}
+      <button class="btn btn--primary" type="submit">{{ icon('save') }}Zugang speichern</button>
+    </form>
+  </section>
+
   <section class="card mt" id="regeln">
     <h2 class="h3">Sperr- und Freigabeliste</h2>
     <p class="text-sm text-muted">Freigegebene Adressen werden nie automatisch gesperrt, zum Beispiel das Büronetz. Ihre aktuelle Adresse: <span class="mono">{{ my_ip }}</span></p>

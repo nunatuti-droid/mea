@@ -14,7 +14,7 @@
       {{ ui.breadcrumbs([{label: 'Prüfungen', url: '/telc-pruefungszentrum/'}, {label: exam.public_name}]) }}
       <div class="btn-row mb-0 align-center">
         {% if exam.level_label %}<span class="level level--lg" aria-hidden="true">{{ exam.level_label }}</span>{% endif %}
-        {% if exam.provider_name %}<span class="eyebrow mb-0">{{ exam.provider_name }}{% if exam.category %} · {{ exam.category }}{% endif %}</span>{% endif %}
+        {% set cat = exam.category_short ?? exam.category %}{% if exam.provider_name %}<span class="eyebrow mb-0">{{ exam.provider_name }}{% if cat %} · {{ cat }}{% endif %}</span>{% endif %}
       </div>
       <h1 class="mt-5">{{ exam.public_name }}</h1>
       <p class="lead">{{ exam.short_text }}</p>
@@ -49,6 +49,7 @@
       <div id="termine">
         {% if notice %}<div class="alert alert--error mb-5" role="alert">{{ icon('circle-alert') }}<span>{{ notice }}</span></div>{% endif %}
         <h2 class="mt-7">Termine und Anmeldung</h2>
+        {% include 'partials/exam_venue.twig' %}
         {% if exam.sessions is not empty %}
           <div class="sessions">
             {% for s in exam.sessions %}

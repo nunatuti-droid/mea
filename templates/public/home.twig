@@ -6,38 +6,39 @@
 {% set og_image = media_url(home.hero_media_id, 1440) %}
 
 {% block head %}
-  <link rel="preload" as="image" href="{{ media_url(home.hero_media_id, 960) }}" fetchpriority="high">
+  <link rel="preload" as="image" href="{{ media_url(home.hero_media_id, 960) }}" imagesrcset="{{ media_url(home.hero_media_id, 960) }} 960w, {{ media_url(home.hero_media_id, 1440) }} 1440w" imagesizes="100vw" fetchpriority="high">
 {% endblock %}
 
 {% block content %}
 <section class="hero" aria-labelledby="hero-title">
-  <div class="container hero__grid">
-    <div>
-      <span class="eyebrow">{{ home.eyebrow }}</span>
-      <h1 id="hero-title">{{ home.title }}</h1>
+  <div class="hero__bg">
+    {{ img(home.hero_media_id, '100vw', {loading: 'eager', fetchpriority: 'high', alt: ''}) }}
+  </div>
+  <div class="container hero__inner">
+    <div class="hero__content">
+      <span class="hero__badge"><span class="hero__badge-icon">{{ icon('map-pin') }}</span>{{ home.eyebrow }}</span>
+      {% set parts = home.title|split(':', 2) %}
+      <h1 id="hero-title">{% if parts|length == 2 %}{{ parts[0] }}:<br><em>{{ parts[1]|trim }}</em>{% else %}{{ home.title }}{% endif %}</h1>
       <p class="hero__lead">{{ home.lead }}</p>
       <div class="btn-row">
-        <a class="btn" href="/telc-pruefungszentrum/">{{ icon('calendar') }}Prüfungstermin finden</a>
-        <a class="btn btn--ghost-light" href="/kontakt/">Beratung anfragen</a>
+        <a class="btn" href="/leistungen/">Unsere Leistungen{{ icon('arrow-right') }}</a>
+        <a class="btn btn--ghost-light" href="/telc-pruefungszentrum/">{{ icon('calendar') }}Prüfungstermine</a>
       </div>
+      {% include 'partials/google_rating.twig' with {variant: 'hero'} %}
       <ul class="hero__benefits">
         {% for b in home.benefits %}
           <li><strong>{{ icon(b.icon) }}{{ b.title }}</strong><span>{{ b.text }}</span></li>
         {% endfor %}
       </ul>
     </div>
-    <div class="hero__media">
-      {{ img(home.hero_media_id, '(max-width: 960px) 100vw, 560px', {loading: 'eager', fetchpriority: 'high'}) }}
-      {% if rating.count > 0 %}
-        <div class="hero-quote">{{ ui.stars(rating.average) }}<p><strong>{{ rating.average|number_format(1, ',') }} von 5</strong> aus {{ rating.count }} Bewertungen</p></div>
-      {% elseif hero_reviews is not empty %}
-        {% set hr = hero_reviews|first %}
-        <figure class="hero-quote mb-0">
-          <p>„{{ hr.body }}“</p>
-          <footer><strong>{{ hr.display_name }}</strong>{% if hr.role_label %}, {{ hr.role_label }}{% endif %}</footer>
-        </figure>
-      {% endif %}
-    </div>
+    {% if hero_reviews is not empty %}
+      {% set hr = hero_reviews|first %}
+      <figure class="hero-quote mb-0">
+        {% if hr.rating %}{{ ui.stars(hr.rating) }}{% endif %}
+        <p>„{{ hr.body }}“</p>
+        <footer><strong>{{ hr.display_name }}</strong>{% if hr.role_label %}, {{ hr.role_label }}{% endif %}</footer>
+      </figure>
+    {% endif %}
   </div>
 </section>
 
@@ -46,19 +47,51 @@
   <div class="container">
     <p class="partners__label">Zulassungen und Partner</p>
     <ul class="partners__list">
-      {% for p in home.partners %}<li>{{ img(p.media_id, '170px', {alt: p.label}) }}</li>{% endfor %}
+      {% for p in home.partners %}<li>{{ img(p.media_id, '180px', {alt: ''}) }}<span class="partners__name">{{ p.label }}</span></li>{% endfor %}
     </ul>
   </div>
 </section>
 {% endif %}
 
+<section class="section" aria-labelledby="services-title">
+  <div class="container">
+    <div class="section-head section-head--split">
+      <div>
+        <span class="eyebrow">Unsere Leistungen</span>
+        <h2 id="services-title">Bildung, Integration und Fachkräftegewinnung</h2>
+        <p>Für Menschen, die beruflich weiterkommen wollen, und für Unternehmen, die Fachkräfte suchen. Wählen Sie einen Bereich und erfahren Sie, wie wir Sie unterstützen.</p>
+      </div>
+      <a class="link-arrow" href="/leistungen/">Alle Leistungen{{ icon('arrow-right') }}</a>
+    </div>
+    <div class="grid grid--3">
+      {% for s in services %}{{ ui.service_card(s) }}{% endfor %}
+    </div>
+  </div>
+</section>
+
+<section class="section section--alt">
+  <div class="container split">
+    <div class="split__media reveal">{{ img(home.about_media_id, '(max-width: 900px) 100vw, 560px') }}</div>
+    <div>
+      <span class="eyebrow">Warum MEA</span>
+      <h2>{{ home.about_title }}</h2>
+      <p class="lead">{{ home.about_text }}</p>
+      <div class="grid grid--features mt-6">
+        {% for w in home.why %}
+          <div class="feature"><span class="card__icon">{{ icon(w.icon) }}</span><h3>{{ w.title }}</h3><p>{{ w.text }}</p></div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</section>
+
 <section class="section" aria-labelledby="exams-title">
   <div class="container">
     <div class="section-head section-head--split">
       <div>
-        <span class="eyebrow">telc-Prüfungszentrum</span>
+        <span class="eyebrow">telc-Prüfungszentrum{{ exam_center ? ' ' ~ exam_center.city }}</span>
         <h2 id="exams-title">Sprachprüfungen mit anerkanntem Zertifikat</h2>
-        <p>Wählen Sie Ihre Prüfung, sehen Sie Termine, Preis und freie Plätze und melden Sie sich direkt an.</p>
+        <p>Wählen Sie Ihre Prüfung, sehen Sie Termine, Preis und freie Plätze und melden Sie sich direkt an.{% if exam_center %} Alle Prüfungen finden persönlich in unserem zertifizierten Prüfungszentrum in {{ exam_center.city }} statt.{% endif %}</p>
       </div>
       <a class="link-arrow" href="/telc-pruefungszentrum/">Alle Prüfungen und Termine{{ icon('arrow-right') }}</a>
     </div>
@@ -111,38 +144,6 @@
   </div>
 </section>
 
-<section class="section section--alt" aria-labelledby="services-title">
-  <div class="container">
-    <div class="section-head section-head--split">
-      <div>
-        <span class="eyebrow">Unsere Leistungen</span>
-        <h2 id="services-title">Bildung, Integration und Fachkräftegewinnung</h2>
-        <p>Für Menschen, die beruflich weiterkommen wollen, und für Unternehmen, die Fachkräfte suchen.</p>
-      </div>
-      <a class="link-arrow" href="/leistungen/">Alle Leistungen{{ icon('arrow-right') }}</a>
-    </div>
-    <div class="grid grid--3">
-      {% for s in services %}{{ ui.service_card(s) }}{% endfor %}
-    </div>
-  </div>
-</section>
-
-<section class="section">
-  <div class="container split">
-    <div class="split__media reveal">{{ img(home.about_media_id, '(max-width: 900px) 100vw, 560px') }}</div>
-    <div>
-      <span class="eyebrow">Warum MEA</span>
-      <h2>{{ home.about_title }}</h2>
-      <p class="lead">{{ home.about_text }}</p>
-      <div class="grid grid--features mt-6">
-        {% for w in home.why %}
-          <div class="feature"><span class="card__icon">{{ icon(w.icon) }}</span><h3>{{ w.title }}</h3><p>{{ w.text }}</p></div>
-        {% endfor %}
-      </div>
-    </div>
-  </div>
-</section>
-
 {% if reviews is not empty %}
 <section class="section section--alt" aria-labelledby="reviews-title" id="stimmen">
   <div class="container">
@@ -180,7 +181,7 @@
 
 <section class="section section--alt" aria-label="Kontakt">
   <div class="container">
-    {{ ui.cta_band('Sie haben Fragen zu Prüfung, Kurs oder Coaching?', 'Wir beraten Sie persönlich – telefonisch, per WhatsApp oder an einem unserer Standorte.', site.company) }}
+    {{ ui.cta_band('Fragen zu Prüfung, Kurs oder Coaching?', 'Wir beraten Sie persönlich und unverbindlich – telefonisch, per WhatsApp oder an einem unserer Standorte in Marl und Herne. Gemeinsam finden wir den passenden nächsten Schritt.', site.company) }}
   </div>
 </section>
 {% endblock %}

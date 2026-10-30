@@ -1,7 +1,7 @@
 {% macro stars(value) %}
-  {%- set full = value|round -%}
+  {%- set full = value|round(0, 'floor') + ((value - value|round(0, 'floor')) >= 0.75 ? 1 : 0) -%}
   <span class="stars" role="img" aria-label="{{ value|number_format(1, ',') }} von 5 Sternen">
-    {%- for i in 1..5 -%}<svg class="icon{{ i > full ? ' is-empty' : '' }}" aria-hidden="true"><use href="#i-star"></use></svg>{%- endfor -%}
+    {%- for i in 1..5 -%}<svg class="icon{{ i > full ? ' is-empty' : '' }}" aria-hidden="true"><use href="#{{ i > full ? 'i-star' : 'i-star-fill' }}"></use></svg>{%- endfor -%}
   </span>
 {% endmacro %}
 
@@ -43,7 +43,7 @@
       <div class="card__badge-wrap">{% if e.level_label %}<span class="level" aria-hidden="true">{{ e.level_label }}</span>{% endif %}</div>
     </div>
     <div class="card__body">
-      {% if e.provider_name %}<span class="eyebrow mb-0">{{ e.provider_name }}{% if e.category %} · {{ e.category }}{% endif %}</span>{% endif %}
+      {% set cat = e.category_short ?? e.category %}{% if e.provider_name %}<span class="eyebrow mb-0">{{ e.provider_name }}{% if cat %} · {{ cat }}{% endif %}</span>{% endif %}
       <{{ heading }}><a href="/pruefungen/{{ e.slug }}/">{{ e.public_name }}</a></{{ heading }}>
       <p>{{ e.short_text }}</p>
       <div class="card__meta">
@@ -69,7 +69,7 @@
     <div class="card__media">{{ img(s.card_media_id, '(max-width: 700px) 100vw, 380px', {alt: ''}) }}</div>
     <div class="card__body">
       <span class="card__icon">{{ icon(s.icon ?: 'arrow-right') }}</span>
-      <h3><a href="{{ url ?? (s.cta_url starts with '/telc' ? s.cta_url : '/' ~ s.slug ~ '/') }}">{{ s.title }}</a></h3>
+      <h3><a href="{{ url ?? (s.cta_url starts with '/telc' ? s.cta_url : '/' ~ s.slug ~ '/') }}">{{ s.menu_title ?: s.title }}</a></h3>
       <p>{{ s.teaser }}</p>
       <span class="link-arrow" aria-hidden="true">Mehr erfahren{{ icon('arrow-right') }}</span>
     </div>

@@ -1,0 +1,31 @@
+{%- set company = site.company -%}
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Wartungsarbeiten · {{ company.name }}</title>
+  <link rel="preload" href="/assets/fonts/plus-jakarta-sans-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="{{ asset('css/app.css') }}">
+  <link rel="icon" href="{{ media_url(company.logo_icon_media_id, 480) }}">
+</head>
+<body class="offline">
+  {{ source('_icons.svg') }}
+  <main class="offline__card">
+    <div class="offline__logo">{{ img(company.logo_media_id, '180px', {alt: company.name, loading: 'eager'}) }}</div>
+    <span class="offline__badge">{{ icon('clock') }}Wartungsarbeiten</span>
+    <h1>Wir sind gleich wieder für Sie da</h1>
+    <p class="offline__text">{{ message }}</p>
+    <ul class="offline__contact">
+      {% if company.phone %}<li><a href="tel:{{ company.phone|tel }}">{{ icon('phone') }}<span><small>Telefon</small>{{ company.phone_display ?? company.phone }}</span></a></li>{% endif %}
+      {% if company.whatsapp %}<li><a href="https://wa.me/{{ company.whatsapp|tel|trim('+') }}" rel="noopener">{{ icon('message-circle') }}<span><small>WhatsApp</small>{{ company.whatsapp_display ?? company.whatsapp }}</span></a></li>{% endif %}
+    </ul>
+    {% if all_locations is not empty %}
+      <div class="offline__places">
+        {% for l in all_locations %}<p><strong>{{ l.name }}</strong><br>{{ l.street }}{% if l.address_extra %}, {{ l.address_extra }}{% endif %}, {{ l.postal_code }} {{ l.city }}</p>{% endfor %}
+      </div>
+    {% endif %}
+  </main>
+</body>
+</html>

@@ -73,9 +73,14 @@ final class AuthController
     {
         $email = mb_substr($req->input('email'), 0, 190);
         $next = self::safeNext($req->input('weiter'));
+        // Unsichtbares Feld: nur Bots füllen es aus
+        if ($req->input('website') !== '') {
+            $this->firewall?->record('bot_login', $req, 5, 'warning');
+            return $this->render('login', ['next' => $next, 'email' => $email, 'error' => 'E-Mail-Adresse oder Passwort ist falsch.'], 422);
+        }
         $res = $this->auth->attemptPassword($email, (string) ($req->post['password'] ?? ''), $req->ip());
         if ($res['status'] !== 'ok') {
-            $this->firewall?->record('login_failed', $req, 1, 'warning');
+            $this->firewall?->record('login_failed', $req, 1, 'warning'); // 10 Fehlversuche in 10 Minuten = Sperre der Verbindung (Konto sperrt schon nach 5)
             $msg = $res['status'] === 'blocked'
                 ? 'Zu viele Anmeldeversuche. Bitte warten Sie 15 Minuten und versuchen Sie es erneut.'
                 : 'E-Mail-Adresse oder Passwort ist falsch.';

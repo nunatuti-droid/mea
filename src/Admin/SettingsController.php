@@ -49,6 +49,20 @@ final class SettingsController
             ['name' => 'seo_home__title', 'label' => 'SEO-Titel der Startseite', 'max' => 70, 'counter' => 60, 'group' => 'Suchmaschinen'],
             ['name' => 'seo_home__description', 'label' => 'Meta-Beschreibung der Startseite', 'type' => 'textarea', 'max' => 170, 'counter' => 160, 'rows' => 2, 'group' => 'Suchmaschinen'],
 
+            ['name' => 'google__profile_url', 'label' => 'Link zum Google-Unternehmensprofil', 'type' => 'url', 'max' => 255, 'group' => 'Google-Bewertungen',
+                'help' => 'Leer = kein Hinweis auf Google. Beim Seitenaufruf werden keine Daten an Google übertragen; erst der Klick führt zu Google.'],
+            ['name' => 'google__rating', 'label' => 'Sternebewertung laut Google', 'max' => 3, 'group' => 'Google-Bewertungen', 'help' => 'z. B. 4,8 – genau so übernehmen, wie Google sie anzeigt. Leer = nur Link.'],
+            ['name' => 'google__count', 'label' => 'Anzahl der Bewertungen laut Google', 'type' => 'int', 'min' => 0, 'maxValue' => 100000, 'group' => 'Google-Bewertungen'],
+            ['name' => 'google__as_of', 'label' => 'Stand', 'max' => 20, 'group' => 'Google-Bewertungen', 'help' => 'z. B. 10/2026. Bitte regelmäßig aktualisieren.'],
+
+            ['name' => 'consent__ga_id', 'label' => 'Google Analytics: Mess-ID', 'max' => 20, 'group' => 'Cookies und Dienste',
+                'help' => 'Format G-XXXXXXX. Leer = Google Analytics wird nicht verwendet. Geladen wird es nur nach Einwilligung „Statistik“. Datenschutzerklärung anpassen!'],
+            ['name' => 'consent__meta_pixel_id', 'label' => 'Meta-Pixel: Pixel-ID', 'max' => 20, 'group' => 'Cookies und Dienste',
+                'help' => 'Nur Ziffern. Leer = kein Meta-Pixel. Geladen nur nach Einwilligung „Marketing“. Datenschutzerklärung anpassen!'],
+            ['name' => 'consent__youtube', 'label' => 'YouTube-Videos werden eingebunden', 'type' => 'checkbox', 'group' => 'Cookies und Dienste'],
+            ['name' => 'consent__revision', 'label' => 'Version der Cookie-Hinweise', 'type' => 'int', 'min' => 1, 'maxValue' => 999, 'default' => 1, 'group' => 'Cookies und Dienste',
+                'help' => 'Um 1 erhöhen, wenn alle Besucher erneut gefragt werden sollen (z. B. nach Änderung der Datenschutzerklärung).'],
+
             ['name' => 'notifications__office_email', 'label' => 'E-Mail für interne Benachrichtigungen', 'type' => 'email', 'group' => 'Benachrichtigungen',
                 'help' => 'Neue Buchungen und Kontaktanfragen. Leer = Firmen-E-Mail.'],
 
@@ -122,6 +136,21 @@ final class SettingsController
                 }
             }
             $structured[$key][$sub] = $v;
+        }
+        $gr = trim(str_replace(',', '.', (string) ($structured['google']['rating'] ?? '')));
+        if ($gr !== '' && (!is_numeric($gr) || (float) $gr < 1 || (float) $gr > 5)) {
+            $errors['google__rating'] = 'Bitte eine Zahl von 1,0 bis 5,0 eintragen oder leer lassen.';
+        }
+        if ($gr !== '' && (int) ($structured['google']['count'] ?? 0) < 1) {
+            $errors['google__count'] = 'Bitte auch die Anzahl der Bewertungen eintragen.';
+        }
+        $ga = strtoupper(trim((string) ($structured['consent']['ga_id'] ?? '')));
+        if ($ga !== '' && !preg_match('/^G-[A-Z0-9]{4,15}$/', $ga)) {
+            $errors['consent__ga_id'] = 'Bitte die Mess-ID im Format G-XXXXXXX eintragen oder leer lassen.';
+        }
+        $px = trim((string) ($structured['consent']['meta_pixel_id'] ?? ''));
+        if ($px !== '' && !preg_match('/^\d{8,20}$/', $px)) {
+            $errors['consent__meta_pixel_id'] = 'Die Pixel-ID besteht nur aus Ziffern (8 bis 20).';
         }
         if ($errors !== []) {
             return $this->edit($req, $ctx, $errors, array_merge(Form::display($this->fields(), $this->current()), array_map(fn($x) => is_array($x) ? $x : (string) $x, $raw)), 422);

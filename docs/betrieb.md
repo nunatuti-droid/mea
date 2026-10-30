@@ -97,6 +97,10 @@ Empfehlung für den Server: Programmdateien für den Webserver nur lesbar machen
 - IP-Adressen werden nur als Hash und gekürzt (z. B. `203.0.113.x`) gespeichert.
 - Verwaltung → Sicherheit: Ereignisse, aktive Sperren, eigene Sperr- und Erlaubnislisten (IP oder Bereich). Die eigene Adresse kann nicht gesperrt werden.
 
+## Weiterleitungen und nicht gefundene Adressen
+
+Verwaltung → **Weiterleitungen**: alte Adressen auf neue Seiten umleiten (301) oder als entfernt melden (410). Ein `*` am Ende gilt für alle Unteradressen. Darüber steht die Liste der Adressen, die Besucher zuletzt vergeblich aufgerufen haben (ohne IP-Adressen gespeichert, nach 180 Tagen gelöscht). Mit „Weiterleitung“ wird die Adresse direkt übernommen.
+
 ## Wartungsmodus
 
 Besucher sehen eine Wartungsseite (HTTP 503), die Verwaltung bleibt erreichbar. Ein- und Ausschalten: Verwaltung → Updates oder `php bin/console maintenance:on` / `maintenance:off`. Updates und Wiederherstellungen schalten ihn selbst ein und aus.

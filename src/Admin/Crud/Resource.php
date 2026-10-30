@@ -118,6 +118,12 @@ abstract class Resource
     }
 
     /** Zusätzliche Knöpfe im Kopf der Bearbeiten-Seite. @param array<string,mixed> $row @return list<array{label:string, url:string, icon:string, post?:bool, confirm?:string}> */
+    /** Schaltflächen je Zeile in der Liste (POST mit Feld „value“). @return list<array<string,string>> */
+    public function rowActions(array $row): array
+    {
+        return [];
+    }
+
     public function actions(array $row, AdminContext $ctx): array
     {
         return [];

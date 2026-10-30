@@ -33,15 +33,16 @@ final class EmailTemplateSeeder
     {
         $contact = '<p>Bei Fragen erreichen Sie uns unter {{ firma.telefon }} oder per E-Mail an {{ firma.email }}.</p>'
             . '<p>Viele Grüße<br>{{ firma.name }}</p>';
-        $exam = '<p><strong>Prüfung:</strong> {{ pruefung.name }}<br><strong>Datum:</strong> {{ termin.datum }}, {{ termin.uhrzeit }} Uhr<br>'
-            . '<strong>Ort:</strong> {{ termin.ort }}<br><strong>Buchungsnummer:</strong> {{ buchung.nummer }}</p>';
+        // Angaben als Tabelle: der Mail-Renderer gestaltet sie als Kasten (auch nach Bearbeitung im Editor)
+        $exam = '<table><tr><th>Prüfung</th><td>{{ pruefung.name }}</td></tr><tr><th>Datum</th><td>{{ termin.datum }}, {{ termin.uhrzeit }} Uhr</td></tr>'
+            . '<tr><th>Ort</th><td>{{ termin.ort }}</td></tr><tr><th>Buchungsnummer</th><td>{{ buchung.nummer }}</td></tr></table>';
         return [
             'booking_confirmation' => [
                 'name' => 'Buchungsbestätigung',
                 'description' => 'Geht an Teilnehmende, sobald eine Buchung bestätigt ist.',
                 'subject' => 'Ihre Anmeldung: {{ pruefung.name }} am {{ termin.datum }}',
                 'body' => '<p>Guten Tag {{ teilnehmer.name }},</p><p>vielen Dank für Ihre Anmeldung. Ihr Platz ist verbindlich gebucht.</p>' . $exam
-                    . '<p><strong>Preis:</strong><br>{% for p in preis.positionen %}{{ p.bezeichnung }}: {{ p.betrag }}<br>{% endfor %}<strong>Gesamt: {{ buchung.betrag }}</strong></p>'
+                    . '<table><tr><th>Preis</th><td>{% for p in preis.positionen %}{{ p.bezeichnung }}: {{ p.betrag }}<br>{% endfor %}</td></tr><tr><th>Gesamt</th><td>{{ buchung.betrag }}</td></tr></table>'
                     . '{% if termin.hinweise %}<p><strong>Hinweise zum Termin:</strong><br>{{ termin.hinweise|nl2br }}</p>{% endif %}'
                     . '<p>Bitte bringen Sie am Prüfungstag einen gültigen Lichtbildausweis mit.</p>' . $contact,
                 'vars' => array_merge(self::BOOKING_VARS, ['preis.positionen']),
@@ -51,7 +52,7 @@ final class EmailTemplateSeeder
                 'description' => 'Interne Benachrichtigung an das Büro bei jeder bestätigten Buchung.',
                 'subject' => 'Neue Buchung {{ buchung.nummer }}: {{ pruefung.name }} am {{ termin.datum }}',
                 'body' => '<p>Es ist eine neue Buchung eingegangen.</p>' . $exam
-                    . '<p><strong>Teilnehmer/in:</strong> {{ teilnehmer.name }} ({{ teilnehmer.email }})<br><strong>Betrag:</strong> {{ buchung.betrag }}</p>'
+                    . '<table><tr><th>Teilnehmer/in</th><td>{{ teilnehmer.name }}<br>{{ teilnehmer.email }}</td></tr><tr><th>Betrag</th><td>{{ buchung.betrag }}</td></tr></table>'
                     . '<p>Details stehen in der Verwaltung unter Buchungen.</p>',
                 'vars' => array_merge(self::BOOKING_VARS, ['teilnehmer.email']),
             ],
@@ -93,7 +94,7 @@ final class EmailTemplateSeeder
                 'description' => 'Einladung für neue Benutzer der Verwaltung.',
                 'subject' => 'Einladung zur Verwaltung von {{ firma.name }}',
                 'body' => '<p>Guten Tag {{ name }},</p><p>Sie wurden als {{ rolle }} zur Verwaltung der Website eingeladen.</p>'
-                    . '<p>Bitte legen Sie über diesen Link Ihr Passwort fest und richten Sie die Zwei-Faktor-Anmeldung ein:<br>{{ link|raw_link(\'Einladung annehmen\') }}</p>'
+                    . '<p>Bitte legen Sie über diesen Link Ihr Passwort fest und richten Sie die Zwei-Faktor-Anmeldung ein:</p><p>{{ link|raw_link(\'Einladung annehmen\') }}</p>'
                     . '<p>Der Link ist {{ gueltig_stunden }} Stunden gültig und kann nur einmal verwendet werden. Wenn Sie keine Einladung erwartet haben, ignorieren Sie diese E-Mail.</p>',
                 'vars' => ['name', 'rolle', 'link', 'gueltig_stunden', 'firma.name'],
             ],
@@ -101,7 +102,7 @@ final class EmailTemplateSeeder
                 'name' => 'Passwort zurücksetzen',
                 'description' => 'Link zum Festlegen eines neuen Passworts.',
                 'subject' => 'Neues Passwort festlegen',
-                'body' => '<p>Guten Tag {{ name }},</p><p>für Ihr Konto wurde ein neues Passwort angefordert. Über diesen Link legen Sie es fest:<br>{{ link|raw_link(\'Neues Passwort festlegen\') }}</p>'
+                'body' => '<p>Guten Tag {{ name }},</p><p>für Ihr Konto wurde ein neues Passwort angefordert. Über diesen Link legen Sie es fest:</p><p>{{ link|raw_link(\'Neues Passwort festlegen\') }}</p>'
                     . '<p>Der Link ist {{ gueltig_minuten }} Minuten gültig. Wenn Sie das nicht angefordert haben, ignorieren Sie diese E-Mail. Ihr Passwort bleibt dann unverändert.</p>',
                 'vars' => ['name', 'link', 'gueltig_minuten', 'firma.name'],
             ],
@@ -129,13 +130,22 @@ final class EmailTemplateSeeder
                     . '<p>Diese Nachricht wurde automatisch von der Website erzeugt.</p>',
                 'vars' => ['name', 'titel', 'text', 'details'],
             ],
+            'application_notification' => [
+                'name' => 'Neue Bewerbung (Büro)',
+                'description' => 'Interne Benachrichtigung bei einer neuen Bewerbung über das Bewerbungsformular. Die Unterlagen werden nicht mitgeschickt.',
+                'subject' => 'Neue Bewerbung: {{ bewerbung.stelle }}',
+                'body' => '<p>Über das Bewerbungsformular ist eine neue Bewerbung eingegangen.</p>'
+                    . '<table><tr><th>Name</th><td>{{ bewerbung.name }}</td></tr><tr><th>Stelle</th><td>{{ bewerbung.stelle }}</td></tr><tr><th>Unterlagen</th><td>{{ bewerbung.dateien }} PDF-Datei(en)</td></tr></table>'
+                    . '<p>Die Bewerbung und die Unterlagen finden Sie aus Datenschutzgründen nur in der Verwaltung unter Kontakt → Bewerbungen.</p>',
+                'vars' => ['bewerbung.name', 'bewerbung.stelle', 'bewerbung.dateien'],
+            ],
             'inquiry_notification' => [
                 'name' => 'Neue Kontaktanfrage (Büro)',
                 'description' => 'Interne Benachrichtigung an das Büro bei einer neuen Anfrage über das Kontaktformular.',
                 'subject' => 'Neue Anfrage: {{ anfrage.thema }}',
                 'body' => '<p>Über das Kontaktformular ist eine neue Anfrage eingegangen.</p>'
-                    . '<p><strong>Name:</strong> {{ anfrage.name }}<br><strong>E-Mail:</strong> {{ anfrage.email }}<br><strong>Telefon:</strong> {{ anfrage.telefon|default(\'–\') }}<br>'
-                    . '<strong>Thema:</strong> {{ anfrage.thema }}<br><strong>Standort:</strong> {{ anfrage.standort|default(\'–\') }}</p>'
+                    . '<table><tr><th>Name</th><td>{{ anfrage.name }}</td></tr><tr><th>E-Mail</th><td>{{ anfrage.email }}</td></tr><tr><th>Telefon</th><td>{{ anfrage.telefon|default(\'–\') }}</td></tr>'
+                    . '<tr><th>Thema</th><td>{{ anfrage.thema }}</td></tr><tr><th>Standort</th><td>{{ anfrage.standort|default(\'–\') }}</td></tr></table>'
                     . '<p><strong>Nachricht:</strong><br>{{ anfrage.nachricht|nl2br }}</p><p>Die Anfrage steht auch in der Verwaltung unter Anfragen.</p>',
                 'vars' => ['anfrage.name', 'anfrage.email', 'anfrage.telefon', 'anfrage.thema', 'anfrage.standort', 'anfrage.nachricht'],
             ],

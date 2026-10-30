@@ -32,14 +32,45 @@ final class DynamicExamTest extends IntegrationTestCase
         self::assertStringNotContainsString('entwurf-z9', $this->get('/sitemap.xml')->body);
     }
 
-    public function testDisabledExamIsVisibleButNotBookable(): void
+    public function testDisabledExamIsHiddenAndNotBookable(): void
     {
         $id = $this->createExam('deaktiviert-z9', 'disabled');
         $sid = $this->createSession($id);
         $r = $this->get('/pruefungen/deaktiviert-z9/');
-        self::assertSame(200, $r->status);
-        self::assertStringNotContainsString("/pruefungen/deaktiviert-z9/buchen/$sid/", $r->body);
-        self::assertSame(303, $this->get("/pruefungen/deaktiviert-z9/buchen/$sid/")->status);
+        self::assertSame(302, $r->status);
+        self::assertSame('/telc-pruefungszentrum/', $r->headers['Location']);
+        self::assertStringNotContainsString('deaktiviert-z9', $this->get('/telc-pruefungszentrum/')->body);
+        self::assertStringNotContainsString('deaktiviert-z9', $this->get('/sitemap.xml')->body);
+        self::assertNotSame(200, $this->get("/pruefungen/deaktiviert-z9/buchen/$sid/")->status);
+    }
+
+    public function testQuickToggleInAdminList(): void
+    {
+        $this->loginAs('editor');
+        $id = $this->createExam('schalter-z9');
+        self::assertStringContainsString('/verwaltung/pruefungen/' . $id . '/status/', $this->get('/verwaltung/pruefungen/')->body);
+        self::assertSame(303, $this->adminPost('/verwaltung/pruefungen/' . $id . '/status/', ['value' => 'disabled'])->status);
+        self::assertSame('disabled', self::db()->value('SELECT status FROM exam_types WHERE id = ?', [$id]));
+        self::assertSame(302, $this->get('/pruefungen/schalter-z9/')->status);
+        $this->adminPost('/verwaltung/pruefungen/' . $id . '/status/', ['value' => 'published']);
+        self::assertSame('published', self::db()->value('SELECT status FROM exam_types WHERE id = ?', [$id]));
+        self::assertSame(200, $this->get('/pruefungen/schalter-z9/')->status);
+        self::assertNotNull(self::db()->value("SELECT 1 FROM audit_log WHERE action = 'exam_type.status' AND entity_id = ?", [$id]));
+    }
+
+    public function testCategoriesGroupOverview(): void
+    {
+        $cat = (int) self::db()->value("SELECT id FROM exam_categories WHERE slug = 'pflege-medizin'");
+        $id = $this->createExam('pflege-z9');
+        self::db()->run('UPDATE exam_types SET category_id = ? WHERE id = ?', [$cat, $id]);
+        $general = $this->createExam('allgemein-z9');
+        self::db()->run("UPDATE exam_types SET category_id = (SELECT id FROM exam_categories WHERE slug = 'allgemeinsprachlich') WHERE id = ?", [$general]);
+        $body = $this->get('/telc-pruefungszentrum/')->body;
+        self::assertStringContainsString('Deutschprüfungen für Pflege und Medizin', $body);
+        self::assertStringContainsString('Allgemeinsprachliche Deutschprüfungen', $body);
+        $f = $this->get('/telc-pruefungszentrum/?kategorie=pflege-medizin')->body;
+        self::assertStringContainsString('pflege-z9', $f);
+        self::assertStringNotContainsString('/pruefungen/allgemein-z9/', $f);
     }
 
     public function testArchivedExamRedirectsToOverview(): void

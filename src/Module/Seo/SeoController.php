@@ -17,7 +17,7 @@ final class SeoController
         private ExamRepository $exams,
         private LocationRepository $locations,
         private string $baseUrl,
-        private bool $noindex,
+        private \Closure $noindex,
     ) {}
 
     public function sitemap(Request $req): Response
@@ -52,10 +52,10 @@ final class SeoController
 
     public function robots(Request $req): Response
     {
-        if ($this->noindex) {
+        if (($this->noindex)()) {
             return Response::text("User-agent: *\nDisallow: /\n");
         }
-        return Response::text("User-agent: *\nDisallow: /admin/\nDisallow: /buchung/\nDisallow: /webhooks/\nDisallow: /pruefungen/*/buchen/\n\nSitemap: "
+        return Response::text("User-agent: *\nDisallow: /verwaltung/\nDisallow: /buchung/\nDisallow: /zahlung/\nDisallow: /pruefungen/*/buchen/\n\nSitemap: "
             . rtrim($this->baseUrl, '/') . "/sitemap.xml\n");
     }
 }

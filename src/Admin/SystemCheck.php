@@ -21,7 +21,7 @@ final class SystemCheck
         };
 
         $add('Server', 'PHP-Version', version_compare(PHP_VERSION, '8.3.0', '>=') ? 'ok' : 'error', PHP_VERSION . ' (benötigt: 8.3 oder neuer)');
-        foreach (['pdo_mysql', 'intl', 'mbstring', 'gd', 'sodium', 'openssl', 'curl', 'fileinfo', 'json'] as $ext) {
+        foreach (['pdo_mysql', 'intl', 'mbstring', 'gd', 'sodium', 'zip', 'openssl', 'curl', 'fileinfo', 'json'] as $ext) {
             $add('Server', "Erweiterung $ext", extension_loaded($ext) ? 'ok' : 'error', extension_loaded($ext) ? 'geladen' : 'fehlt');
         }
         $webp = function_exists('imagewebp') && (gd_info()['WebP Support'] ?? false);

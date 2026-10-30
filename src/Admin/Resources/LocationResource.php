@@ -36,6 +36,7 @@ final class LocationResource extends Resource
             ['name' => 'short_name', 'label' => 'Kurzname', 'required' => true, 'max' => 60, 'help' => 'z. B. „Marl“ – für Listen und Kalender'],
             ['name' => 'slug', 'label' => 'Adresse', 'type' => 'slug', 'required' => true, 'from' => 'short_name'],
             ['name' => 'is_headquarters', 'label' => 'Zentrale', 'type' => 'checkbox'],
+            ['name' => 'is_exam_center', 'label' => 'Zertifiziertes telc-Prüfungszentrum (Prüfungstermine nur hier)', 'type' => 'checkbox'],
             ['name' => 'is_active', 'label' => 'Aktiv (auf der Website und für Termine)', 'type' => 'checkbox', 'default' => 1],
             ['name' => 'sort_order', 'label' => 'Sortierung', 'type' => 'int', 'default' => 0],
             ['name' => 'street', 'label' => 'Straße und Hausnummer', 'required' => true, 'max' => 150, 'group' => 'Adresse'],
