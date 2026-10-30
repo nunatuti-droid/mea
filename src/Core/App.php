@@ -16,6 +16,16 @@ use Mea\Module\Locations\LocationController;
 use Mea\Module\Locations\LocationRepository;
 use Mea\Module\Media\MediaRepository;
 use Mea\Module\Seo\SeoController;
+use Mea\Admin\AdminKernel;
+use Mea\Admin\AdminModule;
+use Mea\Admin\Labels;
+use Mea\Module\Audit\AuditLog;
+use Mea\Module\Auth\AuthService;
+use Mea\Module\Auth\Totp;
+use Mea\Module\Mail\Mailer;
+use Mea\Module\Mail\OutboxWorker;
+use Mea\Module\Mail\TemplateRenderer;
+use Mea\Module\Mail\TransportFactory;
 use Monolog\Handler\StreamHandler;
 use Monolog\Logger;
 
@@ -26,11 +36,24 @@ final class App
     public readonly Database $db;
     public readonly View $view;
     public readonly Logger $log;
+    public readonly Crypto $crypto;
+    public readonly SettingsRepository $settings;
+    public readonly Mailer $mailer;
+    public readonly AuditLog $audit;
+    public readonly AuthService $auth;
+    public readonly ExamRepository $exams;
+    public readonly LocationRepository $locations;
+    public readonly MediaRepository $media;
+    public readonly HtmlSanitizer $html;
+    public readonly \Psr\Clock\ClockInterface $clock;
+    public readonly string $baseUrl;
     private Router $router;
-    private ContentRepository $content;
+    public readonly ContentRepository $content;
+    public readonly PublicController $publicPages;
 
-    public function __construct(public readonly string $root, ?Config $config = null, ?Database $db = null)
+    public function __construct(public readonly string $root, ?Config $config = null, ?Database $db = null, ?\Psr\Clock\ClockInterface $clock = null)
     {
+        $this->clock = $clock ?? new SystemClock();
         $this->config = $config ?? Config::fromEnvironment($root);
         date_default_timezone_set('UTC');
         $this->log = new Logger('mea');
@@ -38,16 +61,22 @@ final class App
         $this->log->pushHandler(new StreamHandler($root . '/storage/logs/app.log'));
         $this->db = $db ?? Database::fromConfig($this->config);
 
-        $baseUrl = $this->config->get('APP_URL', 'http://localhost') ?? '';
+        $baseUrl = $this->baseUrl = $this->config->get('APP_URL', 'http://localhost') ?? '';
         $debug = $this->config->bool('APP_DEBUG');
         $noindex = $this->config->bool('APP_NOINDEX');
-        $media = new MediaRepository($this->db);
+        $media = $this->media = new MediaRepository($this->db);
+        $this->crypto = Crypto::fromConfig($this->config);
+        $this->html = new HtmlSanitizer($root . '/storage/cache/htmlpurifier');
         $this->view = new View($root, $debug, $media, $baseUrl);
 
-        $settings = new SettingsRepository($this->db);
+        $settings = $this->settings = new SettingsRepository($this->db);
         $this->content = new ContentRepository($this->db);
-        $locations = new LocationRepository($this->db);
-        $exams = new ExamRepository($this->db, new PriceCalculator());
+        $locations = $this->locations = new LocationRepository($this->db);
+        $exams = $this->exams = new ExamRepository($this->db, new PriceCalculator());
+        $this->mailer = new Mailer($this->db, new TemplateRenderer($this->db, $root), $settings, $baseUrl);
+        $this->audit = new AuditLog($this->db, $this->crypto);
+        $limiter = new RateLimiter($this->db, $this->crypto->hash('ratelimit', 'salt'));
+        $this->auth = new AuthService($this->db, $this->crypto, new Totp($this->clock), $limiter, $this->mailer, $this->audit, $this->clock);
 
         $this->view->addGlobal('site', $settings->all());
         $this->view->addGlobal('main_menu', $this->content->menu('main'));
@@ -59,26 +88,35 @@ final class App
         $this->view->addGlobal('rating_summary', $this->content->ratingSummary());
         $this->view->addGlobal('footer_reviews', $this->content->reviews());
 
-        $pages = new PublicController($this->view, $this->content, $exams, $locations, $settings);
+        $pages = $this->publicPages = new PublicController($this->view, $this->content, $exams, $locations, $settings);
         $examCtl = new ExamController($this->view, $exams, $this->content);
         $locCtl = new LocationController($this->view, $locations, $this->content);
         $contact = new ContactController(
             $this->view,
             new InquiryService($this->db),
-            new RateLimiter($this->db, $this->config->get('APP_KEY', 'dev') ?? 'dev'),
+            $limiter,
             $locations,
             $this->content,
+            $this->mailer,
         );
         $seo = new SeoController($this->content, $exams, $locations, $baseUrl, $noindex);
 
         $r = $this->router = new Router();
+        // Verwaltung zuerst, damit die allgemeinen Seiten-Routen sie nicht überdecken
+        $this->view->addGlobal('labels', Labels::MAPS);
+        // Werte der Verwaltung vorab anlegen; Twig erlaubt nach dem ersten Rendern nur Änderungen bestehender Globals
+        foreach (['me' => null, 'csrf' => '', 'can' => [], 'current_path' => '', 'flash' => null] as $k => $v) {
+            $this->view->addGlobal($k, $v);
+        }
+        (new AdminModule($this))->register(new AdminKernel($r, $this->auth, $this->view, $this->audit));
         $r->get('/', $pages->home(...));
         $r->get('/leistungen/', $pages->servicesIndex(...));
         $r->get('/faq/', $pages->faq(...));
         $r->get('/telc-pruefungszentrum/', $examCtl->index(...));
         $r->get('/pruefungen/', fn() => Response::redirect('/telc-pruefungszentrum/', 301));
         $r->get('/pruefungen/{slug:[a-z0-9-]+}/', $examCtl->show(...));
-        $r->get('/pruefungen/{slug:[a-z0-9-]+}/buchen/{id:\d+}/', $examCtl->book(...));
+        $booking = new \Mea\Module\Bookings\BookingController($this, $limiter);
+        $booking->register($r);
         $r->get('/preise/', $examCtl->prices(...));
         $r->get('/standorte/', $locCtl->index(...));
         $r->get('/standorte/{slug:[a-z0-9-]+}/', $locCtl->show(...));
@@ -88,6 +126,46 @@ final class App
         $r->get('/robots.txt', $seo->robots(...));
         $r->get('/{parent:[a-z0-9-]+}/{slug:[a-z0-9-]+}/', $pages->childService(...));
         $r->get('/{slug:[a-z0-9-]+}/', $pages->slug(...));
+    }
+
+    private ?\Mea\Module\Payments\PaymentGateway $gateway = null;
+    private ?\Mea\Module\Bookings\BookingService $bookingService = null;
+
+    public function paymentGateway(): \Mea\Module\Payments\PaymentGateway
+    {
+        return $this->gateway ??= new \Mea\Module\Payments\PayPalGateway(
+            new \GuzzleHttp\Client(['http_errors' => true]),
+            (string) ($this->config->get('PAYPAL_MODE') ?? 'sandbox'),
+            (string) ($this->config->get('PAYPAL_CLIENT_ID') ?? ''),
+            (string) ($this->config->get('PAYPAL_SECRET') ?? ''),
+            (string) ($this->config->get('PAYPAL_WEBHOOK_ID') ?? ''),
+        );
+    }
+
+    /** Für Tests: anderen Zahlungsanbieter einsetzen. */
+    public function useGateway(\Mea\Module\Payments\PaymentGateway $g): void
+    {
+        $this->gateway = $g;
+        $this->bookingService = null;
+    }
+
+    public function bookings(): \Mea\Module\Bookings\BookingService
+    {
+        return $this->bookingService ??= new \Mea\Module\Bookings\BookingService(
+            $this->db, new PriceCalculator(), $this->paymentGateway(), $this->mailer, $this->audit,
+            $this->crypto, $this->clock, $this->log, $this->baseUrl,
+        );
+    }
+
+    public function outbox(): OutboxWorker
+    {
+        $c = $this->settings->get('company', []);
+        return new OutboxWorker(
+            $this->db,
+            TransportFactory::fromConfig($this->config, $this->root),
+            (string) ($this->config->get('MAIL_FROM') ?? ''),
+            (string) ($this->config->get('MAIL_FROM_NAME') ?? ($c['name'] ?? 'MEA Bildungszentrum')),
+        );
     }
 
     public function handle(Request $req): Response
@@ -147,7 +225,7 @@ final class App
     private function secure(Response $r, Request $req): Response
     {
         $csp = "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; "
-            . "frame-src https://www.openstreetmap.org; connect-src 'self'; form-action 'self'; "
+            . "frame-src 'self' https://www.openstreetmap.org; connect-src 'self'; form-action 'self'; "
             . "base-uri 'self'; frame-ancestors 'none'; object-src 'none'";
         $h = [
             'Content-Security-Policy' => $csp,

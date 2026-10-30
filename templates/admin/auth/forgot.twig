@@ -1,0 +1,16 @@
+{% extends 'admin/layout.twig' %}
+{% set title = 'Passwort vergessen' %}
+{% block auth %}
+  <h1>Passwort vergessen</h1>
+  {% if sent %}
+    <div class="alert alert--success" role="status">{{ icon('circle-check') }}<p>Wenn es zu dieser Adresse ein aktives Konto gibt, haben wir einen Link gesendet. Er ist 60 Minuten gültig.</p></div>
+  {% else %}
+    <p>Wir senden Ihnen einen Link zum Festlegen eines neuen Passworts. Ihre Zwei-Faktor-Anmeldung bleibt bestehen.</p>
+    <form method="post">
+      <input type="hidden" name="_csrf" value="{{ csrf }}">
+      <div class="field"><label for="email">E-Mail-Adresse</label><input id="email" type="email" name="email" autocomplete="username" required autofocus></div>
+      <button class="btn btn--primary" type="submit">Link senden</button>
+    </form>
+  {% endif %}
+  <p class="text-sm mt"><a href="/verwaltung/anmelden/">Zur Anmeldung</a></p>
+{% endblock %}

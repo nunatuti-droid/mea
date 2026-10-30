@@ -45,12 +45,31 @@ final class DemoSeeder
         // Ein fast ausgebuchter Termin, damit die Anzeige „wenige Plätze“ sichtbar ist
         $sid = (int) $this->db->value("SELECT s.id FROM exam_sessions s JOIN exam_types e ON e.id = s.exam_type_id WHERE e.slug = 'telc-deutsch-b1' ORDER BY s.starts_at LIMIT 1");
         $exam = (int) $this->db->value("SELECT id FROM exam_types WHERE slug = 'telc-deutsch-b1'");
+        $snapshot = json_encode($this->demoSnapshot($sid), JSON_UNESCAPED_UNICODE);
         for ($n = 0; $n < 14; $n++) {
-            $this->db->insert('bookings', [
+            $bid = $this->db->insert('bookings', [
                 'public_ref' => 'DEMO' . str_pad((string) $n, 8, '0', STR_PAD_LEFT), 'exam_session_id' => $sid, 'exam_type_id' => $exam,
-                'snapshot_json' => json_encode(['demo' => true]), 'total_cents' => 18000, 'currency' => 'EUR',
+                'snapshot_json' => $snapshot, 'total_cents' => 18000, 'currency' => 'EUR',
                 'status' => 'confirmed', 'payment_status' => 'paid', 'confirmed_at' => gmdate('Y-m-d H:i:s'),
             ]);
+            $this->db->insert('booking_participants', [
+                'booking_id' => $bid, 'first_name' => 'Beispiel', 'last_name' => 'Teilnehmer ' . ($n + 1),
+                'email' => 'beispiel' . ($n + 1) . '@example.org',
+            ]);
         }
+    }
+
+    /** Momentaufnahme im selben Aufbau wie echte Buchungen, damit die Verwaltung sie anzeigen kann. @return array<string,mixed> */
+    public function demoSnapshot(int $sessionId): array
+    {
+        $s = $this->db->one('SELECT s.*, e.slug, e.public_name, e.level_label FROM exam_sessions s JOIN exam_types e ON e.id = s.exam_type_id WHERE s.id = ?', [$sessionId]) ?? [];
+        $loc = $this->db->one('SELECT name, short_name, street, address_extra, postal_code, city FROM locations WHERE id = ?', [$s['location_id'] ?? 0]);
+        return [
+            'demo' => true,
+            'exam' => ['id' => (int) ($s['exam_type_id'] ?? 0), 'slug' => $s['slug'] ?? '', 'public_name' => $s['public_name'] ?? '', 'level' => $s['level_label'] ?? null, 'provider' => 'telc', 'format' => null, 'duration' => null],
+            'session' => ['id' => $sessionId, 'starts_at' => $s['starts_at'] ?? null, 'ends_at' => null, 'registration_until' => $s['registration_until'] ?? null, 'notes_public' => $s['notes_public'] ?? null, 'location' => $loc],
+            'price' => ['base_cents' => 18000, 'fees' => [], 'total_cents' => 18000, 'currency' => 'EUR'],
+            'rule' => [], 'terms_version_id' => null, 'booked_at' => gmdate('Y-m-d H:i:s'),
+        ];
     }
 }

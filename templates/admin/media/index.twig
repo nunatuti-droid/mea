@@ -1,0 +1,47 @@
+{% extends 'admin/layout.twig' %}
+{% block content %}
+  <div class="adm-head"><div><h1>Mediathek</h1><p class="adm-head__intro">Bilder werden beim Hochladen verkleinert, als WebP gespeichert und von Metadaten wie dem Aufnahmeort befreit. PDFs sind öffentlich herunterladbar.</p></div></div>
+  <section class="card">
+    <h2 class="h3">Dateien hochladen</h2>
+    <form method="post" action="/verwaltung/medien/hochladen/" enctype="multipart/form-data" class="form-grid">
+      <input type="hidden" name="_csrf" value="{{ csrf }}">
+      <div class="field">
+        <label for="files">Dateien <span class="req" aria-hidden="true">*</span></label>
+        <input type="file" id="files" name="files[]" multiple required accept="image/jpeg,image/png,image/webp,application/pdf" aria-describedby="files-help">
+        <span class="field__help" id="files-help">JPG, PNG oder WebP bis 15 MB, PDF bis 20 MB. Server-Grenze je Datei: {{ max_upload }}.</span>
+      </div>
+      <div class="field">
+        <label for="alt_text">Alternativtext (bei Bildern Pflicht) bzw. Titel (bei PDF)</label>
+        <input type="text" id="alt_text" name="alt_text" maxlength="300" aria-describedby="alt-help">
+        <span class="field__help" id="alt-help">Beschreiben Sie, was auf dem Bild zu sehen ist. Gilt für alle gewählten Dateien; danach einzeln anpassen.</span>
+      </div>
+      <div class="field"><button class="btn btn--primary" type="submit">{{ icon('upload') }}Hochladen</button></div>
+    </form>
+  </section>
+  <form class="toolbar" method="get" role="search">
+    <label class="visually-hidden" for="q">Suchen</label><input type="search" id="q" name="q" value="{{ q }}" placeholder="Name oder Alternativtext …">
+    <label class="visually-hidden" for="f-art">Art</label>
+    <select id="f-art" name="art"><option value="">Alle Arten</option><option value="image" {{ kind == 'image' ? 'selected' }}>Bilder</option><option value="document" {{ kind == 'document' ? 'selected' }}>PDF-Dokumente</option></select>
+    <button class="btn btn--ghost btn--sm" type="submit">{{ icon('search') }}Anwenden</button>
+    {% if q or kind %}<a class="link-quiet" href="/verwaltung/medien/">Zurücksetzen</a>{% endif %}
+  </form>
+  {% if items is empty %}
+    <div class="empty">{{ icon('image') }}<p>Keine Dateien gefunden.</p></div>
+  {% else %}
+    <ul class="lib">
+      {% for m in items %}
+        <li class="lib__item">
+          <a href="/verwaltung/medien/{{ m.id }}/">
+            {% if m.kind == 'document' %}
+              <span class="lib__doc">{{ icon('file-text') }}PDF</span>
+            {% elseif m.thumb %}
+              <img src="/media/{{ m.thumb }}" alt="" loading="lazy" width="240" height="180">
+            {% endif %}
+            <span class="lib__name">{{ m.kind == 'document' ? m.title : (m.alt_text ?: m.original_name) }}</span>
+            {% if m.kind == 'image' and not m.alt_text %}<span class="badge badge--warning">Alternativtext fehlt</span>{% endif %}
+          </a>
+        </li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+{% endblock %}

@@ -1,0 +1,9 @@
+<section class="card">
+  <h2 class="h3">Vorschau und Probeversand</h2>
+  <p class="text-sm text-muted">Die Vorschau zeigt die zuletzt gespeicherte Fassung mit Beispielwerten. Bitte erst speichern, dann prüfen.</p>
+  <iframe class="mail-frame" src="/verwaltung/email-vorlagen/{{ template_id }}/beispiel/" title="Vorschau der E-Mail mit Beispielwerten" sandbox></iframe>
+  <form method="post" action="/verwaltung/email-vorlagen/{{ template_id }}/testen/" class="mt">
+    <input type="hidden" name="_csrf" value="{{ csrf }}">
+    <button class="btn btn--ghost" type="submit">{{ icon('send') }}Probe an {{ me.email }} senden</button>
+  </form>
+</section>

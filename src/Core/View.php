@@ -28,6 +28,7 @@ final class View
             'strict_variables' => $debug,
         ]);
         $this->twig->addExtension(new \Twig\Extra\Intl\IntlExtension());
+        $this->twig->addExtension(new \Twig\Extra\String\StringExtension());
         // Ausgabe immer in deutscher Ortszeit, gespeichert wird in UTC
         $this->twig->getExtension(\Twig\Extension\CoreExtension::class)->setTimezone('Europe/Berlin');
         $publicDir = $root . '/public';
@@ -59,6 +60,10 @@ final class View
             => preg_replace('/[^0-9+]/', '', (string) $n) ?? ''));
         $this->twig->addFilter(new TwigFilter('json_ld', static fn(array $d): Markup
             => new Markup(json_encode($d, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP) ?: '{}', 'UTF-8')));
+        // Datenbankzeiten sind UTC; der date-Filter zeigt sie danach in Europe/Berlin an
+        $this->twig->addFilter(new TwigFilter('utc', static fn(mixed $v): ?\DateTimeImmutable
+            => $v === null || $v === '' ? null : ($v instanceof \DateTimeInterface ? \DateTimeImmutable::createFromInterface($v) : new \DateTimeImmutable((string) $v, new \DateTimeZone('UTC')))));
+        $this->twig->addFilter(new TwigFilter('json_decode', static fn(?string $v): mixed => $v === null ? null : json_decode($v, true)));
         $this->twig->addFilter(new TwigFilter('obfuscate', static fn(string $s): string => base64_encode(strrev($s))));
     }
 

@@ -115,6 +115,19 @@ final class ContentRepository
         return $row;
     }
 
+    /** @return array<string,mixed>|null */
+    public function serviceById(int $id): ?array
+    {
+        $row = $this->db->one('SELECT * FROM services WHERE id = ?', [$id]);
+        return $row === null ? null : $this->decode([$row])[0];
+    }
+
+    /** @param array<string,mixed> $row @return array<string,mixed> */
+    public function decodeService(array $row): array
+    {
+        return $this->decode([$row])[0];
+    }
+
     /**
      * @param list<array<string,mixed>> $rows
      * @return list<array<string,mixed>>

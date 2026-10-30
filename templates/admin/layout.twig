@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>{% block title %}{{ title ?? 'Verwaltung' }}{% endblock %} · MEA Verwaltung</title>
+  <link rel="stylesheet" href="{{ asset('css/admin.css') }}">
+  <script src="{{ asset('js/admin.js') }}" defer></script>
+</head>
+<body class="adm">
+  {{ source('admin/_icons.svg') }}
+  <a class="skip" href="#inhalt">Zum Inhalt springen</a>
+  {% if me is defined and me %}
+  <div class="adm-shell">
+    <aside class="adm-side" id="adm-nav" data-nav>
+      <div class="adm-brand"><a href="/verwaltung/">MEA <span>Verwaltung</span></a></div>
+      {% set nav = [
+        {label: 'Übersicht', items: [
+          {url: '/verwaltung/', label: 'Dashboard', icon: 'layout-dashboard', perm: 'dashboard', exact: true},
+        ]},
+        {label: 'Prüfungen', items: [
+          {url: '/verwaltung/pruefungen/', label: 'Prüfungsarten', icon: 'award', perm: 'exams'},
+          {url: '/verwaltung/termine/', label: 'Termine', icon: 'calendar-days', perm: 'sessions'},
+          {url: '/verwaltung/kalender/', label: 'Kalender', icon: 'calendar-range', perm: 'sessions'},
+          {url: '/verwaltung/buchungen/', label: 'Buchungen', icon: 'ticket', perm: 'bookings'},
+          {url: '/verwaltung/anbieter/', label: 'Anbieter', icon: 'badge-check', perm: 'exams'},
+          {url: '/verwaltung/buchungsregeln/', label: 'Buchungsregeln', icon: 'list-checks', perm: 'exams'},
+        ]},
+        {label: 'Kontakt', items: [
+          {url: '/verwaltung/anfragen/', label: 'Anfragen', icon: 'inbox', perm: 'inquiries'},
+        ]},
+        {label: 'Inhalte', items: [
+          {url: '/verwaltung/seiten/', label: 'Seiten', icon: 'file-text', perm: 'content'},
+          {url: '/verwaltung/leistungen/', label: 'Leistungen', icon: 'briefcase', perm: 'content'},
+          {url: '/verwaltung/faq/', label: 'FAQ', icon: 'info', perm: 'content'},
+          {url: '/verwaltung/bewertungen/', label: 'Bewertungen', icon: 'star', perm: 'content'},
+          {url: '/verwaltung/menues/', label: 'Menüs', icon: 'list', perm: 'content'},
+          {url: '/verwaltung/standorte/', label: 'Standorte', icon: 'map-pin', perm: 'locations'},
+          {url: '/verwaltung/medien/', label: 'Mediathek', icon: 'image', perm: 'media'},
+        ]},
+        {label: 'System', items: [
+          {url: '/verwaltung/einstellungen/', label: 'Firmendaten & SEO', icon: 'settings', perm: 'settings'},
+          {url: '/verwaltung/email-vorlagen/', label: 'E-Mail-Vorlagen', icon: 'file-pen', perm: 'emails'},
+          {url: '/verwaltung/email-protokoll/', label: 'E-Mail-Protokoll', icon: 'mail-check', perm: 'emails'},
+          {url: '/verwaltung/benutzer/', label: 'Benutzer', icon: 'users', perm: 'users'},
+          {url: '/verwaltung/protokoll/', label: 'Änderungsprotokoll', icon: 'history', perm: 'audit'},
+          {url: '/verwaltung/system/', label: 'Systemprüfung', icon: 'server', perm: 'system'},
+        ]},
+      ] %}
+      <nav aria-label="Verwaltung">
+        {% for group in nav %}
+          {% set visible = group.items|filter(i => can[i.perm]) %}
+          {% if visible is not empty %}
+            <p class="adm-side__label">{{ group.label }}</p>
+            <ul>
+              {% for i in visible %}
+                {% set active = i.exact is defined ? current_path == i.url : current_path starts with i.url %}
+                <li><a href="{{ i.url }}"{% if active %} aria-current="page"{% endif %}>{{ icon(i.icon) }}{{ i.label }}</a></li>
+              {% endfor %}
+            </ul>
+          {% endif %}
+        {% endfor %}
+      </nav>
+    </aside>
+    <div class="adm-main">
+      <header class="adm-top">
+        <button class="adm-menu" type="button" data-nav-toggle aria-controls="adm-nav" aria-expanded="false" aria-label="Menü">{{ icon('menu') }}</button>
+        <a class="adm-top__site" href="/" target="_blank" rel="noopener">{{ icon('external-link') }}Website ansehen</a>
+        <div class="adm-top__user">
+          <a href="/verwaltung/konto/" aria-label="Mein Konto: {{ me.name }}">{{ icon('user') }}<span>{{ me.name }}</span><small>{{ me.role_label }}</small></a>
+          <form method="post" action="/verwaltung/abmelden/">
+            <input type="hidden" name="_csrf" value="{{ csrf }}">
+            <button class="btn btn--ghost btn--sm" type="submit">{{ icon('log-out') }}Abmelden</button>
+          </form>
+        </div>
+      </header>
+      <main id="inhalt" class="adm-content" tabindex="-1">
+        {% if flash %}
+          <div class="alert alert--{{ flash.type }}" role="status">{{ icon(flash.type == 'error' ? 'circle-alert' : 'circle-check') }}<p>{{ flash.message }}</p></div>
+        {% endif %}
+        {% block content %}{% endblock %}
+      </main>
+    </div>
+  </div>
+  {% else %}
+  <main id="inhalt" class="adm-auth" tabindex="-1">
+    <div class="adm-auth__card">
+      <p class="adm-auth__brand">MEA <span>Verwaltung</span></p>
+      {% block auth %}{% endblock %}
+    </div>
+  </main>
+  {% endif %}
+</body>
+</html>

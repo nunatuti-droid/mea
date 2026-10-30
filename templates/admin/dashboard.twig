@@ -1,0 +1,73 @@
+{% extends 'admin/layout.twig' %}
+{% import 'admin/partials/ui.twig' as ui %}
+{% block content %}
+  <div class="adm-head"><div><h1>Guten Tag, {{ me.name|split(' ')|first }}</h1><p class="adm-head__intro">Was heute ansteht und was Aufmerksamkeit braucht.</p></div></div>
+
+  {% if warnings is not empty %}
+    <div class="alert alert--warning" role="status">{{ icon('circle-alert') }}
+      <div><p><strong>{{ warnings|length }} Punkt{{ warnings|length > 1 ? 'e' }} in der Systemprüfung</strong></p>
+        <ul>{% for w in warnings|slice(0, 4) %}<li>{{ w.label }}: {{ w.detail }}</li>{% endfor %}</ul>
+        <p><a href="/verwaltung/system/">Zur Systemprüfung</a></p></div>
+    </div>
+  {% endif %}
+
+  <div class="grid-4">
+    {% if stats.bookings_week is not null %}
+      <a class="stat" href="/verwaltung/buchungen/?status=confirmed"><span class="stat__label">{{ icon('ticket') }}Bestätigt, 7 Tage</span><span class="stat__value">{{ stats.bookings_week }}</span></a>
+      <a class="stat{{ stats.pending_payments ? ' stat--warn' }}" href="/verwaltung/buchungen/?status=pending_payment"><span class="stat__label">{{ icon('clock') }}Zahlung offen</span><span class="stat__value">{{ stats.pending_payments }}</span></a>
+    {% endif %}
+    {% if stats.open_inquiries is not null %}
+      <a class="stat{{ stats.open_inquiries ? ' stat--warn' }}" href="/verwaltung/anfragen/?status=new"><span class="stat__label">{{ icon('inbox') }}Neue Anfragen</span><span class="stat__value">{{ stats.open_inquiries }}</span></a>
+    {% endif %}
+    {% if stats.cancelled_sessions is not null %}
+      <a class="stat{{ stats.cancelled_sessions ? ' stat--warn' }}" href="/verwaltung/termine/?status=cancelled"><span class="stat__label">{{ icon('circle-x') }}Abgesagte Termine</span><span class="stat__value">{{ stats.cancelled_sessions }}</span></a>
+    {% endif %}
+  </div>
+
+  <div class="grid-2 mt">
+    {% if can.sessions %}
+      <section class="card">
+        <div class="row row--between"><h2 class="h3">Nächste Termine</h2><a class="link-quiet" href="/verwaltung/kalender/">Kalender</a></div>
+        {% if upcoming is empty %}
+          <p class="text-muted">Keine kommenden Termine. <a href="/verwaltung/termine/neu/">Termin anlegen</a></p>
+        {% else %}
+          <ul class="list-plain">
+            {% for s in upcoming %}
+              <li><span><a href="/verwaltung/termine/{{ s.id }}/">{{ s.public_name }}</a><br><span class="text-sm text-muted">{{ s.starts_at|utc|date('d.m.Y H:i') }} · {{ s.location }}</span></span>
+                <span class="text-sm">{{ s.taken }} / {{ s.capacity }} {{ ui.status(s.status, labels.session_status) }}</span></li>
+            {% endfor %}
+          </ul>
+        {% endif %}
+      </section>
+    {% endif %}
+    {% if can.bookings %}
+      <section class="card">
+        <div class="row row--between"><h2 class="h3">Neue Buchungen</h2><a class="link-quiet" href="/verwaltung/buchungen/">Alle Buchungen</a></div>
+        {% if new_bookings is empty %}
+          <p class="text-muted">In den letzten 14 Tagen keine neuen Buchungen.</p>
+        {% else %}
+          <ul class="list-plain">
+            {% for b in new_bookings %}
+              <li><span><a href="/verwaltung/buchungen/{{ b.id }}/" class="mono">{{ b.public_ref }}</a> {{ b.first_name }} {{ b.last_name }}<br><span class="text-sm text-muted">{{ b.exam_name }} · {{ b.created_at|utc|date('d.m. H:i') }}</span></span>
+                {{ ui.status(b.status, labels.booking_status) }}</li>
+            {% endfor %}
+          </ul>
+        {% endif %}
+      </section>
+    {% endif %}
+    {% if cancelled is not empty %}
+      <section class="card">
+        <h2 class="h3">Abgesagte Termine</h2>
+        <ul class="list-plain">{% for s in cancelled %}<li><a href="/verwaltung/termine/{{ s.id }}/">{{ s.public_name }}</a><span class="text-sm text-muted">{{ s.starts_at|utc|date('d.m.Y H:i') }}</span></li>{% endfor %}</ul>
+      </section>
+    {% endif %}
+    {% if can.audit %}
+      <section class="card">
+        <div class="row row--between"><h2 class="h3">Letzte Änderungen</h2><a class="link-quiet" href="/verwaltung/protokoll/">Protokoll</a></div>
+        {% if audit is empty %}<p class="text-muted">Noch keine Änderungen.</p>{% else %}
+          <ul class="list-plain">{% for a in audit %}<li><span>{{ a.summary }}<br><span class="text-sm text-muted">{{ a.name ?? 'System' }}</span></span><span class="text-sm text-muted">{{ a.created_at|utc|date('d.m. H:i') }}</span></li>{% endfor %}</ul>
+        {% endif %}
+      </section>
+    {% endif %}
+  </div>
+{% endblock %}

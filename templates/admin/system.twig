@@ -1,0 +1,21 @@
+{% extends 'admin/layout.twig' %}
+{% block content %}
+  <div class="adm-head">
+    <div><h1>Systemprüfung</h1><p class="adm-head__intro">Server, Konfiguration und Dienste auf einen Blick. Gelb heißt: vor dem Livegang klären. Rot heißt: funktioniert nicht.</p></div>
+    <form method="post" action="/verwaltung/system/mailtest/" class="inline"><input type="hidden" name="_csrf" value="{{ csrf }}"><button class="btn btn--ghost" type="submit">{{ icon('send') }}Test-E-Mail an mich senden</button></form>
+  </div>
+  {% set tones = {ok: 'success', warn: 'warning', error: 'danger'} %}
+  {% set words = {ok: 'In Ordnung', warn: 'Prüfen', error: 'Fehler'} %}
+  {% for group, rows in groups %}
+    <section class="card">
+      <h2 class="h3">{{ group }}</h2>
+      <div class="table-wrap" tabindex="0">
+        <table class="tbl tbl--compact">
+          <caption class="visually-hidden">{{ group }}</caption>
+          <thead><tr><th scope="col">Prüfung</th><th scope="col">Ergebnis</th><th scope="col">Details</th></tr></thead>
+          <tbody>{% for r in rows %}<tr><th scope="row">{{ r.label }}</th><td><span class="badge badge--{{ tones[r.status] }}">{{ words[r.status] }}</span></td><td>{{ r.detail }}</td></tr>{% endfor %}</tbody>
+        </table>
+      </div>
+    </section>
+  {% endfor %}
+{% endblock %}

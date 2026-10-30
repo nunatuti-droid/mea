@@ -41,11 +41,18 @@ final class ExamController
             throw HttpException::notFound();
         }
         $others = array_values(array_filter($this->exams->listed(), fn($e) => (int) $e['id'] !== (int) $exam['id']));
-        return Response::html($this->view->render('public/exam_show.twig', [
+        $notice = null;
+        if (isset($req->cookies['mea']) || isset($req->cookies['__Host-mea'])) {
+            \Mea\Core\Session::start($req->isSecure());
+            $notice = \Mea\Core\Session::flash('booking_notice');
+        }
+        $resp = Response::html($this->view->render('public/exam_show.twig', [
+            'notice' => $notice,
             'exam' => $exam,
             'faqs' => $this->content->faqsFor('exam_type', (int) $exam['id']),
             'others' => array_slice($others, 0, 3),
         ]));
+        return $notice !== null ? $resp->withHeader('Cache-Control', 'no-store') : $resp;
     }
 
     public function prices(Request $req): Response
@@ -54,31 +61,5 @@ final class ExamController
             'page' => $this->content->publishedPage('preise'),
             'exams' => $this->exams->listed(),
         ]));
-    }
-
-    /** Platzhalter bis Phase 4: zeigt ehrlich, dass die Online-Buchung noch nicht aktiv ist. */
-    public function book(Request $req, string $slug, string $id): Response
-    {
-        $exam = $this->exams->bySlug($slug);
-        if ($exam === null) {
-            throw HttpException::notFound();
-        }
-        $session = null;
-        foreach ($exam['sessions'] as $s) {
-            if ((int) $s['id'] === (int) $id) {
-                $session = $s;
-            }
-        }
-        if ($session === null) {
-            throw HttpException::notFound();
-        }
-        if (!$session['bookable']) {
-            // ausgebucht, Frist vorbei oder Prüfung deaktiviert: zurück zur Terminliste
-            return Response::redirect('/pruefungen/' . $exam['slug'] . '/#termine', 303);
-        }
-        return Response::html($this->view->render('public/booking_pending.twig', [
-            'exam' => $exam,
-            'session' => $session,
-        ]))->withHeader('X-Robots-Tag', 'noindex');
     }
 }

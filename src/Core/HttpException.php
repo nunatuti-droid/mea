@@ -9,4 +9,9 @@ final class HttpException extends \RuntimeException
     {
         return new self('Seite nicht gefunden', 404);
     }
+
+    public static function forbidden(): self
+    {
+        return new self('Keine Berechtigung', 403);
+    }
 }

@@ -1,0 +1,30 @@
+<section class="card" id="gebuehren">
+  <h2 class="h3">Gebühren</h2>
+  <p class="text-muted text-sm">Pflichtgebühren werden immer zum Preis addiert. Optionale Gebühren können Teilnehmende bei der Anmeldung wählen (z. B. Expressversand des Zertifikats).</p>
+  <form method="post" action="/verwaltung/pruefungen/{{ exam_id }}/gebuehren/" data-repeat data-dirty-guard>
+    <input type="hidden" name="_csrf" value="{{ csrf }}">
+    <div data-repeat-list class="repeat-list">
+      {% for fee in fees %}
+        <div class="repeat-row" data-repeat-item>
+          <input type="hidden" name="fees[{{ loop.index0 }}][id]" value="{{ fee.id }}">
+          <div class="field"><label for="fee-l-{{ loop.index0 }}">Bezeichnung</label><input id="fee-l-{{ loop.index0 }}" type="text" name="fees[{{ loop.index0 }}][label]" value="{{ fee.label }}" maxlength="120"></div>
+          <div class="field"><label for="fee-a-{{ loop.index0 }}">Betrag</label><input id="fee-a-{{ loop.index0 }}" type="text" inputmode="decimal" name="fees[{{ loop.index0 }}][amount]" value="{{ (fee.amount_cents / 100)|number_format(2, ',', '') }}"></div>
+          <label class="check"><input type="checkbox" name="fees[{{ loop.index0 }}][mandatory]" value="1" {{ fee.is_mandatory ? 'checked' }}> <span>Pflicht</span></label>
+          <button type="button" class="btn btn--ghost btn--sm" data-repeat-remove aria-label="Gebühr {{ fee.label }} entfernen">{{ icon('trash-2') }}</button>
+        </div>
+      {% endfor %}
+    </div>
+    <template>
+      <div class="repeat-row" data-repeat-item>
+        <div class="field"><label for="fee-l-__i__">Bezeichnung</label><input id="fee-l-__i__" type="text" name="fees[__i__][label]" maxlength="120"></div>
+        <div class="field"><label for="fee-a-__i__">Betrag</label><input id="fee-a-__i__" type="text" inputmode="decimal" name="fees[__i__][amount]" placeholder="0,00"></div>
+        <label class="check"><input type="checkbox" name="fees[__i__][mandatory]" value="1"> <span>Pflicht</span></label>
+        <button type="button" class="btn btn--ghost btn--sm" data-repeat-remove aria-label="Gebühr entfernen">{{ icon('trash-2') }}</button>
+      </div>
+    </template>
+    <div class="row mt">
+      <button type="button" class="btn btn--ghost btn--sm" data-repeat-add>{{ icon('plus') }}Gebühr hinzufügen</button>
+      <button type="submit" class="btn btn--primary btn--sm">Gebühren speichern</button>
+    </div>
+  </form>
+</section>

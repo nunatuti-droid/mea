@@ -34,6 +34,7 @@ final class ContentSeeder
             $this->reviews();
             $this->menus();
             $this->redirects();
+            (new EmailTemplateSeeder($this->db))->run();
         });
     }
 

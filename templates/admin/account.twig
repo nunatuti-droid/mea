@@ -1,0 +1,43 @@
+{% extends 'admin/layout.twig' %}
+{% block content %}
+  <div class="adm-head"><div><h1>Mein Konto</h1><p class="adm-head__intro">{{ me.email }} · {{ me.role_label }}</p></div></div>
+  <div class="grid-2">
+    <section class="card">
+      <h2>Passwort ändern</h2>
+      <form method="post" action="/verwaltung/konto/passwort/" class="stack">
+        <input type="hidden" name="_csrf" value="{{ csrf }}">
+        {% for f in [{n: 'current_password', l: 'Aktuelles Passwort', a: 'current-password'}, {n: 'password', l: 'Neues Passwort (mind. 12 Zeichen)', a: 'new-password'}, {n: 'password_confirm', l: 'Neues Passwort wiederholen', a: 'new-password'}] %}
+          <div class="field{{ errors[f.n] is defined ? ' has-error' }}"><label for="{{ f.n }}">{{ f.l }}</label><input id="{{ f.n }}" type="password" name="{{ f.n }}" autocomplete="{{ f.a }}" required{% if errors[f.n] is defined %} aria-invalid="true" aria-describedby="{{ f.n }}-err"{% endif %}>{% if errors[f.n] is defined %}<p class="field__error" id="{{ f.n }}-err">{{ errors[f.n] }}</p>{% endif %}</div>
+        {% endfor %}
+        <button class="btn btn--primary" type="submit">Passwort ändern</button>
+      </form>
+    </section>
+    <section class="card" id="codes">
+      <h2>Backup-Codes</h2>
+      {% if new_codes %}
+        <div class="alert alert--warning" role="status">{{ icon('circle-alert') }}<p>Neue Codes – nur jetzt sichtbar. Die alten Codes gelten nicht mehr.</p></div>
+        <div class="codes">{% for c in new_codes %}<span>{{ c }}</span>{% endfor %}</div>
+      {% else %}
+        <p>Noch <strong>{{ codes_left }}</strong> von 10 Codes übrig.</p>
+      {% endif %}
+      <form method="post" action="/verwaltung/konto/backup-codes/" data-confirm="Neue Backup-Codes erzeugen? Die bisherigen werden ungültig.">
+        <input type="hidden" name="_csrf" value="{{ csrf }}">
+        <button class="btn btn--ghost" type="submit">{{ icon('refresh-cw') }}Neue Codes erzeugen</button>
+      </form>
+    </section>
+  </div>
+  <section class="card">
+    <div class="adm-head"><h2>Aktive Sitzungen</h2>
+      {% if sessions|length > 1 %}
+      <form method="post" action="/verwaltung/konto/sitzungen/abmelden/" data-confirm="Alle anderen Sitzungen abmelden?">
+        <input type="hidden" name="_csrf" value="{{ csrf }}"><button class="btn btn--ghost btn--sm" type="submit">{{ icon('log-out') }}Andere abmelden</button>
+      </form>{% endif %}
+    </div>
+    <ul class="list-plain">
+      {% for s in sessions %}
+        <li><span>{{ s.user_agent|u.truncate(80, '…') ?: 'Unbekannter Browser' }}{% if s.id == current_session %} <span class="badge badge--success">Diese Sitzung</span>{% endif %}</span>
+          <span class="text-muted text-sm">seit {{ s.created_at|utc|date('d.m.Y H:i') }} · zuletzt {{ s.last_seen_at|utc|date('H:i') }}</span></li>
+      {% endfor %}
+    </ul>
+  </section>
+{% endblock %}
