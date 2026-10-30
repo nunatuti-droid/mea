@@ -75,11 +75,10 @@
       </div>
       <aside class="stack">
         <div class="box box--brand">
-          <h2 class="h-sm">Direkter Draht</h2>
+          <h2 class="h-sm">Kontakt</h2>
           <ul class="contact-list mt-5">
             <li><span class="card__icon">{{ icon('phone') }}</span><span>Telefon<br><a class="btn-link-light" href="tel:{{ site.company.phone|tel }}">{{ site.company.phone_display }}</a></span></li>
             {% if site.company.whatsapp %}<li><span class="card__icon">{{ icon('message-circle') }}</span><span>WhatsApp<br><a class="btn-link-light" href="https://wa.me/{{ site.company.whatsapp|tel|replace({'+': ''}) }}" rel="noopener" target="_blank">{{ site.company.whatsapp_display }}</a></span></li>{% endif %}
-            <li><span class="card__icon">{{ icon('mail') }}</span><span>E-Mail<br><a class="btn-link-light" href="#formular" data-m="{{ site.company.email|obfuscate }}">E-Mail-Programm öffnen</a></span></li>
           </ul>
         </div>
         {% for l in locations %}{% include 'partials/location_card.twig' with {l: l, linked: true} %}{% endfor %}

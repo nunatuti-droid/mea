@@ -21,8 +21,8 @@
       <h1 id="hero-title">{% if parts|length == 2 %}{{ parts[0] }}:<br><em>{{ parts[1]|trim }}</em>{% else %}{{ home.title }}{% endif %}</h1>
       <p class="hero__lead">{{ home.lead }}</p>
       <div class="btn-row">
-        <a class="btn" href="/telc-pruefungszentrum/">{{ icon('calendar') }}Prüfungstermin finden</a>
-        <a class="btn btn--ghost-light" href="/kontakt/">Beratung anfragen</a>
+        <a class="btn" href="/leistungen/">Unsere Leistungen{{ icon('arrow-right') }}</a>
+        <a class="btn btn--ghost-light" href="/telc-pruefungszentrum/">{{ icon('calendar') }}Prüfungstermine</a>
       </div>
       <ul class="hero__benefits">
         {% for b in home.benefits %}
@@ -47,11 +47,43 @@
   <div class="container">
     <p class="partners__label">Zulassungen und Partner</p>
     <ul class="partners__list">
-      {% for p in home.partners %}<li>{{ img(p.media_id, '170px', {alt: p.label}) }}</li>{% endfor %}
+      {% for p in home.partners %}<li>{{ img(p.media_id, '180px', {alt: ''}) }}<span class="partners__name">{{ p.label }}</span></li>{% endfor %}
     </ul>
   </div>
 </section>
 {% endif %}
+
+<section class="section" aria-labelledby="services-title">
+  <div class="container">
+    <div class="section-head section-head--split">
+      <div>
+        <span class="eyebrow">Unsere Leistungen</span>
+        <h2 id="services-title">Bildung, Integration und Fachkräftegewinnung</h2>
+        <p>Für Menschen, die beruflich weiterkommen wollen, und für Unternehmen, die Fachkräfte suchen. Wählen Sie einen Bereich und erfahren Sie, wie wir Sie unterstützen.</p>
+      </div>
+      <a class="link-arrow" href="/leistungen/">Alle Leistungen{{ icon('arrow-right') }}</a>
+    </div>
+    <div class="grid grid--3">
+      {% for s in services %}{{ ui.service_card(s) }}{% endfor %}
+    </div>
+  </div>
+</section>
+
+<section class="section section--alt">
+  <div class="container split">
+    <div class="split__media reveal">{{ img(home.about_media_id, '(max-width: 900px) 100vw, 560px') }}</div>
+    <div>
+      <span class="eyebrow">Warum MEA</span>
+      <h2>{{ home.about_title }}</h2>
+      <p class="lead">{{ home.about_text }}</p>
+      <div class="grid grid--features mt-6">
+        {% for w in home.why %}
+          <div class="feature"><span class="card__icon">{{ icon(w.icon) }}</span><h3>{{ w.title }}</h3><p>{{ w.text }}</p></div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</section>
 
 <section class="section" aria-labelledby="exams-title">
   <div class="container">
@@ -109,38 +141,6 @@
         <li class="reveal"><h3>{{ st.title }}</h3><p>{{ st.text }}</p></li>
       {% endfor %}
     </ol>
-  </div>
-</section>
-
-<section class="section section--alt" aria-labelledby="services-title">
-  <div class="container">
-    <div class="section-head section-head--split">
-      <div>
-        <span class="eyebrow">Unsere Leistungen</span>
-        <h2 id="services-title">Bildung, Integration und Fachkräftegewinnung</h2>
-        <p>Für Menschen, die beruflich weiterkommen wollen, und für Unternehmen, die Fachkräfte suchen. Wählen Sie einen Bereich und erfahren Sie, wie wir Sie unterstützen.</p>
-      </div>
-      <a class="link-arrow" href="/leistungen/">Alle Leistungen{{ icon('arrow-right') }}</a>
-    </div>
-    <div class="grid grid--3">
-      {% for s in services %}{{ ui.service_card(s) }}{% endfor %}
-    </div>
-  </div>
-</section>
-
-<section class="section">
-  <div class="container split">
-    <div class="split__media reveal">{{ img(home.about_media_id, '(max-width: 900px) 100vw, 560px') }}</div>
-    <div>
-      <span class="eyebrow">Warum MEA</span>
-      <h2>{{ home.about_title }}</h2>
-      <p class="lead">{{ home.about_text }}</p>
-      <div class="grid grid--features mt-6">
-        {% for w in home.why %}
-          <div class="feature"><span class="card__icon">{{ icon(w.icon) }}</span><h3>{{ w.title }}</h3><p>{{ w.text }}</p></div>
-        {% endfor %}
-      </div>
-    </div>
   </div>
 </section>
 

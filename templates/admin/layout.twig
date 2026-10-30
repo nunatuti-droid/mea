@@ -98,7 +98,10 @@
   {% else %}
   <main id="inhalt" class="adm-auth" tabindex="-1">
     <div class="adm-auth__card">
-      <p class="adm-auth__brand">MEA <span>Verwaltung</span></p>
+      <div class="adm-auth__brand">
+        {% if site.company.logo_media_id ?? false %}{{ img(site.company.logo_media_id, '180px', {alt: site.company.name ?? 'MEA Bildungszentrum', loading: 'eager'}) }}{% else %}<span class="adm-auth__name">MEA</span>{% endif %}
+        <span class="adm-auth__sub">Verwaltung</span>
+      </div>
       {% block auth %}{% endblock %}
     </div>
   </main>

@@ -86,16 +86,4 @@
   document.addEventListener('mea:consent', (e) => {
     if (Array.isArray(e.detail) && e.detail.includes('media')) document.querySelectorAll('.map[data-map-src]').forEach(loadMap);
   });
-
-  // E-Mail-Adresse erst bei Klick zusammensetzen (Schutz vor einfachem Auslesen)
-  document.querySelectorAll('[data-m]').forEach((a) => {
-    a.addEventListener('click', (e) => {
-      try {
-        const addr = atob(a.dataset.m).split('').reverse().join('');
-        if (!/^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test(addr)) return;
-        e.preventDefault();
-        window.location.href = 'mailto:' + addr;
-      } catch (_) { /* Fallback: Link zum Kontaktformular */ }
-    });
-  });
 })();

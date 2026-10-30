@@ -442,6 +442,7 @@ final class ContentSeeder
         $main = $this->db->insert('menus', ['menu_key' => 'main', 'name' => 'Hauptmenü']);
         $add = fn(int $menu, string $label, string $url, int $sort, ?int $parent = null, ?string $desc = null): int
             => $this->db->insert('menu_items', ['menu_id' => $menu, 'parent_id' => $parent, 'label' => $label, 'url' => $url, 'sort_order' => $sort, 'description' => $desc]);
+        $add($main, 'Startseite', '/', 0);
         $l = $add($main, 'Leistungen', '/leistungen/', 1);
         $add($main, 'Fachkräftegewinnung', '/fachkraeftegewinnung/', 1, $l, 'Fachkräfte aus dem In- und Ausland');
         $add($main, 'Onboarding', '/onboarding/', 2, $l, 'Ankommen in Deutschland');
