@@ -22,3 +22,21 @@ Jede Änderung wird hier festgehalten. Das Gesamt-Update wird erst erstellt, wen
 **Nebenbei:** Text der Vorschau-Leiste gekürzt („Vorschau mit Beispieldaten: Preise und Termine sind nicht echt.“).
 
 **Geprüft:** 107 automatische Tests grün (4 neue für diesen Punkt), Wartungsseite und Verwaltungsseite am Desktop und Handy angesehen.
+
+## Punkt 7: Alle telc-Prüfungen nur im Prüfungszentrum Herne
+
+**Was neu ist**
+- Neues Merkmal je Standort: „Zertifiziertes telc-Prüfungszentrum“ (Verwaltung → Standorte). Herne ist markiert, Marl nicht.
+- Beim Anlegen eines Prüfungstermins lässt sich nur noch ein Prüfungszentrum als Ort wählen. Andere Standorte werden abgelehnt.
+- Künftige Termine in Marl wurden nach Herne verlegt, sofern keine echten Buchungen daran hängen (Beispieldaten zählen nicht).
+- Hinweis „Prüfungsort: Herne … persönlich vor Ort und auf Papier; Online-Prüfungen bieten wir nicht an“ auf der Prüfungsübersicht und bei den Terminen jeder Prüfung. Im Anmeldeformular ein kurzer Satz dazu.
+- Standortseite Herne: „Zertifiziertes telc-Prüfungszentrum“. Standortseite Marl: „An diesem Standort finden keine telc-Prüfungen statt“ mit Link nach Herne.
+- Startseite: Überschrift „telc-Prüfungszentrum Herne“ und Satz zum Prüfungsort.
+- SEO-Titel der Prüfungen und der Prüfungsseite: „in Herne“ statt „in Marl & Herne“; Beschreibung der Preisseite angepasst. Nur Texte, die noch dem Original entsprachen, wurden geändert.
+- Beratung, Kurse und AVGS bleiben an beiden Standorten (Texte dort unverändert).
+
+**Dateien:** `migrations/20261103100013_exam_center_herne.php` (neu), `templates/partials/exam_venue.twig` (neu), `src/Module/Locations/LocationRepository.php`, `src/Core/App.php`, `src/Admin/Resources/LocationResource.php`, `src/Admin/Resources/SessionResource.php`, `src/Install/ContentSeeder.php`, `src/Install/DemoSeeder.php`, `templates/public/exams_index.twig`, `templates/public/exam_show.twig`, `templates/public/booking_form.twig`, `templates/public/location.twig`, `templates/public/home.twig`, `public/assets/css/app.css`, `tests/Integration/ExamCenterTest.php` (neu), `tests/Integration/AcceptanceTest.php`.
+
+**Nach dem Hochladen nötig:** `migrate` ausführen.
+
+**Geprüft:** alle automatischen Tests grün (3 neue), Seiten am Bildschirm angesehen.

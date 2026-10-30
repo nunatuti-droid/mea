@@ -29,7 +29,8 @@ final class DemoSeeder
             if ($slug === 'telc-deutsch-c1') {
                 continue; // zeigt den Zustand „derzeit keine Termine“
             }
-            foreach ([[21, 'marl', 16], [49, 'herne', 12]] as $k => [$days, $loc, $cap]) {
+            // telc-Prüfungen nur im Prüfungszentrum Herne
+            foreach ([[21, 'herne', 16], [49, 'herne', 12]] as $k => [$days, $loc, $cap]) {
                 $start = (new \DateTimeImmutable('today 09:00', new \DateTimeZone('Europe/Berlin')))
                     ->modify('+' . ($days + $i * 3) . ' days')->setTimezone(new \DateTimeZone('UTC'));
                 $this->db->insert('exam_sessions', [

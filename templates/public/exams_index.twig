@@ -10,6 +10,7 @@
   <section class="section" id="pruefungen" aria-labelledby="list-title">
     <div class="container">
       <div class="section-head"><h2 id="list-title">Unsere Prüfungen</h2><p>Wählen Sie eine Prüfung für Ablauf, Termine und Anmeldung.</p></div>
+      {% include 'partials/exam_venue.twig' %}
       {% if options.levels|length > 1 or options.providers|length > 1 %}
         <nav class="filters" aria-label="Prüfungen filtern">
           <span class="filters__label">Niveau:</span>

@@ -18,6 +18,12 @@ final class LocationRepository
         return array_map(fn(array $r) => $this->withHours($r), $rows);
     }
 
+    /** Zertifiziertes telc-Prüfungszentrum (derzeit Herne). @return array<string,mixed>|null */
+    public function examCenter(): ?array
+    {
+        return $this->db->one('SELECT * FROM locations WHERE is_active = 1 AND is_exam_center = 1 ORDER BY sort_order, id LIMIT 1');
+    }
+
     /** @return array<string,mixed>|null */
     public function bySlug(string $slug): ?array
     {

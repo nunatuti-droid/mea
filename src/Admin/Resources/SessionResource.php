@@ -94,13 +94,15 @@ final class SessionResource extends Resource
     public function fields(?array $row): array
     {
         $exams = array_column($this->db->all("SELECT id, public_name FROM exam_types WHERE status <> 'archived' OR id = ? ORDER BY sort_order, public_name", [$row['exam_type_id'] ?? 0]), 'public_name', 'id');
-        $locs = array_column($this->db->all('SELECT id, name FROM locations WHERE is_active = 1 OR id = ? ORDER BY sort_order', [$row['location_id'] ?? 0]), 'name', 'id');
+        // Prüfungstermine nur an Standorten, die als Prüfungszentrum markiert sind (derzeit Herne)
+        $locs = array_column($this->db->all('SELECT id, name FROM locations WHERE (is_active = 1 AND is_exam_center = 1) OR id = ? ORDER BY sort_order', [$row['location_id'] ?? 0]), 'name', 'id');
         $rules = array_column($this->db->all('SELECT id, name FROM booking_rules ORDER BY name'), 'name', 'id');
         $hasBookings = $row !== null && $this->db->value("SELECT 1 FROM bookings WHERE exam_session_id = ? AND status IN ('confirmed','reserved','pending_payment') LIMIT 1", [$row['id']]) !== null;
         $f = [
             ['name' => 'exam_type_id', 'label' => 'Prüfungsart', 'type' => 'select', 'options' => $exams, 'required' => true, 'numeric' => true, 'placeholder' => 'Bitte wählen', 'readonly' => $hasBookings,
                 'help' => $hasBookings ? 'Es gibt Buchungen; die Prüfungsart kann nicht mehr geändert werden.' : null],
-            ['name' => 'location_id', 'label' => 'Ort', 'type' => 'select', 'options' => $locs, 'required' => true, 'numeric' => true, 'placeholder' => 'Bitte wählen'],
+            ['name' => 'location_id', 'label' => 'Ort', 'type' => 'select', 'options' => $locs, 'required' => true, 'numeric' => true, 'placeholder' => 'Bitte wählen',
+                'help' => 'Nur Standorte, die unter „Standorte“ als telc-Prüfungszentrum markiert sind.'],
             ['name' => 'starts_at', 'label' => 'Beginn', 'type' => 'datetime', 'required' => true, 'help' => 'Ortszeit Deutschland.'],
             ['name' => 'ends_at', 'label' => 'Ende (optional)', 'type' => 'datetime'],
             ['name' => 'registration_until', 'label' => 'Anmeldeschluss', 'type' => 'datetime', 'help' => 'Leer lassen = automatisch nach Buchungsregel (z. B. 14 Tage vorher, 23:59 Uhr).'],
@@ -138,6 +140,9 @@ final class SessionResource extends Resource
     public function validate(array $values, ?int $id): array
     {
         $e = [];
+        if (isset($values['location_id']) && $this->db->value('SELECT is_exam_center FROM locations WHERE id = ?', [(int) $values['location_id']]) != 1) {
+            $e['location_id'] = 'Prüfungen finden nur im zertifizierten telc-Prüfungszentrum statt. Bitte diesen Standort wählen.';
+        }
         $starts = $values['starts_at'] ?? null;
         if ($starts !== null && $id === null && $starts < gmdate('Y-m-d H:i:s')) {
             $e['starts_at'] = 'Der Beginn liegt in der Vergangenheit.';

@@ -1,0 +1,6 @@
+{# Hinweis: alle telc-Prüfungen nur im Prüfungszentrum Herne, vor Ort und auf Papier #}
+{% if exam_center %}
+  <div class="notice notice--venue{{ compact ?? false ? ' notice--compact' }}">{{ icon('map-pin') }}
+    <p><strong>Prüfungsort: {{ exam_center.short_name }}.</strong> Alle telc-Prüfungen finden ausschließlich in unserem zertifizierten telc-Prüfungszentrum statt: <a href="/standorte/{{ exam_center.slug }}/">{{ exam_center.street }}{{ exam_center.address_extra ? ', ' ~ exam_center.address_extra }}, {{ exam_center.postal_code }} {{ exam_center.city }}</a>. Sie legen die Prüfung persönlich vor Ort und auf Papier ab; Online-Prüfungen bieten wir nicht an.</p>
+  </div>
+{% endif %}

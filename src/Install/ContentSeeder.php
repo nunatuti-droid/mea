@@ -136,7 +136,7 @@ final class ContentSeeder
             'phone' => '+49 2365 6973491', 'sort_order' => 1,
         ]);
         $this->db->insert('locations', [
-            'slug' => 'herne', 'name' => 'Standort Herne', 'short_name' => 'Herne', 'is_headquarters' => 0,
+            'slug' => 'herne', 'name' => 'Standort Herne', 'short_name' => 'Herne', 'is_headquarters' => 0, 'is_exam_center' => 1,
             'street' => 'Wilhelmstraße 98b', 'address_extra' => 'Gebäude 012', 'postal_code' => '44649', 'city' => 'Herne',
             // laut alter telc-Seite; Zuordnung zu Herne bitte von MEA bestätigen lassen
             'phone' => '+49 2325 578001', 'sort_order' => 2,
@@ -293,14 +293,14 @@ final class ContentSeeder
             . '<h2>Für Unternehmen: Sprachprüfungen gezielt einsetzen</h2><p>Sie möchten die Sprachkenntnisse Ihrer Mitarbeitenden nachweisen lassen? Sprechen Sie uns an – wir beraten Sie zur passenden Prüfung.</p>', [
             'intro' => 'Zertifiziert. Anerkannt. Zukunftsorientiert. Als lizenziertes telc-Prüfungszentrum beraten wir Sie zur passenden Prüfung und führen sie professionell und transparent durch.',
             'hero_media_id' => $this->m['exam_room'], 'is_system' => 1,
-            'seo_title' => 'telc-Prüfungen in Marl & Herne – Termine und Anmeldung',
+            'seo_title' => 'telc-Prüfungen in Herne – Termine und Anmeldung',
             'seo_description' => 'Lizenziertes telc-Prüfungszentrum: Deutschprüfungen nach GER, aktuelle Termine, Preise und freie Plätze. Jetzt online anmelden.',
         ]);
         $this->page('preise', 'Preise', '', [
             'intro' => 'Alle Prüfungspreise auf einen Blick. Der Preis eines einzelnen Termins kann abweichen; maßgeblich ist der Preis, der bei der Anmeldung angezeigt wird.',
             'is_system' => 1,
             'seo_title' => 'Preise für telc-Prüfungen – MEA Bildungszentrum',
-            'seo_description' => 'Übersicht der Prüfungsgebühren für telc-Sprachprüfungen im MEA Bildungszentrum in Marl und Herne.',
+            'seo_description' => 'Übersicht der Prüfungsgebühren für telc-Sprachprüfungen im zertifizierten telc-Prüfungszentrum des MEA Bildungszentrums in Herne.',
         ]);
         $this->page('standorte', 'Unsere Standorte', '', [
             'intro' => 'Sie finden uns an mehreren Standorten im Ruhrgebiet. Wählen Sie einen Standort für Adresse, Anfahrt und Kontakt.',
@@ -401,7 +401,7 @@ final class ContentSeeder
                 'booking_rule_id' => $rule,
                 'card_media_id' => $this->m[$i % 2 === 0 ? 'exam_writing' : 'exam_room'],
                 'hero_media_id' => $this->m[$i % 2 === 0 ? 'exam_writing' : 'exam_room'],
-                'seo_title' => "telc Deutsch $lvl Prüfung in Marl & Herne",
+                'seo_title' => "telc Deutsch $lvl Prüfung in Herne",
                 'seo_description' => mb_substr("telc Deutsch $lvl beim MEA Bildungszentrum: Ablauf, Voraussetzungen, Termine, Preise und Online-Anmeldung.", 0, 170),
                 'status' => 'draft', 'sort_order' => ($i + 1) * 10,
             ]);
@@ -414,7 +414,7 @@ final class ContentSeeder
             'body_html' => '<p>telc Deutsch A2-B1 ist eine skalierte Sprachprüfung für Deutschlernende, die ihre Kenntnisse auf den Niveaustufen A2 oder B1 des Gemeinsamen Europäischen Referenzrahmens nachweisen möchten. Je nach erreichter Leistung erhalten Sie ein telc-Zertifikat auf A2 oder B1.</p>' . $parts
                 . '<p>Arbeitgeber, Behörden und Bildungseinrichtungen erkennen das Zertifikat an.</p>',
             'booking_rule_id' => $rule, 'card_media_id' => $this->m['exam_a2b1'], 'hero_media_id' => $this->m['exam_writing'],
-            'seo_title' => 'telc Deutsch A2-B1 Prüfung in Marl & Herne',
+            'seo_title' => 'telc Deutsch A2-B1 Prüfung in Herne',
             'seo_description' => 'telc Deutsch A2-B1: skalierte Deutschprüfung mit Zertifikat auf A2 oder B1. Termine, Preise und Online-Anmeldung beim MEA Bildungszentrum.',
             'status' => 'draft', 'sort_order' => 25,
         ]);

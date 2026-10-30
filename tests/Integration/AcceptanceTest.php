@@ -53,7 +53,7 @@ final class AcceptanceTest extends IntegrationTestCase
 
     private function createSessionViaAdmin(int $examId, int $capacity = 10, string $price = '', string $start = '+40 days'): int
     {
-        $loc = (int) self::db()->value('SELECT id FROM locations ORDER BY id LIMIT 1');
+        $loc = (int) self::db()->value('SELECT id FROM locations WHERE is_exam_center = 1 ORDER BY id LIMIT 1');
         $local = (new \DateTimeImmutable($start, new \DateTimeZone('Europe/Berlin')))->setTime(9, 0)->format('Y-m-d\TH:i');
         $r = $this->adminPost('/verwaltung/termine/neu/', [
             'exam_type_id' => (string) $examId, 'location_id' => (string) $loc, 'starts_at' => $local, 'ends_at' => '', 'registration_until' => '',

@@ -57,9 +57,9 @@
   <div class="container">
     <div class="section-head section-head--split">
       <div>
-        <span class="eyebrow">telc-Prüfungszentrum</span>
+        <span class="eyebrow">telc-Prüfungszentrum{{ exam_center ? ' ' ~ exam_center.city }}</span>
         <h2 id="exams-title">Sprachprüfungen mit anerkanntem Zertifikat</h2>
-        <p>Wählen Sie Ihre Prüfung, sehen Sie Termine, Preis und freie Plätze und melden Sie sich direkt an.</p>
+        <p>Wählen Sie Ihre Prüfung, sehen Sie Termine, Preis und freie Plätze und melden Sie sich direkt an.{% if exam_center %} Alle Prüfungen finden persönlich in unserem zertifizierten Prüfungszentrum in {{ exam_center.city }} statt.{% endif %}</p>
       </div>
       <a class="link-arrow" href="/telc-pruefungszentrum/">Alle Prüfungen und Termine{{ icon('arrow-right') }}</a>
     </div>

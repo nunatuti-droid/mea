@@ -9,6 +9,13 @@
   <section class="section">
     <div class="container contact-layout">
       <div class="stack">
+        {% if exam_center %}
+          {% if l.is_exam_center %}
+            <div class="notice notice--venue">{{ icon('award') }}<p><strong>Zertifiziertes telc-Prüfungszentrum.</strong> An diesem Standort finden alle unsere telc-Prüfungen statt, persönlich vor Ort und auf Papier. <a href="/telc-pruefungszentrum/">Prüfungstermine ansehen</a></p></div>
+          {% else %}
+            <div class="notice">{{ icon('info') }}<p>An diesem Standort finden keine telc-Prüfungen statt. Alle Prüfungen legen Sie in unserem zertifizierten telc-Prüfungszentrum in <a href="/standorte/{{ exam_center.slug }}/">{{ exam_center.city }}</a> ab.</p></div>
+          {% endif %}
+        {% endif %}
         <h2>Anfahrt</h2>
         {% if l.directions_html %}<div class="prose">{{ l.directions_html|raw }}</div>{% endif %}
         {% if l.has_coordinates %}

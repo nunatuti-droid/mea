@@ -86,6 +86,7 @@ final class App
         $this->view->addGlobal('footer_menu', $this->content->menu('footer'));
         $this->view->addGlobal('legal_menu', $this->content->menu('legal'));
         $this->view->addGlobal('all_locations', $locations->active());
+        $this->view->addGlobal('exam_center', $locations->examCenter());
         $this->view->addGlobal('noindex', !$this->siteStatus->indexingAllowed());
         $this->view->addGlobal('site_live', ['online' => true, 'indexing' => true]);
         $this->view->addGlobal('base_url', rtrim($baseUrl, '/'));
