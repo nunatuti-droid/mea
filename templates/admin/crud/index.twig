@@ -54,7 +54,7 @@
               {% endfor %}
               {% if has_row_actions %}
                 <td class="nowrap">{% for a in r.rowActions(row) %}
-                  <form method="post" action="{{ a.url }}" class="inline" data-confirm="{{ a.confirm }}"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="value" value="{{ a.value }}"><button class="btn btn--ghost btn--sm" type="submit">{{ icon(a.icon) }}{{ a.label }}<span class="visually-hidden">: {{ row[r.columns()|first.key] }}</span></button></form>
+                  <form method="post" action="{{ a.url }}" class="inline"{% if a.confirm ?? false %} data-confirm="{{ a.confirm }}"{% endif %}><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="value" value="{{ a.value }}"><button class="btn btn--ghost btn--sm" type="submit">{{ icon(a.icon) }}{{ a.label }}<span class="visually-hidden">: {{ row[r.columns()|first.key] }}</span></button></form>
                 {% endfor %}</td>
               {% endif %}
             </tr>

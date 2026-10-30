@@ -24,17 +24,17 @@
         <a class="btn" href="/leistungen/">Unsere Leistungen{{ icon('arrow-right') }}</a>
         <a class="btn btn--ghost-light" href="/telc-pruefungszentrum/">{{ icon('calendar') }}Prüfungstermine</a>
       </div>
+      {% include 'partials/google_rating.twig' with {variant: 'hero'} %}
       <ul class="hero__benefits">
         {% for b in home.benefits %}
           <li><strong>{{ icon(b.icon) }}{{ b.title }}</strong><span>{{ b.text }}</span></li>
         {% endfor %}
       </ul>
     </div>
-    {% if rating.count > 0 %}
-      <div class="hero-quote">{{ ui.stars(rating.average) }}<p><strong>{{ rating.average|number_format(1, ',') }} von 5</strong> aus {{ rating.count }} Bewertungen</p></div>
-    {% elseif hero_reviews is not empty %}
+    {% if hero_reviews is not empty %}
       {% set hr = hero_reviews|first %}
       <figure class="hero-quote mb-0">
+        {% if hr.rating %}{{ ui.stars(hr.rating) }}{% endif %}
         <p>„{{ hr.body }}“</p>
         <footer><strong>{{ hr.display_name }}</strong>{% if hr.role_label %}, {{ hr.role_label }}{% endif %}</footer>
       </figure>

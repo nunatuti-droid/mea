@@ -33,19 +33,18 @@
         </div>
       </div>
     </div>
-    {% if footer_reviews is not empty %}
-      {% set fr = footer_reviews|first %}
-      <div class="footer__reviews">
-        <div>
-          {% if rating_summary.count > 0 %}
-            {% import 'partials/macros.twig' as ui %}{{ ui.stars(rating_summary.average) }}
-            <p class="mb-0"><strong>{{ rating_summary.average|number_format(1, ',') }} von 5</strong> aus {{ rating_summary.count }} Bewertungen</p>
-          {% else %}
-            <h2 class="mb-0">Stimmen unserer Teilnehmenden</h2>
-          {% endif %}
-        </div>
-        <blockquote>„{{ fr.body }}“<cite>{{ fr.display_name }}{% if fr.role_label %}, {{ fr.role_label }}{% endif %}</cite></blockquote>
-        <div class="footer__reviews-links"><a href="/ueber-uns/#stimmen">Alle {{ footer_reviews|length }} Stimmen</a>{% include 'partials/google_rating.twig' with {dark: true} %}</div>
+    {% set g_on = site.google.profile_url ?? false %}
+    {% if footer_reviews is not empty or g_on %}
+      <div class="footer__reviews{{ g_on ? '' : ' footer__reviews--plain' }}">
+        {% if g_on %}{% include 'partials/google_rating.twig' with {variant: 'card'} %}{% endif %}
+        {% if footer_reviews is not empty %}
+          {% set fr = footer_reviews|first %}
+          <div class="footer__voice">
+            <h2 class="footer__voice-title">Stimmen unserer Teilnehmenden</h2>
+            <blockquote>„{{ fr.body }}“<cite>{{ fr.display_name }}{% if fr.role_label %}, {{ fr.role_label }}{% endif %}</cite></blockquote>
+            <a class="footer__voice-link" href="/ueber-uns/#stimmen">Alle {{ footer_reviews|length }} Stimmen lesen{{ icon('arrow-right') }}</a>
+          </div>
+        {% endif %}
       </div>
     {% endif %}
     <div class="footer__bottom">

@@ -1,13 +1,38 @@
-{# Google-Bewertungen: Link zum Profil und selbst eingetragene Sternebewertung (kein automatischer Abruf, keine Daten an Google beim Seitenaufruf) #}
+{# Google-Bewertungen: Link zum Profil und selbst eingetragene Sternebewertung (kein automatischer Abruf, keine Daten an Google beim Seitenaufruf).
+   variant: 'line' (Standard), 'hero' (Zeile im Startbereich), 'card' (Modul im Fußbereich) #}
 {% set g = site.google ?? {} %}
 {% if g.profile_url ?? false %}
   {% import 'partials/macros.twig' as ui %}
   {% set rating = (g.rating ?? '')|replace({',': '.'}) %}
-  <div class="g-rating{{ dark ?? false ? ' g-rating--dark' }}">
-    {% if rating and (g.count ?? 0) > 0 %}
-      {{ ui.stars(rating + 0) }}
-      <p><strong>{{ (rating + 0)|number_format(1, ',') }} von 5</strong> aus {{ g.count }} Google-Bewertungen{% if g.as_of ?? false %} <span class="g-rating__date">(Stand: {{ g.as_of }})</span>{% endif %}</p>
-    {% endif %}
-    <a href="{{ g.profile_url }}" target="_blank" rel="noopener">Bewertungen auf Google ansehen{{ icon('external-link') }}<span class="visually-hidden"> (öffnet in neuem Fenster)</span></a>
-  </div>
+  {% set has_stars = rating and (g.count ?? 0) > 0 %}
+  {% set v = variant ?? 'line' %}
+  {% if v == 'hero' %}
+    <a class="g-hero" href="{{ g.profile_url }}" target="_blank" rel="noopener">
+      <span class="g-hero__logo">{% include 'partials/google_g.twig' with {size: 22} %}</span>
+      {% if has_stars %}
+        <span class="g-hero__body">{{ ui.stars(rating + 0) }}<span><strong>{{ (rating + 0)|number_format(1, ',') }}</strong> von 5 · {{ g.count }} Google-Bewertungen</span></span>
+      {% else %}
+        <span class="g-hero__body"><span>Bewertungen auf Google ansehen</span></span>
+      {% endif %}
+      <span class="visually-hidden"> (öffnet in neuem Fenster)</span>
+    </a>
+  {% elseif v == 'card' %}
+    <div class="g-card">
+      <div class="g-card__head">{% include 'partials/google_g.twig' with {size: 28} %}<span>Google-Bewertungen</span></div>
+      {% if has_stars %}
+        <p class="g-card__score"><strong>{{ (rating + 0)|number_format(1, ',') }}</strong>{{ ui.stars(rating + 0) }}</p>
+        <p class="g-card__count">aus {{ g.count }} Bewertungen{% if g.as_of ?? false %} · Stand {{ g.as_of }}{% endif %}</p>
+      {% endif %}
+      <a class="g-card__link" href="{{ g.profile_url }}" target="_blank" rel="noopener">Bewertungen ansehen{{ icon('external-link') }}<span class="visually-hidden"> auf Google (öffnet in neuem Fenster)</span></a>
+    </div>
+  {% else %}
+    <div class="g-rating{{ dark ?? false ? ' g-rating--dark' }}">
+      {% include 'partials/google_g.twig' with {size: 20} %}
+      {% if has_stars %}
+        {{ ui.stars(rating + 0) }}
+        <p><strong>{{ (rating + 0)|number_format(1, ',') }} von 5</strong> aus {{ g.count }} Google-Bewertungen{% if g.as_of ?? false %} <span class="g-rating__date">(Stand: {{ g.as_of }})</span>{% endif %}</p>
+      {% endif %}
+      <a href="{{ g.profile_url }}" target="_blank" rel="noopener">Bewertungen auf Google ansehen{{ icon('external-link') }}<span class="visually-hidden"> (öffnet in neuem Fenster)</span></a>
+    </div>
+  {% endif %}
 {% endif %}

@@ -13,7 +13,7 @@ final class ReviewResource extends Resource
     public string $singular = 'Bewertung';
     public string $plural = 'Bewertungen';
     public string $entity = 'review';
-    public string $intro = 'Manuell gepflegte Stimmen von Teilnehmenden. Bitte nur echte Rückmeldungen mit Einverständnis eintragen. Es gibt keine Verbindung zu Google; die Website stellt sie nicht als Google-Bewertungen dar.';
+    public string $intro = 'Manuell gepflegte Stimmen von Teilnehmenden. Bitte nur echte Rückmeldungen mit Einverständnis eintragen. Mit „Ausblenden“ und „Anzeigen“ schalten Sie eine Stimme mit einem Klick ab oder an. Es gibt keine Verbindung zu Google; die Google-Sterne pflegen Sie unter Firmendaten & SEO → Google-Bewertungen.';
     public string $orderBy = 'sort_order, id';
 
     public function columns(): array
@@ -40,6 +40,14 @@ final class ReviewResource extends Resource
             ['name' => 'show_in_hero', 'label' => 'Im oberen Bereich der Startseite zeigen', 'type' => 'checkbox'],
             ['name' => 'sort_order', 'label' => 'Sortierung', 'type' => 'int', 'default' => 0],
         ];
+    }
+
+    public function rowActions(array $row): array
+    {
+        $url = '/verwaltung/bewertungen/' . $row['id'] . '/aktiv/';
+        return (int) $row['is_active'] === 1
+            ? [['label' => 'Ausblenden', 'url' => $url, 'value' => '0', 'icon' => 'ban']]
+            : [['label' => 'Anzeigen', 'url' => $url, 'value' => '1', 'icon' => 'check']];
     }
 
     public function titleOf(array $row): string
