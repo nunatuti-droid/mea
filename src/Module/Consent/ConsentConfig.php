@@ -59,7 +59,7 @@ final class ConsentConfig
                 'text' => 'Ermöglicht es, die Wirkung unserer Anzeigen zu messen und Ihnen passende Inhalte zu zeigen.',
                 'services' => [['name' => 'Meta-Pixel (Facebook/Instagram)', 'text' => 'Anbieter: Meta Platforms Ireland Limited. Daten können in die USA übertragen werden.']]];
         }
-        $media = [['name' => 'Karten', 'text' => 'Kartendienst auf den Standortseiten. Beim Laden wird Ihre IP-Adresse an den Kartenanbieter übertragen.']];
+        $media = [['name' => 'Google Maps', 'text' => 'Karten auf den Standortseiten. Anbieter: Google Ireland Limited. Beim Laden werden Ihre IP-Adresse und weitere Daten an Google übertragen, auch in die USA.']];
         if ($this->youtube()) {
             $media[] = ['name' => 'YouTube', 'text' => 'Eingebettete Videos. Anbieter: Google Ireland Limited.'];
         }

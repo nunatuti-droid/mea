@@ -142,3 +142,34 @@ Entscheidung von Nuna: **„Link und Sternebewertung“** (kein automatischer Ab
 **Noch offen:** Link zum Google-Profil sowie Google Maps statt OpenStreetMap auf den Standortseiten.
 
 **Dateien:** `templates/partials/google_rating.twig` (neu), `templates/public/page_about.twig`, `templates/partials/footer.twig`, `templates/partials/macros.twig`, `templates/_icons.svg`, `src/Admin/SettingsController.php`, `public/assets/css/app.css`, `tests/Integration/GoogleRatingTest.php` (neu).
+
+## Punkt 8: telc-Deutschprüfungen A1 bis C2
+
+Grundlage: Lizenz des Prüfungszentrums Herne für „Deutsch A1 bis C2“ (Angabe von Nuna). Alle Fakten (Prüfungsteile, Dauer, Zielgruppe) stammen aus den Prüfungsseiten auf telc.net. Preise wurden nicht erfunden.
+
+**Was neu ist**
+- **A1, A2, A2·B1, B1, B2, C1:** ausführliche, sachliche Texte zu Zielgruppe, Prüfungsteilen, Ablauf und Dauer, jeweils mit Hinweis „Prüfung im telc-Prüfungszentrum Herne, vor Ort, auf Papier“. Die Texte werden nur ersetzt, wenn die Kurzbeschreibung noch dem ursprünglichen Starttext entspricht. Eigene Änderungen in der Verwaltung bleiben also erhalten.
+- **Neu: telc Deutsch C1 Hochschule und telc Deutsch C2** als **Entwurf ohne Preis**. Sie sind öffentlich noch nicht sichtbar. Zum Veröffentlichen in der Verwaltung → Prüfungen den Preis eintragen und auf „Wieder veröffentlichen“ klicken.
+- Alle Prüfungen liegen in der Kategorie „Allgemeinsprachliche Prüfungen“.
+
+**Bitte prüfen:** Ist „telc Deutsch C1 Hochschule“ von eurer Lizenz abgedeckt? Falls nicht, den Entwurf einfach nicht veröffentlichen.
+
+**Dateien:** `src/Install/TelcGermanExams.php` (neu), `src/Install/ContentSeeder.php`, `migrations/20261103100017_telc_german_exams.php` (neu).
+
+**Nach dem Hochladen nötig:** `migrate` ausführen.
+
+**Geprüft:** 116 automatische Tests grün.
+
+## Punkt 2 (Teil): Google Maps statt OpenStreetMap
+
+**Was neu ist**
+- Auf jeder Standortseite steht jetzt eine **Google-Maps-Karte** (vorher OpenStreetMap). Sie lädt erst nach Klick auf „Karte laden“ oder automatisch, wenn „Externe Medien“ im Cookie-Banner erlaubt wurde. Vorher wird nichts an Google übertragen.
+- Der Hinweis im Kartenfeld nennt Google als Anbieter und verlinkt auf den Abschnitt „Karten“ der Datenschutzerklärung.
+- „Route planen“ öffnet die Routenplanung von Google Maps (nur ein Link, keine Datenübertragung beim Seitenaufruf).
+- Sicherheitsrichtlinie (CSP): Nur noch `https://www.google.com` ist als Karteneinbettung erlaubt; OpenStreetMap ist entfernt. Der Kartenlader akzeptiert nur Google-Maps-Adressen.
+
+**Für Nuna:** Der Link, den du geschickt hast, ist eine Google-Suche und kann sich ändern. Besser: in Google Maps euer Profil öffnen → „Teilen“ → „Link kopieren“ und diesen unter Verwaltung → Firmendaten & SEO → Google-Bewertungen eintragen, zusammen mit Sternen, Anzahl und Datum.
+
+**Dateien:** `templates/public/location.twig`, `templates/partials/location_card.twig`, `public/assets/js/app.js`, `src/Core/App.php`, `src/Module/Consent/ConsentConfig.php`.
+
+**Geprüft:** Karte im Browser geladen (Google-Einbettung, keine CSP-Fehler), 116 automatische Tests grün.

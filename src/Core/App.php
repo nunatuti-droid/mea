@@ -338,7 +338,7 @@ final class App
         $x = $this->consent->cspSources();
         $add = fn(array $l): string => $l !== [] ? ' ' . implode(' ', $l) : '';
         $csp = "default-src 'self'; script-src 'self'" . $add($x['script']) . "; style-src 'self'; img-src 'self' data:" . $add($x['img']) . "; font-src 'self'; "
-            . "frame-src 'self' https://www.openstreetmap.org" . $add($x['frame']) . "; connect-src 'self'" . $add($x['connect']) . "; form-action 'self'; "
+            . "frame-src 'self' https://www.google.com" . $add($x['frame']) . "; connect-src 'self'" . $add($x['connect']) . "; form-action 'self'; "
             . "base-uri 'self'; frame-ancestors 'none'; object-src 'none'";
         $h = [
             'Content-Security-Policy' => $csp,

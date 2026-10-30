@@ -18,19 +18,15 @@
         {% endif %}
         <h2>Anfahrt</h2>
         {% if l.directions_html %}<div class="prose">{{ l.directions_html|raw }}</div>{% endif %}
-        {% if l.has_coordinates %}
-          {% set d = 0.006 %}
-          <div class="map" data-map-src="https://www.openstreetmap.org/export/embed.html?bbox={{ l.longitude - d }}%2C{{ l.latitude - d }}%2C{{ l.longitude + d }}%2C{{ l.latitude + d }}&amp;layer=mapnik&amp;marker={{ l.latitude }}%2C{{ l.longitude }}" data-map-title="Karte: {{ l.name }}">
-            <div class="map__consent">
-              <span class="card__icon">{{ icon('map') }}</span>
-              <p>Die Karte wird von OpenStreetMap geladen. Dabei wird Ihre IP-Adresse an die OpenStreetMap Foundation übertragen.</p>
-              <button class="btn btn--sm" type="button" data-map-load>Karte laden</button>
-              <button class="link-quiet" type="button" data-consent-open>Karten immer laden: Cookie-Einstellungen</button>
-            </div>
+        {# Google Maps per Adresse; geladen erst nach Klick oder mit Einwilligung „Externe Medien“ #}
+        <div class="map" data-map-src="https://www.google.com/maps?q={{ l.route_query }}&amp;hl=de&amp;z=16&amp;output=embed" data-map-title="Karte: {{ l.name }}">
+          <div class="map__consent">
+            <span class="card__icon">{{ icon('map') }}</span>
+            <p>Die Karte wird von Google Maps geladen. Dabei werden Ihre IP-Adresse und weitere Daten an Google übertragen, auch in die USA. Mehr dazu in der <a href="/datenschutz/#karten">Datenschutzerklärung</a>.</p>
+            <button class="btn btn--sm" type="button" data-map-load>Karte laden</button>
+            <button class="link-quiet" type="button" data-consent-open>Karten immer laden: Cookie-Einstellungen</button>
           </div>
-        {% else %}
-          <div class="notice">{{ icon('route') }}<p>Planen Sie Ihre Anreise mit dem Routenplaner Ihrer Wahl. Die eingebettete Karte erscheint, sobald die Koordinaten des Standorts im Backend eingetragen sind.</p></div>
-        {% endif %}
+        </div>
       </div>
       {% include 'partials/location_card.twig' with {l: l, linked: false} %}
     </div>

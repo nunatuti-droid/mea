@@ -72,7 +72,7 @@
   const loadMap = (box) => {
     const src = box?.dataset.mapSrc;
     if (!box || !src || box.querySelector('iframe')) return;
-    if (!src.startsWith('https://www.openstreetmap.org/') && !src.startsWith('https://www.google.com/maps/embed')) return;
+    if (!src.startsWith('https://www.google.com/maps')) return;
     const frame = document.createElement('iframe');
     frame.src = src;
     frame.title = box.dataset.mapTitle || 'Karte';
