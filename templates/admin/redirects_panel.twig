@@ -1,0 +1,23 @@
+{% set missing = r.notFound(30) %}
+<section class="card" aria-labelledby="nf-title">
+  <h2 id="nf-title">Nicht gefundene Adressen</h2>
+  {% if missing is empty %}
+    <p class="text-muted">Zurzeit keine offenen Einträge. Hier erscheinen Adressen, die Besucher oder Suchmaschinen vergeblich aufgerufen haben – nach dem Umzug ein guter Hinweis auf fehlende Weiterleitungen.</p>
+  {% else %}
+    <p class="text-muted">Besucher oder Suchmaschinen haben diese Adressen vergeblich aufgerufen. Legen Sie für wichtige Adressen eine Weiterleitung an. Einträge werden nach 180 Tagen ohne Aufruf gelöscht.</p>
+    <div class="table-wrap" tabindex="0"><table class="tbl tbl--compact"><caption class="visually-hidden">Nicht gefundene Adressen</caption>
+      <thead><tr><th scope="col">Adresse</th><th scope="col">Aufrufe</th><th scope="col">Herkunft</th><th scope="col">Zuletzt</th><th scope="col"><span class="visually-hidden">Aktion</span></th></tr></thead>
+      <tbody>
+        {% for m in missing %}
+          <tr>
+            <td class="mono">{{ m.path }}</td>
+            <td class="num">{{ m.hits }}</td>
+            <td>{{ m.referrer_host ?: '–' }}</td>
+            <td class="nowrap">{{ m.last_seen_at|utc|date('d.m.Y H:i') }}</td>
+            <td><a class="btn btn--ghost btn--sm" href="/verwaltung/weiterleitungen/neu/?quelle={{ m.path|url_encode }}">{{ icon('plus') }}Weiterleitung<span class="visually-hidden"> für {{ m.path }}</span></a></td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table></div>
+  {% endif %}
+</section>

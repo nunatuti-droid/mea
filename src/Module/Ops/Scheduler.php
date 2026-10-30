@@ -128,6 +128,7 @@ final class Scheduler
         $n += $db->run('DELETE FROM rate_limits WHERE window_start < ? - INTERVAL 1 DAY', [$t]);
         $n += $db->run('DELETE FROM ip_rules WHERE expires_at IS NOT NULL AND expires_at < ? - INTERVAL 30 DAY', [$t]);
         $n += $db->run('DELETE FROM security_events WHERE created_at < ? - INTERVAL 90 DAY', [$t]);
+        $n += $db->run('DELETE FROM not_found_log WHERE last_seen_at < ? - INTERVAL 180 DAY', [$t]);
         $files = 0;
         foreach (['storage/tmp' => 86400, 'storage/mail' => 7 * 86400] as $dir => $age) {
             foreach (glob($this->app->root . '/' . $dir . '/*') ?: [] as $f) {

@@ -27,7 +27,7 @@ const totp = () => execFileSync('php', ['-r', 'require "vendor/autoload.php"; ec
   await page.waitForURL(BASE + '/verwaltung/');
 
   const links = await page.$$eval('.adm-side nav a', as => as.map(a => a.getAttribute('href')));
-  const pages = [...links, '/verwaltung/konto/', '/verwaltung/pruefungen/neu/', '/verwaltung/termine/neu/', '/verwaltung/kalender/?ansicht=woche'];
+  const pages = [...links, '/verwaltung/konto/', '/verwaltung/pruefungen/neu/', '/verwaltung/termine/neu/', '/verwaltung/kalender/?ansicht=woche', '/verwaltung/buchungen/uebernehmen/', '/verwaltung/weiterleitungen/neu/'];
   let failed = 0;
   for (const vp of [{ width: 1366, height: 900 }, { width: 375, height: 800 }]) {
     await page.setViewportSize(vp);

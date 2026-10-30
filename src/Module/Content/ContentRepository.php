@@ -109,6 +109,15 @@ final class ContentRepository
     public function redirectFor(string $path): ?array
     {
         $row = $this->db->one('SELECT * FROM redirects WHERE source_path = ?', [$path]);
+        if ($row === null) {
+            // Platzhalter am Ende („/alter-bereich/*“) gilt für alle Unteradressen; die längste Regel gewinnt
+            foreach ($this->db->all("SELECT * FROM redirects WHERE source_path LIKE '%*' ORDER BY CHAR_LENGTH(source_path) DESC") as $r) {
+                if (str_starts_with($path, substr((string) $r['source_path'], 0, -1))) {
+                    $row = $r;
+                    break;
+                }
+            }
+        }
         if ($row !== null) {
             $this->db->run('UPDATE redirects SET hits = hits + 1, last_hit_at = UTC_TIMESTAMP() WHERE id = ?', [$row['id']]);
         }

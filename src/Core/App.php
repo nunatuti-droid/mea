@@ -194,19 +194,42 @@ final class App
 
     public function handle(Request $req): Response
     {
+        $guard = null;
         try {
             $guard = $this->guard($req);
             $response = $guard ?? $this->dispatch($req);
-            if ($guard === null && $response->status === 404 && preg_match('/\.(php\d?|asp|aspx|jsp|cgi|bak|sql|zip|tar|gz|old|swp|ini|log)$/i', $req->path)) {
-                $this->firewall->record('probe', $req, 1, 'info'); // Suche nach Dateien, die es hier nicht gibt
-            }
         } catch (HttpException $e) {
             $response = $this->errorPage($e->getCode() ?: 404);
         } catch (\Throwable $e) {
             $this->log->error($e->getMessage(), ['exception' => $e, 'path' => $req->path]);
             $response = $this->errorPage(500);
         }
+        if ($guard === null && $response->status === 404) {
+            $this->noteNotFound($req);
+        }
         return $this->secure($response, $req);
+    }
+
+    /** Nicht gefundene Adressen: Dateisuche zählt für den Anwendungsschutz, alles andere landet (ohne IP) im 404-Protokoll. */
+    private function noteNotFound(Request $req): void
+    {
+        try {
+            if (preg_match('/\.(php\d?|asp|aspx|jsp|cgi|bak|sql|zip|tar|gz|old|swp|ini|log)$/i', $req->path)) {
+                $this->firewall->record('probe', $req, 1, 'info'); // Suche nach Dateien, die es hier nicht gibt
+                return;
+            }
+            if (!in_array($req->method, ['GET', 'HEAD'], true) || str_starts_with($req->path, '/verwaltung/') || str_starts_with($req->path, '/buchung/') || strlen($req->path) > 255
+                || !preg_match('#^/[\x21-\x7E]*$#', $req->path)) {
+                return;
+            }
+            $ref = parse_url((string) ($req->server['HTTP_REFERER'] ?? ''), PHP_URL_HOST);
+            $this->db->run('INSERT INTO not_found_log (path, referrer_host) VALUES (?, ?)
+                            ON DUPLICATE KEY UPDATE hits = hits + 1, last_seen_at = UTC_TIMESTAMP(), resolved_at = NULL,
+                            referrer_host = COALESCE(VALUES(referrer_host), referrer_host)',
+                [$req->path, is_string($ref) ? mb_substr($ref, 0, 120) : null]);
+        } catch (\Throwable $e) {
+            $this->log->warning('404-Protokoll nicht schreibbar', ['error' => $e->getMessage()]);
+        }
     }
 
     /** Wartungsmodus und Anwendungsschutz vor dem Routing. */

@@ -1,0 +1,12 @@
+# Nur für Hosting, bei dem der Document Root nicht auf public/ gesetzt werden kann.
+# Empfohlen ist immer: Document Root = <Projekt>/public (dann wird diese Datei nicht benutzt).
+# Alle Anfragen werden in public/ umgeleitet; Programmdateien, .env, storage/ usw. sind so nie direkt abrufbar.
+Options -Indexes
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteRule ^public/ - [L]
+  RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>
+<IfModule !mod_rewrite.c>
+  Require all denied
+</IfModule>

@@ -91,6 +91,22 @@ switch ($cmd) {
             }
         }
         exit(0);
+    case 'golive:check':
+        // Prüfungen vor der Umschaltung; Rückgabewert 1, solange etwas fehlt
+        $app = new \Mea\Core\App($root);
+        $errors = 0;
+        $group = '';
+        foreach ((new \Mea\Module\Ops\GoLiveCheck($app))->run() as $r) {
+            if ($r['group'] !== $group) {
+                $group = $r['group'];
+                echo "\n$group\n";
+            }
+            $mark = ['ok' => '  ok   ', 'warn' => '  !    ', 'error' => '  FEHLT'][$r['status']];
+            echo "$mark {$r['label']}: {$r['detail']}\n";
+            $errors += $r['status'] === 'error' ? 1 : 0;
+        }
+        echo $errors === 0 ? "\nBereit für den Livegang (manuelle Punkte in docs/golive.md beachten).\n" : "\n$errors Punkte offen.\n";
+        exit($errors === 0 ? 0 : 1);
     case 'selftest':
         // Prüft, ob die Anwendung mit dem aktuellen Programmstand startet und Seiten ausliefert (nach Updates)
         try {
@@ -241,5 +257,5 @@ switch ($cmd) {
         passthru('php -S 127.0.0.1:' . (int) $port . ' -t ' . escapeshellarg($root . '/public') . ' ' . escapeshellarg($root . '/public/index.php'));
         exit(0);
     default:
-        echo "Befehle:\n  migrate            Datenbank auf den neuesten Stand bringen\n  migrate:rollback   letzte Migration zurücknehmen\n  seed [--demo]      Startdaten anlegen (--demo: Beispieltermine, nur Vorschau)\n  seed:emails        fehlende E-Mail-Vorlagen ergänzen\n  user:create-admin <email> <name>  erstes Administratorkonto einladen\n  mail:send [n]      E-Mail-Warteschlange abarbeiten\n  cron [job …]       jede Minute: Wartungsjobs (mit Job-Namen: sofort ausführen)\n  selftest           Startet die Anwendung und prüft wichtige Seiten\n  backup:create | backup:list | backup:restore <id> --ja\n  integrity:check    Dateiwächter: Programmdateien mit signierter Referenz vergleichen\n  update:install <paket.zip> --ja | update:revert --ja\n  maintenance:on | maintenance:off\n  security:unblock <ip>|--alle   automatische IP-Sperren aufheben\n  user:reset-2fa <email>         Zwei-Faktor-Anmeldung zurücksetzen\n  release:keygen | release:build | release:sign-manifest   nur Entwicklungsrechner\n  serve [port]       lokaler Entwicklungsserver\n";
+        echo "Befehle:\n  migrate            Datenbank auf den neuesten Stand bringen\n  migrate:rollback   letzte Migration zurücknehmen\n  seed [--demo]      Startdaten anlegen (--demo: Beispieltermine, nur Vorschau)\n  seed:emails        fehlende E-Mail-Vorlagen ergänzen\n  user:create-admin <email> <name>  erstes Administratorkonto einladen\n  mail:send [n]      E-Mail-Warteschlange abarbeiten\n  cron [job …]       jede Minute: Wartungsjobs (mit Job-Namen: sofort ausführen)\n  selftest           Startet die Anwendung und prüft wichtige Seiten\n  golive:check       Prüfliste vor der Umschaltung auf die neue Website\n  backup:create | backup:list | backup:restore <id> --ja\n  integrity:check    Dateiwächter: Programmdateien mit signierter Referenz vergleichen\n  update:install <paket.zip> --ja | update:revert --ja\n  maintenance:on | maintenance:off\n  security:unblock <ip>|--alle   automatische IP-Sperren aufheben\n  user:reset-2fa <email>         Zwei-Faktor-Anmeldung zurücksetzen\n  release:keygen | release:build | release:sign-manifest   nur Entwicklungsrechner\n  serve [port]       lokaler Entwicklungsserver\n";
 }

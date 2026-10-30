@@ -28,7 +28,7 @@ final class Firewall
         '#(\bunion\b[\s+/*]+(all[\s+/*]+)?select\b|\binformation_schema\b|\bsleep\s*\(\s*\d|\bbenchmark\s*\(|\bwaitfor\s+delay\b|\'\s*or\s+\'?1\'?\s*=\s*\'?1)#i' => ['sql_injection', 5, true],
         '#(<\s*script\b|javascript:|onerror\s*=|onload\s*=|<\s*svg[^>]*on\w+\s*=|<\s*iframe\b)#i' => ['xss_attempt', 4, true],
         '#(\beval\s*\(|base64_decode\s*\(|\bsystem\s*\(|\bshell_exec\b|\bpassthru\b|\$\{jndi:|<\?php)#i' => ['code_injection', 5, true],
-        '#/(wp-login\.php|xmlrpc\.php|wp-config|phpmyadmin|pma/|adminer|\.env|\.git/|\.svn/|\.ht(access|passwd)|composer\.(json|lock)|vendor/phpunit|phpinfo|server-status|cgi-bin/|shell\.php|config\.php)#i' => ['probe', 2, false],
+        '#/(wp-login\.php|xmlrpc\.php|wp-config|phpmyadmin|pma/|adminer|\.env|\.git/|\.svn/|\.ht(access|passwd)|composer\.(json|lock)|vendor/phpunit|phpinfo|server-status|cgi-bin/|shell\.php|config\.php|storage/|integrity\.(json|sig))#i' => ['probe', 2, false],
     ];
 
     public function __construct(private Database $db, private Crypto $crypto, private ClockInterface $clock) {}
@@ -46,7 +46,16 @@ final class Firewall
         if ($this->isBlocked($ip)) {
             return ['action' => 'block', 'reason' => 'blocked'];
         }
-        $subject = rawurldecode(rawurldecode($req->path)) . ' ' . rawurldecode(http_build_query($req->query));
+        // Schlüssel und Werte der Abfrage im Klartext prüfen (http_build_query würde Leerzeichen als + kodieren)
+        $parts = [];
+        $query = $req->query;
+        array_walk_recursive($query, function ($v, $k) use (&$parts): void {
+            $parts[] = $k . '=' . $v;
+        });
+        foreach (array_keys($req->query) as $k) {
+            $parts[] = (string) $k;
+        }
+        $subject = rawurldecode(rawurldecode($req->path)) . ' ' . rawurldecode(implode(' ', $parts));
         foreach (self::PATTERNS as $re => [$type, $points, $reject]) {
             if (preg_match($re, $subject) || preg_match($re, $req->path)) {
                 $this->record($type, $req, $points, $reject ? 'warning' : 'info');
@@ -79,6 +88,15 @@ final class Firewall
     private function autoBan(string $ip, string $type): void
     {
         $hash = $this->ipHash($ip);
+        if (IpAddress::inCidr($ip, '127.0.0.0/8') || $ip === '::1') {
+            // Lokale Adresse: Server-Proxy reicht die Besucher-IP nicht durch. Eine Sperre träfe alle Besucher.
+            $this->db->insert('security_events', [
+                'event_type' => 'proxy_ip', 'severity' => 'critical', 'points' => 0, 'ip_hash' => $hash, 'ip_masked' => IpAddress::mask($ip),
+                'detail' => 'Keine Sperre: Anfragen kommen von einer lokalen Adresse. Weitergabe der Besucher-IP am Server prüfen (docs/deployment.md).',
+                'created_at' => $this->now(),
+            ]);
+            return;
+        }
         $weekAgo = $this->clock->now()->modify('-7 days')->format('Y-m-d H:i:s');
         $repeat = $this->db->value("SELECT 1 FROM ip_rules WHERE ip_hash = ? AND source = 'auto' AND created_at >= ? LIMIT 1", [$hash, $weekAgo]) !== null;
         $until = $this->clock->now()->modify($repeat ? '+' . self::REPEAT_BAN_HOURS . ' hours' : '+' . self::BAN_MINUTES . ' minutes');

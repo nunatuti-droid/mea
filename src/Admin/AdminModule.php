@@ -42,6 +42,7 @@ final class AdminModule
             new Resources\FaqResource($db),
             new Resources\ReviewResource($db),
             new Resources\MenuItemResource($db),
+            new Resources\RedirectResource($db),
             new Resources\LocationResource($db),
             new Resources\HolidayResource($db),
             new Resources\InquiryResource($db),

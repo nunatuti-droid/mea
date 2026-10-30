@@ -3,7 +3,10 @@
 {% block content %}
   <div class="adm-head">
     <div><h1>Buchungen</h1><p class="adm-head__intro">Alle Anmeldungen mit Zahlungsstatus. Bestätigt ist eine Buchung erst nach geprüfter Zahlung.</p></div>
-    <a class="btn btn--ghost" href="/verwaltung/buchungen/export.csv?{{ query|url_encode }}">{{ icon('download') }}Als CSV exportieren</a>
+    <div class="adm-head__actions">
+      <a class="btn btn--ghost" href="/verwaltung/buchungen/uebernehmen/">{{ icon('plus') }}Buchung übernehmen</a>
+      <a class="btn btn--ghost" href="/verwaltung/buchungen/export.csv?{{ query|url_encode }}">{{ icon('download') }}Als CSV exportieren</a>
+    </div>
   </div>
   <form class="toolbar" method="get" role="search">
     <label class="visually-hidden" for="q">Suchen</label><input type="search" id="q" name="q" value="{{ query.q ?? '' }}" placeholder="Nummer, Name, E-Mail …">
