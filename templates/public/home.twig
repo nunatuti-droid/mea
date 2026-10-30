@@ -27,7 +27,7 @@
       {% include 'partials/google_rating.twig' with {variant: 'hero'} %}
       <ul class="hero__benefits">
         {% for b in home.benefits %}
-          <li><strong>{{ icon(b.icon) }}{{ b.title }}</strong><span>{{ b.text }}</span></li>
+          <li><strong>{{ icon(b.icon) }}{{ b.title }}</strong></li>
         {% endfor %}
       </ul>
     </div>

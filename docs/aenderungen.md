@@ -242,3 +242,15 @@ Grundlage: Firmendaten von der bisherigen Datenschutzseite (meabildungszentrum.d
 **Dateien (1–8):** `templates/public/home.twig`, `templates/public/contact.twig`, `templates/public/page.twig`, `templates/public/application.twig` (neu), `templates/partials/footer.twig`, `templates/partials/google_rating.twig`, `templates/partials/google_g.twig` (neu), `templates/admin/layout.twig`, `templates/admin/crud/index.twig`, `templates/admin/applications/*` (neu), `templates/_icons.svg`, `public/assets/css/app.css`, `public/assets/css/admin.css`, `public/assets/js/app.js`, `src/Core/Request.php`, `src/Core/App.php`, `src/Admin/AdminModule.php`, `src/Admin/ReviewAdminController.php` (neu), `src/Admin/ApplicationAdminController.php` (neu), `src/Admin/Resources/ReviewResource.php`, `src/Module/Applications/*` (neu), `src/Module/Auth/Roles.php`, `src/Module/Ops/Scheduler.php`, `src/Install/ContentSeeder.php`, `src/Install/EmailTemplateSeeder.php`, `src/Install/PrivacyPolicy.php`, `migrations/20261103100019_menu_home_item.php` (neu), `migrations/20261103100020_create_applications.php` (neu), Tests `ApplicationTest` (neu), `GoogleRatingTest`.
 
 **Nach dem Hochladen nötig:** `migrate` ausführen, PHP-Upload-Grenzen in Plesk prüfen.
+
+# Update 0.7.2
+
+## Startseite: kürzere Vorteile im Startbereich
+- Unter den drei Punkten im Startbereich (telc-Prüfungszentrum, AZAV-Träger, Vor Ort im Ruhrgebiet) steht nur noch die Überschrift. Die Erklärzeilen darunter sind entfernt.
+
+## Verwaltung: Menü als Akkordeon
+- Die Gruppen im Seitenmenü (Prüfungen, Kontakt, Inhalte, Einstellungen, System) lassen sich auf- und zuklappen. Es ist immer nur eine Gruppe offen, standardmäßig die Gruppe der aktuellen Seite.
+- Die lange Gruppe „System“ ist geteilt: „Einstellungen“ (Firmendaten & SEO, E-Mail-Vorlagen, E-Mail-Protokoll, Benutzer) und „System“ (Protokolle, Status, Sicherheit, Sicherungen, Updates, Systemprüfung).
+- Das Dashboard steht als einzelner Link ganz oben.
+
+**Dateien:** `templates/public/home.twig`, `templates/admin/layout.twig`, `public/assets/css/admin.css`, `public/assets/js/admin.js`, Test `AdminSecurityTest` (Anzahl E-Mail-Vorlagen auf 13 korrigiert).

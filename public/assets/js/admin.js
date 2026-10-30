@@ -18,6 +18,12 @@
     });
   }
 
+  // Menü-Akkordeon: immer nur eine Gruppe offen
+  const groups = $$('[data-nav-group]');
+  groups.forEach(g => g.addEventListener('toggle', () => {
+    if (g.open) groups.forEach(o => { if (o !== g) o.open = false; });
+  }));
+
   // Fehlerübersicht fokussieren
   $('[data-focus]')?.focus();
 

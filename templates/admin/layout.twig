@@ -42,11 +42,13 @@
           {url: '/verwaltung/standorte/', label: 'Standorte', icon: 'map-pin', perm: 'locations'},
           {url: '/verwaltung/medien/', label: 'Mediathek', icon: 'image', perm: 'media'},
         ]},
-        {label: 'System', items: [
+        {label: 'Einstellungen', items: [
           {url: '/verwaltung/einstellungen/', label: 'Firmendaten & SEO', icon: 'settings', perm: 'settings'},
           {url: '/verwaltung/email-vorlagen/', label: 'E-Mail-Vorlagen', icon: 'file-pen', perm: 'emails'},
           {url: '/verwaltung/email-protokoll/', label: 'E-Mail-Protokoll', icon: 'mail-check', perm: 'emails'},
           {url: '/verwaltung/benutzer/', label: 'Benutzer', icon: 'users', perm: 'users'},
+        ]},
+        {label: 'System', items: [
           {url: '/verwaltung/protokoll/', label: 'Änderungsprotokoll', icon: 'history', perm: 'audit'},
           {url: '/verwaltung/einwilligungen/', label: 'Cookie-Einwilligungen', icon: 'shield-check', perm: 'audit'},
           {url: '/verwaltung/website-status/', label: 'Website-Status', icon: 'monitor-smartphone', perm: 'system'},
@@ -60,13 +62,26 @@
         {% for group in nav %}
           {% set visible = group.items|filter(i => can[i.perm]) %}
           {% if visible is not empty %}
-            <p class="adm-side__label">{{ group.label }}</p>
-            <ul>
-              {% for i in visible %}
-                {% set active = i.exact is defined ? current_path == i.url : current_path starts with i.url %}
-                <li><a href="{{ i.url }}"{% if active %} aria-current="page"{% endif %}>{{ icon(i.icon) }}{{ i.label }}</a></li>
-              {% endfor %}
-            </ul>
+            {% set group_active = false %}
+            {% for i in visible %}
+              {% if (i.exact is defined ? current_path == i.url : current_path starts with i.url) %}{% set group_active = true %}{% endif %}
+            {% endfor %}
+            {% if visible|length == 1 %}
+              {% set i = visible|first %}
+              <ul class="adm-side__single">
+                <li><a href="{{ i.url }}"{% if group_active %} aria-current="page"{% endif %}>{{ icon(i.icon) }}{{ i.label }}</a></li>
+              </ul>
+            {% else %}
+              <details class="adm-side__group" data-nav-group="{{ group.label }}"{% if group_active %} open data-active{% endif %}>
+                <summary>{{ group.label }}{{ icon('chevron-down') }}</summary>
+                <ul>
+                  {% for i in visible %}
+                    {% set active = i.exact is defined ? current_path == i.url : current_path starts with i.url %}
+                    <li><a href="{{ i.url }}"{% if active %} aria-current="page"{% endif %}>{{ icon(i.icon) }}{{ i.label }}</a></li>
+                  {% endfor %}
+                </ul>
+              </details>
+            {% endif %}
           {% endif %}
         {% endfor %}
       </nav>

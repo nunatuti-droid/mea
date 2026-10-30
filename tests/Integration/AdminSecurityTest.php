@@ -143,7 +143,7 @@ final class AdminSecurityTest extends IntegrationTestCase
     public function testEmailTemplatesAreSeededAndRender(): void
     {
         $this->loginAs('admin');
-        self::assertSame(12, (int) self::db()->value('SELECT COUNT(*) FROM email_templates'));
+        self::assertSame(13, (int) self::db()->value('SELECT COUNT(*) FROM email_templates'));
         $id = (int) self::db()->value("SELECT id FROM email_templates WHERE template_key = 'booking_confirmation'");
         $r = $this->get("/verwaltung/email-vorlagen/$id/beispiel/");
         self::assertSame(200, $r->status);
