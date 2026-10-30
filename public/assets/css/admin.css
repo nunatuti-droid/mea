@@ -280,3 +280,8 @@ h1.mono { font-size: 1.6rem; letter-spacing: .02em; }
 .site-banner { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 16px; padding: 10px 14px; border-radius: var(--r-md); background: var(--c-warning-soft); color: var(--c-warning); font-weight: 600; }
 .site-banner--danger { background: var(--c-danger-soft); color: var(--c-danger); }
 @media (prefers-reduced-motion: reduce) { .switch__track, .switch__track::after { transition: none; } }
+
+.hp { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }
+.list-check { list-style: none; padding: 0; margin: 0 0 4px; display: grid; gap: 6px; }
+.list-check li { position: relative; padding-left: 22px; }
+.list-check li::before { content: ""; position: absolute; left: 4px; top: .5em; width: 8px; height: 8px; border-radius: 2px; background: var(--c-brand); transform: rotate(45deg); }

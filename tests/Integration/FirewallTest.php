@@ -94,4 +94,41 @@ final class FirewallTest extends IntegrationTestCase
         }
         self::assertSame(200, $this->get('/')->status);
     }
+
+    public function testScannerToolsAndBadMethodsAreRejected(): void
+    {
+        self::assertSame(403, $this->request('GET', '/', [], ['REMOTE_ADDR' => '198.51.100.20', 'HTTP_USER_AGENT' => 'sqlmap/1.7.2#stable'])->status);
+        self::assertSame(405, $this->request('TRACE', '/', [], ['REMOTE_ADDR' => '198.51.100.21'])->status);
+        self::assertSame(200, $this->request('GET', '/', [], ['REMOTE_ADDR' => '198.51.100.22', 'HTTP_USER_AGENT' => 'Mozilla/5.0 (compatible; Googlebot/2.1)'])->status);
+        self::assertSame(['bad_bot', 'bad_method'], array_column(self::db()->all('SELECT event_type FROM security_events ORDER BY id'), 'event_type'));
+    }
+
+    public function testLoginHoneypotAndRepeatedFailuresBanTheConnection(): void
+    {
+        $ip = '198.51.100.30';
+        $r = $this->request('POST', '/verwaltung/anmelden/', ['_csrf' => Csrf::token(), 'email' => 'x@example.org', 'password' => 'x', 'website' => 'spam'], ['REMOTE_ADDR' => $ip]);
+        self::assertSame(422, $r->status);
+        self::assertSame('bot_login', self::db()->value('SELECT event_type FROM security_events ORDER BY id DESC LIMIT 1'));
+        for ($i = 0; $i < 5; $i++) {
+            $this->request('POST', '/verwaltung/anmelden/', ['_csrf' => Csrf::token(), 'email' => 'x@example.org', 'password' => 'falsch', 'website' => ''], ['REMOTE_ADDR' => $ip]);
+        }
+        self::assertSame(403, $this->from($ip, '/')->status, 'Bot-Versuch plus Fehlversuche führen zur Sperre');
+    }
+
+    public function testAdminAccessCanBeRestrictedWithoutSelfLockout(): void
+    {
+        $this->loginAs('admin');
+        // eigene Adresse fehlt: wird abgelehnt
+        $r = $this->adminPost('/verwaltung/sicherheit/verwaltungszugang/', ['admin_ranges' => '192.0.2.0/24']);
+        self::assertSame(422, $r->status);
+        self::assertSame([], $this->app->firewall->adminRanges());
+        $r = $this->adminPost('/verwaltung/sicherheit/verwaltungszugang/', ['admin_ranges' => "203.0.113.0/24\n192.0.2.5"]);
+        self::assertSame(303, $r->status);
+        self::assertSame(['203.0.113.0/24', '192.0.2.5'], $this->app->firewall->adminRanges());
+        self::assertSame(404, $this->from('198.51.100.40', '/verwaltung/anmelden/')->status, 'fremde Adresse sieht keine Verwaltung');
+        self::assertSame(200, $this->from('198.51.100.40', '/')->status, 'Website bleibt erreichbar');
+        self::assertNotSame(404, $this->from('192.0.2.5', '/verwaltung/anmelden/')->status);
+        $this->adminPost('/verwaltung/sicherheit/verwaltungszugang/', ['admin_ranges' => '']);
+        self::assertSame([], $this->app->firewall->adminRanges());
+    }
 }

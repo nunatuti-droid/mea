@@ -255,6 +255,7 @@ final class App
             'block' => self::staticPage(403, 'Zugriff vorübergehend gesperrt', 'Von Ihrer Verbindung kamen auffällige Anfragen. Der Zugriff ist deshalb vorübergehend gesperrt. Wenn Sie uns erreichen möchten, rufen Sie uns bitte an.'),
             'reject' => self::staticPage(403, 'Anfrage abgelehnt', 'Diese Anfrage wurde aus Sicherheitsgründen abgelehnt.'),
             'probe' => $this->errorPage(404),
+            'method' => self::staticPage(405, 'Methode nicht erlaubt', 'Diese Anfrage wird nicht unterstützt.')->withHeader('Allow', implode(', ', \Mea\Module\Security\Firewall::METHODS)),
             default => null,
         };
     }

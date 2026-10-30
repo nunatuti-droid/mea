@@ -16,6 +16,8 @@ final class SecurityController
         'path_traversal' => 'Verzeichnis-Ausbruch', 'sql_injection' => 'SQL-Einschleusung', 'xss_attempt' => 'Skript-Einschleusung',
         'code_injection' => 'Code-Einschleusung', 'probe' => 'Suche nach Schwachstellen', 'login_failed' => 'Fehlgeschlagene Anmeldung',
         '2fa_failed' => 'Falscher Zwei-Faktor-Code', 'auto_ban' => 'Automatische Sperre', 'integrity' => 'Dateiwächter',
+        'bad_bot' => 'Angriffswerkzeug erkannt', 'bad_method' => 'Unerlaubte Anfrageart', 'bot_login' => 'Bot am Anmeldeformular',
+        'admin_denied' => 'Verwaltung von fremder Adresse',
     ];
 
     public function __construct(private App $app) {}
@@ -25,6 +27,7 @@ final class SecurityController
         $k->get('/verwaltung/sicherheit/', 'system', $this->index(...));
         $k->post('/verwaltung/sicherheit/regeln/', 'system', $this->addRule(...));
         $k->post('/verwaltung/sicherheit/regeln/{id:\d+}/entfernen/', 'system', $this->removeRule(...));
+        $k->post('/verwaltung/sicherheit/verwaltungszugang/', 'system', $this->saveAdminAccess(...));
     }
 
     public function index(Request $req, AdminContext $ctx, array $errors = [], array $values = []): Response
@@ -43,7 +46,7 @@ final class SecurityController
             'rules' => $db->all("SELECT r.*, u.name AS user_name FROM ip_rules r LEFT JOIN users u ON u.id = r.created_by WHERE r.source = 'manual' AND (r.expires_at IS NULL OR r.expires_at > UTC_TIMESTAMP()) ORDER BY r.rule, r.id"),
             'stats' => $db->one("SELECT SUM(created_at > UTC_TIMESTAMP() - INTERVAL 1 DAY) AS day, SUM(created_at > UTC_TIMESTAMP() - INTERVAL 7 DAY) AS week FROM security_events") ?? [],
             'types' => self::TYPES, 'type' => $type, 'page' => $page, 'pages' => $pages, 'query' => $type !== '' ? ['art' => $type] : [],
-            'my_ip' => $req->ip(), 'errors' => $errors, 'values' => $values + ['rule' => 'block', 'days' => ''],
+            'my_ip' => $req->ip(), 'errors' => $errors, 'values' => $values + ['rule' => 'block', 'days' => '', 'admin_ranges' => implode("\n", $this->app->firewall->adminRanges())],
         ]), $errors ? 422 : 200);
     }
 
@@ -86,5 +89,37 @@ final class SecurityController
             AdminKernel::flash('Regel entfernt.');
         }
         return Response::redirect('/verwaltung/sicherheit/', 303);
+    }
+
+    /** Verwaltung nur aus bestimmten Netzen erreichbar machen (leer = keine Einschränkung). */
+    public function saveAdminAccess(Request $req, AdminContext $ctx): Response
+    {
+        $raw = trim(str_replace("\r\n", "\n", $req->input('admin_ranges')));
+        $ranges = array_values(array_unique(array_filter(array_map('trim', preg_split('/[\n,;]+/', $raw) ?: []))));
+        $errors = [];
+        foreach ($ranges as $r) {
+            if (!IpAddress::validCidr($r)) {
+                $errors['admin_ranges'] = '„' . $r . '“ ist keine gültige IP-Adresse oder kein gültiger Bereich.';
+            }
+        }
+        if ($errors === [] && count($ranges) > 50) {
+            $errors['admin_ranges'] = 'Bitte höchstens 50 Einträge.';
+        }
+        if ($errors === [] && $ranges !== []) {
+            $mine = false;
+            foreach ($ranges as $r) {
+                $mine = $mine || IpAddress::inCidr($req->ip(), $r);
+            }
+            if (!$mine) {
+                $errors['admin_ranges'] = 'Ihre aktuelle Adresse (' . $req->ip() . ') ist nicht enthalten. Sie würden sich selbst aussperren.';
+            }
+        }
+        if ($errors !== []) {
+            return $this->index($req, $ctx, $errors, ['admin_ranges' => $raw]);
+        }
+        $this->app->settings->set(\Mea\Module\Security\Firewall::ADMIN_ACCESS_KEY, ['ranges' => $ranges]);
+        $this->app->audit->record('security.admin_access', $ranges === [] ? 'Verwaltung wieder von überall erreichbar' : 'Verwaltung beschränkt auf: ' . implode(', ', $ranges), 'setting', null);
+        AdminKernel::flash($ranges === [] ? 'Gespeichert. Die Verwaltung ist von überall erreichbar (mit Passwort und Zwei-Faktor-Code).' : 'Gespeichert. Die Verwaltung ist nur noch aus den eingetragenen Netzen erreichbar.');
+        return Response::redirect('/verwaltung/sicherheit/#zugang', 303);
     }
 }

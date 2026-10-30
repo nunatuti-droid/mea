@@ -31,7 +31,39 @@ final class Firewall
         '#/(wp-login\.php|xmlrpc\.php|wp-config|phpmyadmin|pma/|adminer|\.env|\.git/|\.svn/|\.ht(access|passwd)|composer\.(json|lock)|vendor/phpunit|phpinfo|server-status|cgi-bin/|shell\.php|config\.php|storage/|integrity\.(json|sig))#i' => ['probe', 2, false],
     ];
 
+    /** Bekannte Angriffs- und Scan-Werkzeuge (User-Agent). Normale Browser und Suchmaschinen sind nicht betroffen. */
+    private const BAD_AGENTS = '#(sqlmap|nikto|nmap|masscan|zgrab|acunetix|nessus|openvas|wpscan|dirbuster|gobuster|feroxbuster|ffuf|nuclei|w3af|havij|jorgee|zmeu|morfeus|fimap|libwww-perl|python-urllib)#i';
+
+    /** Erlaubte HTTP-Methoden; alles andere (TRACE, PUT, DELETE …) wird abgelehnt. */
+    public const METHODS = ['GET', 'HEAD', 'POST'];
+
+    /** Einstellung: IP-Bereiche, aus denen die Verwaltung erreichbar ist (leer = von überall). */
+    public const ADMIN_ACCESS_KEY = 'admin_access';
+
     public function __construct(private Database $db, private Crypto $crypto, private ClockInterface $clock) {}
+
+    /** @return list<string> */
+    public function adminRanges(): array
+    {
+        $v = $this->db->value('SELECT value_json FROM settings WHERE setting_key = ?', [self::ADMIN_ACCESS_KEY]);
+        $d = $v !== null ? json_decode((string) $v, true) : null;
+        return is_array($d) ? array_values(array_filter(array_map('strval', $d['ranges'] ?? []), [IpAddress::class, 'validCidr'])) : [];
+    }
+
+    /** Darf diese Adresse die Verwaltung öffnen? Ohne Einschränkung immer ja. */
+    public function adminReachable(string $ip): bool
+    {
+        $ranges = $this->adminRanges();
+        if ($ranges === []) {
+            return true;
+        }
+        foreach ($ranges as $cidr) {
+            if (IpAddress::inCidr($ip, $cidr)) {
+                return true;
+            }
+        }
+        return false;
+    }
 
     /**
      * @return array{action:'allow'|'block'|'reject'|'probe', reason:string}
@@ -45,6 +77,18 @@ final class Firewall
         }
         if ($this->isBlocked($ip)) {
             return ['action' => 'block', 'reason' => 'blocked'];
+        }
+        if (!in_array(strtoupper($req->method), self::METHODS, true)) {
+            $this->record('bad_method', $req, 2, 'warning', mb_substr($req->method, 0, 20));
+            return ['action' => 'method', 'reason' => 'bad_method'];
+        }
+        if (preg_match(self::BAD_AGENTS, $req->userAgent())) {
+            $this->record('bad_bot', $req, 5, 'warning', mb_substr($req->userAgent(), 0, 120));
+            return ['action' => 'reject', 'reason' => 'bad_bot'];
+        }
+        if (str_starts_with($req->path, '/verwaltung/') && !$this->adminReachable($ip)) {
+            $this->record('admin_denied', $req, 1, 'warning');
+            return ['action' => 'probe', 'reason' => 'admin_denied'];
         }
         // Schlüssel und Werte der Abfrage im Klartext prüfen (http_build_query würde Leerzeichen als + kodieren)
         $parts = [];

@@ -87,3 +87,22 @@ Jede Änderung wird hier festgehalten. Das Gesamt-Update wird erst erstellt, wen
 **Dateien:** `public/assets/css/app.css`, `templates/partials/macros.twig`, `templates/public/service.twig`, `templates/public/home.twig`, `templates/public/exams_index.twig`, `templates/public/faq.twig`, `templates/public/page.twig`, `templates/public/page_about.twig`, `templates/public/services_index.twig`, `src/Admin/Resources/ServiceResource.php`, `src/Install/ContentSeeder.php`, `migrations/20261103100015_short_service_titles.php` (neu).
 
 **Nach dem Hochladen nötig:** `migrate` ausführen.
+
+## Punkt 4: Firewall und Schutz des Verwaltungsbereichs
+
+**Bereits vorhanden (unverändert):** Anmeldung nur mit Passwort und Zwei-Faktor-Code, Kontosperre nach 5 Fehlversuchen, Begrenzung der Anmeldeversuche je Verbindung, Schutz gegen Formular-Fälschung (CSRF), Erkennung von Angriffsmustern (SQL-Einschleusung, Skript-Einschleusung, Verzeichnis-Ausbruch), automatische IP-Sperren mit Punktekonto, manuelle Sperr- und Freigabeliste, Dateiwächter.
+
+**Neu**
+- **Angriffswerkzeuge abweisen:** bekannte Scan- und Angriffsprogramme (z. B. sqlmap, Nikto, WPScan, Nuclei) werden am Kennzeichen ihres Programms erkannt und abgewiesen; das zählt 5 Punkte für eine Sperre. Normale Browser und Suchmaschinen sind nicht betroffen.
+- **Nur erlaubte Anfragearten:** GET, HEAD und POST. TRACE, PUT, DELETE usw. werden mit 405 abgewiesen (in der Anwendung und zusätzlich in `public/.htaccess`).
+- **Bot-Falle im Anmeldeformular:** ein für Menschen unsichtbares Feld; wird es ausgefüllt, wird die Anmeldung abgewiesen und 5 Punkte vergeben.
+- **Fehlversuche sperren die Verbindung:** 10 Fehlversuche in 10 Minuten führen zu einer Sperre der Verbindung (das Konto sperrt schon nach 5).
+- **Optional: Verwaltung nur aus bestimmten Netzen** (Verwaltung → Sicherheit → Zugang zur Verwaltung). Von anderen Adressen erscheint die Verwaltung als „nicht gefunden“. Schutz vor Selbstaussperrung: die eigene aktuelle Adresse muss enthalten sein. Notfall: Konsolenbefehl `security:admin-access-reset`. Standard: keine Einschränkung.
+- **`public/.htaccess`:** versteckte Dateien (`.env`, `.git` …) werden nie ausgeliefert, Server-Signatur ausgeblendet.
+- Neue Ereignisarten im Sicherheitsprotokoll; alle Änderungen am Zugang im Änderungsprotokoll.
+
+**Hinweis:** Dieser Schutz ergänzt die Firewall des Hosters (Netcup/Plesk), ersetzt sie aber nicht. Empfehlung: in Plesk „Fail2Ban“ und die „Web Application Firewall (ModSecurity)“ aktivieren, falls verfügbar.
+
+**Dateien:** `src/Module/Security/Firewall.php`, `src/Core/App.php`, `src/Admin/AuthController.php`, `src/Admin/SecurityController.php`, `templates/admin/security.twig`, `templates/admin/auth/login.twig`, `public/assets/css/admin.css`, `public/.htaccess`, `bin/console`, `tests/Integration/FirewallTest.php`.
+
+**Geprüft:** 111 automatische Tests grün (3 neue).

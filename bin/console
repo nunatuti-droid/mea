@@ -269,6 +269,13 @@ switch ($cmd) {
         $app->audit->record('security.unblock', "$n automatische Sperre(n) per Kommandozeile aufgehoben", 'ip_rule', null);
         echo "$n Sperre(n) aufgehoben.\n";
         exit(0);
+    case 'security:admin-access-reset':
+        // Notfall: Verwaltung auf Netze beschränkt und eigene Adresse hat sich geändert
+        $app = new \Mea\Core\App($root);
+        $app->settings->set(\Mea\Module\Security\Firewall::ADMIN_ACCESS_KEY, ['ranges' => []]);
+        $app->audit->record('security.admin_access', 'Beschränkung des Verwaltungszugangs per Kommandozeile aufgehoben', 'setting', null);
+        echo "Verwaltung ist wieder von überall erreichbar (mit Passwort und Zwei-Faktor-Code).\n";
+        exit(0);
     case 'user:reset-2fa':
         // Notfall: Administrator hat Handy und Backup-Codes verloren
         $app = new \Mea\Core\App($root);
@@ -286,5 +293,5 @@ switch ($cmd) {
         passthru('php -S 127.0.0.1:' . (int) $port . ' -t ' . escapeshellarg($root . '/public') . ' ' . escapeshellarg($root . '/public/index.php'));
         exit(0);
     default:
-        echo "Befehle:\n  env:init           .env mit neuen Schlüsseln anlegen (Erstinstallation)\n  migrate            Datenbank auf den neuesten Stand bringen\n  migrate:rollback   letzte Migration zurücknehmen\n  seed [--demo]      Startdaten anlegen (--demo: Beispieltermine, nur Vorschau)\n  seed:emails        fehlende E-Mail-Vorlagen ergänzen\n  user:create-admin <email> <name>  erstes Administratorkonto einladen\n  mail:send [n]      E-Mail-Warteschlange abarbeiten\n  cron [job …]       jede Minute: Wartungsjobs (mit Job-Namen: sofort ausführen)\n  selftest           Startet die Anwendung und prüft wichtige Seiten\n  golive:check       Prüfliste vor der Umschaltung auf die neue Website\n  backup:create | backup:list | backup:restore <id> --ja\n  integrity:check    Dateiwächter: Programmdateien mit signierter Referenz vergleichen\n  update:install <paket.zip> --ja | update:revert --ja\n  maintenance:on | maintenance:off\n  security:unblock <ip>|--alle   automatische IP-Sperren aufheben\n  user:reset-2fa <email>         Zwei-Faktor-Anmeldung zurücksetzen\n  release:keygen | release:build | release:sign-manifest   nur Entwicklungsrechner\n  serve [port]       lokaler Entwicklungsserver\n";
+        echo "Befehle:\n  env:init           .env mit neuen Schlüsseln anlegen (Erstinstallation)\n  migrate            Datenbank auf den neuesten Stand bringen\n  migrate:rollback   letzte Migration zurücknehmen\n  seed [--demo]      Startdaten anlegen (--demo: Beispieltermine, nur Vorschau)\n  seed:emails        fehlende E-Mail-Vorlagen ergänzen\n  user:create-admin <email> <name>  erstes Administratorkonto einladen\n  mail:send [n]      E-Mail-Warteschlange abarbeiten\n  cron [job …]       jede Minute: Wartungsjobs (mit Job-Namen: sofort ausführen)\n  selftest           Startet die Anwendung und prüft wichtige Seiten\n  golive:check       Prüfliste vor der Umschaltung auf die neue Website\n  backup:create | backup:list | backup:restore <id> --ja\n  integrity:check    Dateiwächter: Programmdateien mit signierter Referenz vergleichen\n  update:install <paket.zip> --ja | update:revert --ja\n  maintenance:on | maintenance:off\n  security:unblock <ip>|--alle   automatische IP-Sperren aufheben\n  security:admin-access-reset    Beschränkung des Verwaltungszugangs aufheben\n  user:reset-2fa <email>         Zwei-Faktor-Anmeldung zurücksetzen\n  release:keygen | release:build | release:sign-manifest   nur Entwicklungsrechner\n  serve [port]       lokaler Entwicklungsserver\n";
 }
