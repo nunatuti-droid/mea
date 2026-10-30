@@ -172,7 +172,9 @@ final class Scheduler
         $audit = $db->run('DELETE FROM audit_log WHERE created_at < ? - INTERVAL ? YEAR', [$t, max(1, (int) ($r['audit_years'] ?? 3))]);
         // Einwilligungsnachweise: 3 Jahre (übliche Verjährungsfrist), danach löschen
         $consent = $db->run('DELETE FROM consent_log WHERE created_at < ? - INTERVAL 3 YEAR', [$t]);
-        return "Anfragen $inq, unbezahlt $unpaid, bezahlt $paid anonymisiert; $mail E-Mails, $audit Protokolleinträge, $consent Einwilligungsnachweise gelöscht";
+        // Bewerbungen: 6 Monate nach Abschluss, nie abgeschlossene nach 12 Monaten (samt Unterlagen)
+        $apps = $this->app->applications()->purge($now);
+        return "Anfragen $inq, unbezahlt $unpaid, bezahlt $paid anonymisiert; $mail E-Mails, $audit Protokolleinträge, $consent Einwilligungsnachweise, $apps Bewerbungen gelöscht";
     }
 
     private function jobReminders(\DateTimeImmutable $now): string

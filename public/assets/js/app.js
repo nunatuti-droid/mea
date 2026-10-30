@@ -86,4 +86,13 @@
   document.addEventListener('mea:consent', (e) => {
     if (Array.isArray(e.detail) && e.detail.includes('media')) document.querySelectorAll('.map[data-map-src]').forEach(loadMap);
   });
+  // Bewerbungsformular: gewählte Dateien anzeigen
+  document.querySelectorAll('.upload__input').forEach((input) => {
+    const out = input.parentElement.querySelector('[data-upload-names]');
+    if (!out) return;
+    input.addEventListener('change', () => {
+      const names = Array.from(input.files || []).map((f) => f.name);
+      out.textContent = names.length ? names.join(', ') : 'Noch keine Datei ausgewählt';
+    });
+  });
 })();

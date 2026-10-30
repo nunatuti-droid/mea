@@ -130,6 +130,15 @@ final class EmailTemplateSeeder
                     . '<p>Diese Nachricht wurde automatisch von der Website erzeugt.</p>',
                 'vars' => ['name', 'titel', 'text', 'details'],
             ],
+            'application_notification' => [
+                'name' => 'Neue Bewerbung (Büro)',
+                'description' => 'Interne Benachrichtigung bei einer neuen Bewerbung über das Bewerbungsformular. Die Unterlagen werden nicht mitgeschickt.',
+                'subject' => 'Neue Bewerbung: {{ bewerbung.stelle }}',
+                'body' => '<p>Über das Bewerbungsformular ist eine neue Bewerbung eingegangen.</p>'
+                    . '<table><tr><th>Name</th><td>{{ bewerbung.name }}</td></tr><tr><th>Stelle</th><td>{{ bewerbung.stelle }}</td></tr><tr><th>Unterlagen</th><td>{{ bewerbung.dateien }} PDF-Datei(en)</td></tr></table>'
+                    . '<p>Die Bewerbung und die Unterlagen finden Sie aus Datenschutzgründen nur in der Verwaltung unter Kontakt → Bewerbungen.</p>',
+                'vars' => ['bewerbung.name', 'bewerbung.stelle', 'bewerbung.dateien'],
+            ],
             'inquiry_notification' => [
                 'name' => 'Neue Kontaktanfrage (Büro)',
                 'description' => 'Interne Benachrichtigung an das Büro bei einer neuen Anfrage über das Kontaktformular.',

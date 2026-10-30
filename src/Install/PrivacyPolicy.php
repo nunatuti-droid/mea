@@ -14,6 +14,13 @@ final class PrivacyPolicy
         . '<h2>Verantwortlicher</h2><p>MEA Bildungszentrum GmbH, Barkhausstraße 22, 45768 Marl. Vertreten durch Elmedina Mernica und Saudin Cizmic.</p>'
         . '<h2>Was diese Website technisch tut</h2><ul><li>Keine Tracking- oder Marketing-Cookies, keine Analysedienste.</li><li>Schriften und Bilder werden vom eigenen Server geladen.</li><li>Kartendienste (OpenStreetMap) werden erst nach Ihrem Klick geladen.</li><li>Ein technisch notwendiges Sitzungs-Cookie wird nur beim Absenden von Formularen gesetzt.</li></ul>';
 
+    /** Abschnitt 13 in der ersten Fassung (vor dem Bewerbungsformular). */
+    public const APPLICATIONS_HTML_V1 = '<p>Wenn Sie sich bei uns bewerben, verarbeiten wir Ihre Angaben und Unterlagen, um über die Zusammenarbeit zu entscheiden (Art. 6 Abs. 1 lit. b DSGVO). Kommt keine Zusammenarbeit zustande, löschen wir Ihre Unterlagen spätestens sechs Monate nach Abschluss des Verfahrens, sofern Sie nicht in eine längere Speicherung eingewilligt haben.</p>';
+
+    public const APPLICATIONS_HTML = '<p>Über unser <a href="/karriere/bewerbung/">Bewerbungsformular</a> verarbeiten wir die Stelle, auf die Sie sich bewerben, Ihren Namen, Ihre E-Mail-Adresse, auf Wunsch Ihre Telefonnummer und Nachricht sowie die hochgeladenen Unterlagen (PDF). Wir nutzen diese Angaben nur, um über die Zusammenarbeit zu entscheiden (Art. 6 Abs. 1 lit. b DSGVO).</p>'
+        . '<p>Die Unterlagen werden verschlüsselt auf unserem Server gespeichert und nicht per E-Mail weitergeleitet. Zugriff haben nur die Personen, die über Bewerbungen entscheiden.</p>'
+        . '<p>Kommt keine Zusammenarbeit zustande, löschen wir Ihre Bewerbung samt Unterlagen sechs Monate nach Abschluss des Verfahrens, sofern Sie nicht in eine längere Speicherung eingewilligt haben. Bewerbungen, deren Verfahren nicht abgeschlossen wurde, löschen wir spätestens nach zwölf Monaten.</p>';
+
     public static function html(): string
     {
         return '<p>Stand: Oktober 2026</p>'
@@ -76,7 +83,7 @@ final class PrivacyPolicy
             . '<p>Derzeit setzen wir keine Analyse- oder Marketingdienste ein und binden keine Videos von externen Anbietern ein. Sollten wir solche Dienste künftig nutzen, laden wir sie nur mit Ihrer Einwilligung und ergänzen diese Datenschutzerklärung vorher.</p>'
 
             . '<h2 id="bewerbungen">13. Bewerbungen</h2>'
-            . '<p>Wenn Sie sich bei uns bewerben, verarbeiten wir Ihre Angaben und Unterlagen, um über die Zusammenarbeit zu entscheiden (Art. 6 Abs. 1 lit. b DSGVO). Kommt keine Zusammenarbeit zustande, löschen wir Ihre Unterlagen spätestens sechs Monate nach Abschluss des Verfahrens, sofern Sie nicht in eine längere Speicherung eingewilligt haben.</p>'
+            . self::APPLICATIONS_HTML
 
             . '<h2 id="empfaenger">14. Empfänger und Übermittlung in Drittländer</h2>'
             . '<p>Innerhalb unseres Unternehmens erhalten nur die Personen Zugriff, die die Daten für ihre Aufgaben brauchen. Externe Empfänger sind nur die oben genannten Dienstleister und Stellen. Eine Übermittlung in Länder außerhalb der EU findet nur bei Google Maps (nach Ihrer Einwilligung) statt, wie in Abschnitt 10 beschrieben.</p>'

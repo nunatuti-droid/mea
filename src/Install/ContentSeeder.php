@@ -340,7 +340,7 @@ final class ContentSeeder
             . '<h2>Sprachdozent:in (Freelancer)</h2><p>Sie unterstützen Teilnehmende dabei, ihre Sprachkenntnisse zu verbessern und sicher zu kommunizieren.</p>'
             . '<h3>Das bringen Sie mit</h3><ul><li>Studium oder Ausbildung in Sprachwissenschaft, Pädagogik oder einem verwandten Bereich</li><li>Erfahrung in Sprachtraining oder Coaching</li><li>Empathie, Geduld und eine klare Vermittlung</li><li>Gute Deutschkenntnisse, idealerweise weitere Sprachen</li></ul>'
             . '<h3>Das bieten wir</h3><ul><li>Ein inspirierendes Umfeld und ein unterstützendes Team</li><li>Flexible Arbeitszeiten</li><li>Raum für eigene Unterrichtskonzepte</li></ul>'
-            . '<h2>Bewerbung</h2><p>Ihre Ansprechpartner sind Frau Mernica und Herr Cizmic. Schicken Sie uns Ihre Unterlagen über das <a href="/kontakt/?thema=sonstiges">Kontaktformular</a> oder per E-Mail.</p>', [
+            . '<h2>Bewerbung</h2><p>Ihre Ansprechpartner sind Frau Mernica und Herr Cizmic. Bewerben Sie sich direkt über unser <a href="/karriere/bewerbung/">Bewerbungsformular</a>. Dort laden Sie Ihre Unterlagen als PDF hoch.</p>', [
             'intro' => 'Wir suchen Menschen, die andere auf ihrem beruflichen Weg begleiten wollen.',
             'hero_media_id' => $this->m['lecturer_m'],
             'seo_title' => 'Karriere: Jobcoach und Sprachdozent:in – MEA',

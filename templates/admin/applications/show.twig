@@ -1,0 +1,40 @@
+{% extends 'admin/layout.twig' %}
+{% import 'admin/partials/ui.twig' as ui %}
+{% block content %}
+  <p class="crumb"><a href="/verwaltung/bewerbungen/">{{ icon('arrow-left') }}Bewerbungen</a></p>
+  <div class="adm-head">
+    <div><h1>{{ a.first_name }} {{ a.last_name }}</h1><p class="row">{{ ui.status(a.status, status_map) }} <span class="text-muted">{{ positions[a.position] ?? a.position }}</span></p></div>
+    <div class="adm-head__actions">
+      {% for k, s in status_map|filter((s, k) => k != 'new' and k != a.status) %}
+        <form method="post" action="/verwaltung/bewerbungen/{{ a.id }}/status/" class="inline"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="value" value="{{ k }}"><button class="btn btn--ghost btn--sm" type="submit">{{ icon(k == 'closed' ? 'check' : 'refresh-cw') }}{{ k == 'closed' ? 'Abschließen' : 'Wieder öffnen' }}</button></form>
+      {% endfor %}
+      <form method="post" action="/verwaltung/bewerbungen/{{ a.id }}/loeschen/" class="inline" data-confirm="Bewerbung von {{ a.first_name }} {{ a.last_name }} samt allen Unterlagen endgültig löschen?"><input type="hidden" name="_csrf" value="{{ csrf }}"><button class="btn btn--danger btn--sm" type="submit">{{ icon('trash-2') }}Löschen</button></form>
+    </div>
+  </div>
+  <div class="grid-2">
+    <section class="card">
+      <h2 class="h3">Angaben</h2>
+      <dl class="kv">
+        <dt>Stelle</dt><dd>{{ positions[a.position] ?? a.position }}</dd>
+        <dt>E-Mail</dt><dd><a href="mailto:{{ a.email }}">{{ a.email }}</a></dd>
+        <dt>Telefon</dt><dd>{% if a.phone %}<a href="tel:{{ a.phone|replace({' ': ''}) }}">{{ a.phone }}</a>{% else %}–{% endif %}</dd>
+        <dt>Eingang</dt><dd>{{ a.created_at|utc|date('d.m.Y H:i') }} Uhr</dd>
+        <dt>Datenschutz</dt><dd>bestätigt am {{ a.privacy_accepted_at|utc|date('d.m.Y H:i') }}</dd>
+        {% if a.closed_at %}<dt>Abgeschlossen</dt><dd>{{ a.closed_at|utc|date('d.m.Y') }}, wird nach 6 Monaten gelöscht</dd>{% endif %}
+      </dl>
+      {% if a.message %}<h3 class="h4 mt">Nachricht</h3><p class="prewrap">{{ a.message }}</p>{% endif %}
+    </section>
+    <section class="card">
+      <h2 class="h3">Unterlagen</h2>
+      {% if files is empty %}<p class="text-muted">Keine Unterlagen.</p>{% else %}
+        <ul class="list-plain">
+          {% for f in files %}
+            <li class="row row--between"><span>{{ icon('file-text') }} {{ f.original_name }} <span class="text-muted text-sm">({{ (f.size_bytes / 1024)|round(0, 'ceil') }} KB)</span></span>
+              <a class="btn btn--ghost btn--sm" href="/verwaltung/bewerbungen/{{ a.id }}/datei/{{ f.id }}/">{{ icon('download') }}Herunterladen</a></li>
+          {% endfor %}
+        </ul>
+        <p class="text-muted text-sm mt">Heruntergeladene Unterlagen bitte nach dem Verfahren auch lokal löschen.</p>
+      {% endif %}
+    </section>
+  </div>
+{% endblock %}

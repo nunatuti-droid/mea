@@ -128,6 +128,11 @@ final class App
         $r->get('/preise/', $examCtl->prices(...));
         $r->get('/standorte/', $locCtl->index(...));
         $r->get('/standorte/{slug:[a-z0-9-]+}/', $locCtl->show(...));
+        $isTesting = $this->config->get('APP_ENV') === 'testing';
+        $apply = new \Mea\Module\Applications\ApplicationController($this->view, $this->applications(), $limiter, $this->content,
+            fn(string $tmp): bool => $isTesting ? is_file($tmp) : is_uploaded_file($tmp), $this->mailer, $this->log);
+        $r->get('/karriere/bewerbung/', $apply->show(...));
+        $r->post('/karriere/bewerbung/', $apply->submit(...));
         $r->get('/kontakt/', $contact->show(...));
         $r->post('/kontakt/', $contact->submit(...));
         $r->post('/einwilligung/', (new \Mea\Module\Consent\ConsentController($this->db, $this->consent, $limiter))->record(...));
@@ -139,6 +144,12 @@ final class App
 
     private ?\Mea\Module\Payments\PaymentGateway $gateway = null;
     private ?\Mea\Module\Bookings\BookingService $bookingService = null;
+    private ?\Mea\Module\Applications\ApplicationService $applicationService = null;
+
+    public function applications(): \Mea\Module\Applications\ApplicationService
+    {
+        return $this->applicationService ??= new \Mea\Module\Applications\ApplicationService($this->db, $this->crypto, $this->root . '/storage/applications');
+    }
 
     public function paymentGateway(): \Mea\Module\Payments\PaymentGateway
     {

@@ -5,6 +5,6 @@
 {% set canonical = '/' ~ page.slug ~ '/' %}
 {% block content %}
   {% include 'partials/page_hero.twig' with {title: page.title, intro: page.intro, media_id: page.hero_media_id, crumbs: [{label: page.title}]} %}
-  <section class="section"><div class="container"><div class="prose">{{ page.body_html|raw }}</div></div></section>
+  <section class="section"><div class="container"><div class="prose">{{ page.body_html|raw }}</div>{% if page.slug == 'karriere' %}<p class="mt-6"><a class="btn" href="/karriere/bewerbung/">{{ icon('send') }}Jetzt online bewerben</a></p>{% endif %}</div></section>
   <section class="section section--alt"><div class="container">{{ ui.cta_band('Fragen? Wir sind für Sie da.', 'Schreiben Sie uns, rufen Sie an oder nutzen Sie WhatsApp – wir melden uns schnellstmöglich zurück.', site.company) }}</div></section>
 {% endblock %}

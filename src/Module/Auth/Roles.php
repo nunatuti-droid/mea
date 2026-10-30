@@ -22,6 +22,7 @@ final class Roles
         'bookings' => 'Buchungen',
         'refunds' => 'Erstattungen',
         'inquiries' => 'Anfragen',
+        'applications' => 'Bewerbungen und Unterlagen',
         'emails' => 'E-Mail-Vorlagen und Protokoll',
         'settings' => 'Firmendaten, SEO, Datenschutzfristen',
         'users' => 'Benutzer und Rollen',

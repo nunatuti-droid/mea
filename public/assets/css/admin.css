@@ -287,3 +287,4 @@ h1.mono { font-size: 1.6rem; letter-spacing: .02em; }
 .list-check { list-style: none; padding: 0; margin: 0 0 4px; display: grid; gap: 6px; }
 .list-check li { position: relative; padding-left: 22px; }
 .list-check li::before { content: ""; position: absolute; left: 4px; top: .5em; width: 8px; height: 8px; border-radius: 2px; background: var(--c-brand); transform: rotate(45deg); }
+.prewrap { white-space: pre-line; }
