@@ -54,7 +54,7 @@ final class ServiceResource extends Resource
         $icons = array_combine(self::ICONS, self::ICONS);
         return [
             ['name' => 'title', 'label' => 'Titel', 'required' => true, 'max' => 200],
-            ['name' => 'menu_title', 'label' => 'Kurztitel für Menüs', 'max' => 80],
+            ['name' => 'menu_title', 'label' => 'Kurztitel für Menüs und Karten', 'max' => 80, 'help' => 'Möglichst kurz, damit der Titel auf Karten in eine Zeile passt, z. B. „Sprachkurse“.'],
             ['name' => 'slug', 'label' => 'Adresse', 'type' => 'slug', 'required' => true, 'from' => 'title'],
             ['name' => 'parent_id', 'label' => 'Übergeordnete Leistung', 'type' => 'select', 'options' => $parents, 'placeholder' => '– keine (Hauptleistung) –', 'numeric' => true],
             ['name' => 'icon', 'label' => 'Symbol', 'type' => 'select', 'options' => $icons, 'placeholder' => '– keins –'],

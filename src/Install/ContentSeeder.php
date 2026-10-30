@@ -238,9 +238,10 @@ final class ContentSeeder
                 'Für erwerbsfähige Leistungsberechtigte mit komplexen Vermittlungshemmnissen.',
                 [['Betreuungsumfang', '310 UE'], ['Dauer', 'bis zu 12 Monate'], ['Coachingform', '1:1-Coaching']]],
         ];
+        $short = ['mea-plus' => 'MEA Plus', 'stabilisierung' => 'Job-Mentoring', 'ganzheitliche-betreuung' => 'Betreuung nach § 16k SGB II'];
         foreach ($children as $i => [$slug, $title, $img, $teaser, $facts]) {
             $this->service([
-                'parent_id' => $avgs, 'slug' => $slug, 'title' => $title, 'icon' => 'user-check', 'sort_order' => $i + 1,
+                'parent_id' => $avgs, 'slug' => $slug, 'title' => $title, 'menu_title' => $short[$slug], 'icon' => 'user-check', 'sort_order' => $i + 1,
                 'teaser' => $teaser, 'intro' => $teaser,
                 'body_html' => '<p>' . htmlspecialchars($teaser) . '</p><p>Die Maßnahme kann mit einem Aktivierungs- und Vermittlungsgutschein (AVGS) gefördert werden. Ob Sie einen Gutschein erhalten, klären Sie mit Ihrer Ansprechperson bei der Agentur für Arbeit oder dem Jobcenter. Wir beraten Sie gerne vorab.</p>',
                 'facts_json' => ['facts' => array_map(fn($f) => ['label' => $f[0], 'value' => $f[1]], $facts)],

@@ -72,3 +72,18 @@ Jede Änderung wird hier festgehalten. Das Gesamt-Update wird erst erstellt, wen
 **Dateien:** `public/assets/css/app.css`, `public/assets/css/admin.css`.
 
 **Geprüft:** Browser-Test aller Hauptseiten bei 1280 px und 375 px inkl. Barrierefreiheit (axe) ohne Befund.
+
+## Punkt 10: Überschriften einzeilig, Texte etwas ausgebaut
+
+**Was geändert wurde**
+- Alle Überschriften automatisch am Bildschirm (1280 px und 1024 px) geprüft.
+- Kartentitel der Leistungen zeigen jetzt den **Kurztitel** (z. B. „Onboarding“, „Sprachkurse“, „MEA Plus“, „Job-Mentoring“), damit sie einzeilig bleiben. Der volle Titel steht weiter auf der Leistungsseite. Der Kurztitel ist in der Verwaltung unter Leistungen → „Kurztitel für Menüs und Karten“ änderbar. Für die drei AVGS-Unterleistungen wurden Kurztitel ergänzt (nur wo noch keiner gesetzt war).
+- Abschnittsüberschriften etwas kleiner (max. 34 px statt 38 px) und mit voller Breite; das grüne Beratungs-Band steht jetzt einspaltig, die Überschrift bleibt einzeilig.
+- Unterseiten-Kopf: Titel bekommt mehr Breite und ist etwas kleiner.
+- Wo eine sehr lange Überschrift neben einem Bild steht (z. B. „Onboarding für internationale Fachkräfte“ oder „Individuelle Bildungswege für Arbeitsuchende und Beschäftigte“), passt sie technisch nicht in eine Zeile. Sie wird dort gleichmäßig auf zwei Zeilen verteilt. Kürzere Formulierungen sind im Backend jederzeit möglich.
+- Die Hero-Überschrift der Startseite bleibt bewusst zweizeilig (Gestaltung).
+- **Texte leicht erweitert** (ohne neue Behauptungen): Einleitung der Prüfungsübersicht, Leistungsbereich der Startseite und die Beratungs-Bänder auf Startseite, Prüfungen, FAQ, Leistungen, Über uns und Standardseiten.
+
+**Dateien:** `public/assets/css/app.css`, `templates/partials/macros.twig`, `templates/public/service.twig`, `templates/public/home.twig`, `templates/public/exams_index.twig`, `templates/public/faq.twig`, `templates/public/page.twig`, `templates/public/page_about.twig`, `templates/public/services_index.twig`, `src/Admin/Resources/ServiceResource.php`, `src/Install/ContentSeeder.php`, `migrations/20261103100015_short_service_titles.php` (neu).
+
+**Nach dem Hochladen nötig:** `migrate` ausführen.

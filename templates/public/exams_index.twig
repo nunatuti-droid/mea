@@ -9,7 +9,7 @@
 
   <section class="section" id="pruefungen" aria-labelledby="list-title">
     <div class="container">
-      <div class="section-head"><h2 id="list-title">Unsere Prüfungen</h2><p>Wählen Sie eine Prüfung für Ablauf, Termine und Anmeldung.</p></div>
+      <div class="section-head"><h2 id="list-title">Unsere Prüfungen</h2><p>Wählen Sie die passende Prüfung. Auf der jeweiligen Seite finden Sie Ablauf, Voraussetzungen, freie Termine und den Preis und können sich direkt online anmelden.</p></div>
       {% include 'partials/exam_venue.twig' %}
       {% if categories|length > 1 %}
         <nav class="filters" aria-label="Prüfungen nach Kategorie filtern">
@@ -72,7 +72,7 @@
   {% if faqs is not empty %}
     <section class="section section--alt"><div class="container"><div class="section-head"><span class="eyebrow">Häufige Fragen</span><h2>Rund um die Prüfung</h2></div>{{ ui.faq_list(faqs) }}</div></section>
   {% endif %}
-  <section class="section"><div class="container">{{ ui.cta_band('Unsicher, welche Prüfung passt?', 'Wir beraten Sie gerne – auch zu Vorbereitungskursen.', site.company) }}</div></section>
+  <section class="section"><div class="container">{{ ui.cta_band('Unsicher, welche Prüfung passt?', 'Wir beraten Sie gerne zur passenden Prüfung und zu unseren Vorbereitungskursen – telefonisch, per WhatsApp oder persönlich.', site.company) }}</div></section>
 {% endblock %}
 {% block schema %}
   {% set list = [] %}

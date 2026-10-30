@@ -69,7 +69,7 @@
     <div class="card__media">{{ img(s.card_media_id, '(max-width: 700px) 100vw, 380px', {alt: ''}) }}</div>
     <div class="card__body">
       <span class="card__icon">{{ icon(s.icon ?: 'arrow-right') }}</span>
-      <h3><a href="{{ url ?? (s.cta_url starts with '/telc' ? s.cta_url : '/' ~ s.slug ~ '/') }}">{{ s.title }}</a></h3>
+      <h3><a href="{{ url ?? (s.cta_url starts with '/telc' ? s.cta_url : '/' ~ s.slug ~ '/') }}">{{ s.menu_title ?: s.title }}</a></h3>
       <p>{{ s.teaser }}</p>
       <span class="link-arrow" aria-hidden="true">Mehr erfahren{{ icon('arrow-right') }}</span>
     </div>
