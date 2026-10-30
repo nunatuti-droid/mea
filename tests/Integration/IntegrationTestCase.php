@@ -37,7 +37,7 @@ abstract class IntegrationTestCase extends TestCase
             }
             $values = array_merge($_SERVER, $_ENV, [
                 'DB_NAME' => $name, 'APP_ENV' => 'testing', 'APP_DEBUG' => 'false',
-                'APP_NOINDEX' => 'true', 'APP_URL' => 'https://mea.test', 'APP_KEY' => 'test-key',
+                'APP_NOINDEX' => 'true', 'APP_URL' => 'https://mea.test', 'APP_KEY' => base64_encode(str_repeat('t', 32)), 'MAIL_DSN' => '', 'PAYPAL_CLIENT_ID' => '', 'PAYPAL_SECRET' => '',
             ]);
             self::$config = new Config($values);
             $db = Database::fromConfig(self::$config);
@@ -118,5 +118,35 @@ abstract class IntegrationTestCase extends TestCase
             'exam_type_id' => $examId, 'snapshot_json' => '{}', 'total_cents' => 100, 'currency' => 'EUR',
             'status' => $status, 'reserved_until' => $reservedUntil,
         ]);
+    }
+
+    /** Benutzer mit Rolle anlegen und als angemeldet markieren (ohne Formular). @return array<string,mixed> */
+    protected function loginAs(string $role = 'admin', string $email = ''): array
+    {
+        $email = $email !== '' ? $email : $role . '-' . bin2hex(random_bytes(3)) . '@example.org';
+        $id = self::db()->insert('users', [
+            'email' => $email, 'name' => 'Test ' . ucfirst($role), 'role' => $role, 'status' => 'active',
+            'password_hash' => \Mea\Module\Auth\PasswordPolicy::hash('Lange sichere Passphrase 2026'),
+            'totp_secret_enc' => $this->app->crypto->encrypt('JBSWY3DPEHPK3PXP', 'totp'),
+            'totp_enabled_at' => gmdate('Y-m-d H:i:s'),
+        ]);
+        $user = self::db()->one('SELECT * FROM users WHERE id = ?', [$id]);
+        $s = $this->app->auth->startSession($user, '203.0.113.7', 'PHPUnit', '');
+        $_SESSION['admin_token'] = $s['token'];
+        return $user;
+    }
+
+    /** POST in der Verwaltung mit gültigem CSRF-Token. @param array<string,mixed> $data */
+    protected function adminPost(string $uri, array $data): Response
+    {
+        return $this->request('POST', $uri, $data + ['_csrf' => \Mea\Core\Csrf::token()]);
+    }
+
+    protected function idFromLocation(Response $r): int
+    {
+        $loc = (string) ($r->headers['Location'] ?? '');
+        self::assertMatchesRegularExpression('#/(\d+)/(\?.*)?$#', $loc, 'Weiterleitung auf Datensatz erwartet, erhalten: ' . $loc . ' ' . substr((string) $r->body, 0, 300));
+        preg_match('#/(\d+)/(\?.*)?$#', $loc, $m);
+        return (int) $m[1];
     }
 }

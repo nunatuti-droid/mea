@@ -40,6 +40,47 @@ final class Request
         return is_string($v) ? trim($v) : $default;
     }
 
+    /** @return list<string> */
+    public function inputList(string $key): array
+    {
+        $v = $this->post[$key] ?? [];
+        return is_array($v) ? array_values(array_map(static fn($x) => is_string($x) ? trim($x) : '', $v)) : [];
+    }
+
+    /** @return array<string,mixed> */
+    public function inputArray(string $key): array
+    {
+        $v = $this->post[$key] ?? [];
+        return is_array($v) ? $v : [];
+    }
+
+    public function cookie(string $key): string
+    {
+        $v = $this->cookies[$key] ?? '';
+        return is_string($v) ? $v : '';
+    }
+
+    public function userAgent(): string
+    {
+        return mb_substr((string) ($this->server['HTTP_USER_AGENT'] ?? ''), 0, 255);
+    }
+
+    public function header(string $name): string
+    {
+        $key = 'HTTP_' . strtoupper(str_replace('-', '_', $name));
+        return (string) ($this->server[$key] ?? '');
+    }
+
+    public function rawBody(): string
+    {
+        return (string) ($this->server['_RAW_BODY'] ?? file_get_contents('php://input'));
+    }
+
+    public function isPost(): bool
+    {
+        return $this->method === 'POST';
+    }
+
     public function ip(): string
     {
         // Hinter Proxys wird nur REMOTE_ADDR vertraut; ein Proxy muss bewusst konfiguriert werden.

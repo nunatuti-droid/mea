@@ -1,6 +1,6 @@
 # Anforderungen und Nachweise
 
-Stand: Phase 3 (öffentliche Website). ✓ = umgesetzt und geprüft, ◐ = teilweise, ○ = spätere Phase.
+Stand: Phase 4 (Verwaltung, Buchung, Zahlung). ✓ = umgesetzt und geprüft, ◐ = teilweise, ○ = spätere Phase.
 
 ## Prüfungsverwaltung (Abnahmekriterien)
 
@@ -17,7 +17,26 @@ Stand: Phase 3 (öffentliche Website). ✓ = umgesetzt und geprüft, ◐ = teilw
 | Keine erfundenen Preise (ohne Preis kein Betrag) | ✓ | `testExamWithoutPriceShowsNoInventedPrice` |
 | Terminpreis vor Grundpreis, Pflichtgebühren addiert | ✓ | `tests/Unit/PriceCalculatorTest` |
 | A1–C1 nur als Startdaten | ✓ | `src/Install/ContentSeeder.php` |
-| Pflege im Backend | ○ | Phase 4 |
+| Pflege im Backend | ✓ | Verwaltung unter `/verwaltung/` |
+
+### Verbindliche Abnahmetests 7.9 (`tests/Integration/AcceptanceTest.php`)
+
+| Nr. | Test | Stand | Testmethode |
+|---|---|---|---|
+| 1 | Neue Prüfungsart nur über das Backend angelegt | ✓ | `test01_02_ExamIsCreatedOnlyInBackendAndCanBePublished` |
+| 2 | Speichern und veröffentlichen | ✓ | dito (mit Änderungsprotokoll und Versionen) |
+| 3 | Öffentliche Übersicht zeigt sie automatisch | ✓ | `test03_04_05_AppearsInOverviewWithOwnUrlAndSeo` |
+| 4 | Detailseite ohne neue PHP-Datei | ✓ | dito |
+| 5 | Eigene URL und SEO-Metadaten (Titel, Beschreibung, Canonical, Sitemap) | ✓ | dito |
+| 6 | Preise und Termine unabhängig pflegbar | ✓ | `test06_PricesAndSessionsAreMaintainedIndependently` |
+| 7 | Vollständiger Buchungsprozess | ✓ | `test07_08_FullBookingWithPaymentAssigned` (Formular → PayPal → Rückkehr → bestätigt → E-Mail) |
+| 8 | Zahlung korrekt zugeordnet | ✓ | dito; falscher Betrag wird nicht bestätigt: `test08_WrongAmountIsNotConfirmed` |
+| 9 | Kapazitätsgrenzen | ✓ | `test09_CapacityIsEnforced`, `test09_ReservationHoldsSeatDuringPayment` |
+| 10 | Deaktivierte Prüfung nicht buchbar | ✓ | `test10_DisabledExamCannotBeBooked` |
+| 11 | Bestehende Buchungen bleiben bei Änderungen erhalten | ✓ | `test11_ExistingBookingsSurviveChanges` (Momentaufnahme, Benachrichtigung bei Terminänderung, Löschschutz) |
+| 12 | Vorhandene Prüfungsarten funktionieren weiter | ✓ | `test12_SeededExamsStillWork` |
+
+Die Tests laufen gegen PayPal als Testdouble. Ein Test mit dem echten PayPal-Sandbox-Konto steht aus, sobald MEA die Zugangsdaten liefert.
 
 ## Öffentliche Website
 
@@ -42,11 +61,20 @@ Stand: Phase 3 (öffentliche Website). ✓ = umgesetzt und geprüft, ◐ = teilw
 | Spam-Schutz (Honeypot, Mindestzeit, Ratenbegrenzung) | ✓ | `ContactFormTest` |
 | IP nur als Hash gespeichert | ✓ | `ContactFormTest::testValidInquiryIsStored` |
 | Keine Zugangsdaten im Code | ✓ | `.env.example` ohne Werte, `.env` in `.gitignore` |
-| 2FA, Rollen, Admin-Login | ○ | Phase 4 |
+| Admin-Login mit 2FA (TOTP), kein Wiederverwenden eines Codes | ✓ | `AdminSecurityTest::testFullLoginWithTotpAndNoReplay`, `tests/Unit/AuthHelpersTest` |
+| Kontosperre nach Fehlversuchen, Sicherheits-E-Mail | ✓ | `AdminSecurityTest::testWrongPasswordLocksAccount` |
+| Rollen und Rechte | ✓ | `AdminSecurityTest::testRolesAreEnforced` |
+| CSRF in der Verwaltung, widerrufene Sitzungen | ✓ | `testPostWithoutCsrfIsRejected`, `testRevokedSessionIsLoggedOut` |
+| Letzter Administrator geschützt, erneute Bestätigung | ✓ | `testLastAdminCannotBeDisabledAndCriticalChangesNeedReauth` |
+| Keine Geheimnisse im Änderungsprotokoll | ✓ | `testAuditLogNeverStoresSecrets` |
+| PayPal-Webhook: Signatur geprüft, doppelte Ereignisse ignoriert | ✓ | `testWebhookRejectsBadSignatureAndIgnoresDuplicates` |
+| E-Mail-Vorlagen in einer Sandbox (kein Code in Platzhaltern) | ✓ | `testEmailTemplatesAreSeededAndRender` |
+| HTML aus dem Editor bereinigt | ✓ | `tests/Unit/AdminHelpersTest::testSanitizerRemovesDangerousMarkup` |
+| Barrierefreiheit der Verwaltung | ✓ (automatisch) | `tests/e2e/admin.js`: axe ohne Verstöße auf allen Verwaltungsseiten, Desktop und Handy |
 
 ## Spätere Phasen
 
-Buchung mit Überbuchungsschutz, PayPal und Webhooks, Backend mit 2FA (Phase 4); E-Mail-Warteschlange, Cron, Backups, Updates (Phase 5); Umzug und Abnahme (Phase 6).
+Backups, signierte Updates, Überwachung, Dateiwächter, Löschfristen per Cron (Phase 5); Umzug und Abnahme (Phase 6).
 
 ## Offene Punkte bei MEA
 

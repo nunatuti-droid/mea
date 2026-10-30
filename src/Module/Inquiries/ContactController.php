@@ -19,6 +19,7 @@ final class ContactController
         private RateLimiter $limiter,
         private LocationRepository $locations,
         private ContentRepository $content,
+        private ?\Mea\Module\Mail\Mailer $mailer = null,
     ) {}
 
     public function show(Request $req): Response
@@ -56,9 +57,32 @@ final class ContactController
         if ($errors !== []) {
             return $this->render($req, ['values' => $in, 'errors' => $errors], 422);
         }
-        $this->service->store($in);
+        $id = $this->service->store($in);
+        $this->notifyOffice($id, $in);
         Session::flash('contact_sent', true);
         return Response::redirect('/kontakt/?gesendet=1#formular', 303);
+    }
+
+    /** Büro benachrichtigen. Ein Fehler hier darf die gespeicherte Anfrage nicht verlieren. @param array<string,string> $in */
+    private function notifyOffice(int $id, array $in): void
+    {
+        if ($this->mailer === null || ($office = $this->mailer->officeAddress()) === null) {
+            return;
+        }
+        $loc = '';
+        foreach ($this->locations->active() as $l) {
+            if ((string) $l['id'] === ($in['location'] ?? '')) {
+                $loc = (string) $l['name'];
+            }
+        }
+        try {
+            $this->mailer->queue('inquiry_notification', $office, null, ['anfrage' => [
+                'name' => $in['name'], 'email' => $in['email'], 'telefon' => $in['phone'] ?? '',
+                'thema' => InquiryService::TOPICS[$in['topic'] ?? ''] ?? 'Allgemein', 'standort' => $loc, 'nachricht' => $in['message'],
+            ]], 'inquiry-' . $id, 'inquiry', $id);
+        } catch (\Throwable) {
+            // Anfrage ist gespeichert und in der Verwaltung sichtbar
+        }
     }
 
     /** @param array<string,mixed> $data */

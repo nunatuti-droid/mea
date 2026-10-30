@@ -1,0 +1,15 @@
+{% extends 'admin/layout.twig' %}
+{% block content %}
+  <div class="card card--narrow">
+    <h1>Identität bestätigen</h1>
+    <p>Diese Aktion ist sicherheitskritisch. Bitte bestätigen Sie sie mit Ihrem Passwort und einem aktuellen Code aus der Authenticator-App.</p>
+    {% if error %}<div class="alert alert--error" role="alert">{{ icon('circle-alert') }}<p>{{ error }}</p></div>{% endif %}
+    <form method="post" action="/verwaltung/bestaetigen/" class="stack">
+      <input type="hidden" name="_csrf" value="{{ csrf }}">
+      <input type="hidden" name="weiter" value="{{ next }}">
+      <div class="field"><label for="password">Passwort</label><input id="password" type="password" name="password" autocomplete="current-password" required autofocus></div>
+      <div class="field"><label for="code">Code aus der App</label><input id="code" type="text" name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="7" required></div>
+      <div class="row"><button class="btn btn--primary" type="submit">Bestätigen</button><a class="btn btn--ghost" href="{{ next }}">Abbrechen</a></div>
+    </form>
+  </div>
+{% endblock %}

@@ -21,12 +21,17 @@ final class ImageVariantGenerator
     ) {}
 
     /** @return int ID des Medien-Datensatzes */
-    public function import(string $sourceFile, string $altText, string $title = '', string $credit = ''): int
+    public function import(string $sourceFile, string $altText, string $title = '', string $credit = '', ?string $originalName = null): int
     {
         $mime = (new \finfo(FILEINFO_MIME_TYPE))->file($sourceFile) ?: '';
         if (!in_array($mime, self::ALLOWED, true)) {
             throw new \InvalidArgumentException("Dateityp $mime ist nicht erlaubt");
         }
+        $info = @getimagesize($sourceFile);
+        if ($info === false || $info[0] * $info[1] > 40_000_000) {
+            throw new \InvalidArgumentException('Das Bild ist beschädigt oder zu groß (höchstens 40 Megapixel).');
+        }
+        $originalName ??= basename($sourceFile);
         $hash = hash_file('sha256', $sourceFile) ?: '';
         $existing = $this->db->value('SELECT id FROM media WHERE sha256 = ?', [$hash]);
         if ($existing !== null) {
@@ -48,13 +53,13 @@ final class ImageVariantGenerator
         $w = imagesx($image);
         $h = imagesy($image);
 
-        $slug = self::slug(pathinfo($sourceFile, PATHINFO_FILENAME));
-        $stored = bin2hex(random_bytes(8)) . '.' . (pathinfo($sourceFile, PATHINFO_EXTENSION) ?: 'bin');
+        $slug = self::slug(pathinfo($originalName, PATHINFO_FILENAME));
+        $stored = bin2hex(random_bytes(8)) . '.' . match ($mime) { 'image/jpeg' => 'jpg', 'image/png' => 'png', default => 'webp' };
         @mkdir($this->storageDir, 0750, true);
         copy($sourceFile, $this->storageDir . '/' . $stored);
 
         $id = $this->db->insert('media', [
-            'original_name' => basename($sourceFile),
+            'original_name' => mb_substr($originalName, 0, 255),
             'storage_path' => $stored,
             'mime' => $mime,
             'width' => $w,
@@ -84,6 +89,54 @@ final class ImageVariantGenerator
         }
         imagedestroy($image);
         return $id;
+    }
+
+    /** PDF-Dokument speichern (öffentlich herunterladbar). Nur echte PDFs, keine anderen Typen. */
+    public function importDocument(string $sourceFile, string $originalName, string $title): int
+    {
+        $mime = (new \finfo(FILEINFO_MIME_TYPE))->file($sourceFile) ?: '';
+        $head = (string) file_get_contents($sourceFile, false, null, 0, 5);
+        if ($mime !== 'application/pdf' || $head !== '%PDF-') {
+            throw new \InvalidArgumentException('Nur PDF-Dokumente sind erlaubt.');
+        }
+        $hash = hash_file('sha256', $sourceFile) ?: '';
+        $existing = $this->db->value('SELECT id FROM media WHERE sha256 = ?', [$hash]);
+        if ($existing !== null) {
+            return (int) $existing;
+        }
+        $slug = self::slug(pathinfo($originalName, PATHINFO_FILENAME));
+        $stored = bin2hex(random_bytes(8)) . '.pdf';
+        @mkdir($this->storageDir, 0750, true);
+        copy($sourceFile, $this->storageDir . '/' . $stored);
+        $id = $this->db->insert('media', [
+            'original_name' => mb_substr($originalName, 0, 255), 'storage_path' => $stored, 'mime' => $mime, 'kind' => 'document',
+            'size_bytes' => filesize($sourceFile) ?: 0, 'sha256' => $hash, 'alt_text' => '', 'title' => mb_substr($title, 0, 200),
+        ]);
+        @mkdir($this->publicDir . '/dokumente', 0755, true);
+        $file = sprintf('dokumente/%d-%s.pdf', $id, $slug);
+        copy($sourceFile, $this->publicDir . '/' . $file);
+        $this->db->run('UPDATE media SET public_path = ? WHERE id = ?', [$file, $id]);
+        return $id;
+    }
+
+    /** Dateien eines Mediums entfernen (nach Prüfung der Verwendungen). */
+    public function deleteFiles(int $id): void
+    {
+        $m = $this->db->one('SELECT * FROM media WHERE id = ?', [$id]);
+        if ($m === null) {
+            return;
+        }
+        foreach ($this->db->all('SELECT path FROM media_variants WHERE media_id = ?', [$id]) as $v) {
+            $f = $this->publicDir . '/' . basename((string) $v['path']);
+            if (is_file($f)) {
+                unlink($f);
+            }
+        }
+        foreach ([$this->storageDir . '/' . basename((string) $m['storage_path']), $m['public_path'] ? $this->publicDir . '/dokumente/' . basename((string) $m['public_path']) : null] as $f) {
+            if ($f !== null && is_file($f)) {
+                unlink($f);
+            }
+        }
     }
 
     public static function slug(string $s): string

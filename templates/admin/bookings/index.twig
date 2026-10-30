@@ -1,0 +1,45 @@
+{% extends 'admin/layout.twig' %}
+{% import 'admin/partials/ui.twig' as ui %}
+{% block content %}
+  <div class="adm-head">
+    <div><h1>Buchungen</h1><p class="adm-head__intro">Alle Anmeldungen mit Zahlungsstatus. Bestätigt ist eine Buchung erst nach geprüfter Zahlung.</p></div>
+    <a class="btn btn--ghost" href="/verwaltung/buchungen/export.csv?{{ query|url_encode }}">{{ icon('download') }}Als CSV exportieren</a>
+  </div>
+  <form class="toolbar" method="get" role="search">
+    <label class="visually-hidden" for="q">Suchen</label><input type="search" id="q" name="q" value="{{ query.q ?? '' }}" placeholder="Nummer, Name, E-Mail …">
+    <label class="visually-hidden" for="f-status">Status</label>
+    <select id="f-status" name="status"><option value="">Status: alle</option>{% for k, s in labels.booking_status %}<option value="{{ k }}" {{ (query.status ?? '') == k ? 'selected' }}>{{ s.label }}</option>{% endfor %}</select>
+    <label class="visually-hidden" for="f-zahlung">Zahlung</label>
+    <select id="f-zahlung" name="zahlung"><option value="">Zahlung: alle</option>{% for k, s in labels.payment_status %}<option value="{{ k }}" {{ (query.zahlung ?? '') == k ? 'selected' }}>{{ s.label }}</option>{% endfor %}</select>
+    <label class="visually-hidden" for="f-pruefung">Prüfung</label>
+    <select id="f-pruefung" name="pruefung"><option value="">Prüfung: alle</option>{% for e in exams %}<option value="{{ e.id }}" {{ (query.pruefung ?? '') == e.id ~ '' ? 'selected' }}>{{ e.public_name }}</option>{% endfor %}</select>
+    <button class="btn btn--ghost btn--sm" type="submit">{{ icon('search') }}Anwenden</button>
+    {% if query is not empty %}<a class="link-quiet" href="/verwaltung/buchungen/">Zurücksetzen</a>{% endif %}
+  </form>
+  {% if rows is empty %}
+    <div class="empty">{{ icon('ticket') }}<p>{{ query is empty ? 'Noch keine Buchungen.' : 'Keine Treffer.' }}</p></div>
+  {% else %}
+    <div class="table-wrap" tabindex="0">
+      <table class="tbl">
+        <caption class="visually-hidden">Buchungen, {{ total }} Einträge</caption>
+        <thead><tr><th scope="col">Nummer</th><th scope="col">Teilnehmer/in</th><th scope="col">Prüfung</th><th scope="col">Termin</th><th scope="col">Status</th><th scope="col">Zahlung</th><th scope="col" class="num">Betrag</th><th scope="col">Gebucht</th></tr></thead>
+        <tbody>
+          {% for b in rows %}
+            <tr>
+              <th scope="row"><a href="/verwaltung/buchungen/{{ b.id }}/" class="mono">{{ b.public_ref }}</a></th>
+              <td>{{ b.first_name }} {{ b.last_name }}<br><span class="text-muted text-sm">{{ b.email }}</span></td>
+              <td>{{ b.exam_name }}</td>
+              <td>{{ b.starts_at|utc|date('d.m.Y H:i') }}</td>
+              <td>{{ ui.status(b.status, labels.booking_status) }}</td>
+              <td>{{ ui.status(b.payment_status, labels.payment_status) }}</td>
+              <td class="num">{{ b.total_cents|money(b.currency) }}</td>
+              <td>{{ b.created_at|utc|date('d.m.Y H:i') }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <p class="text-muted text-sm">{{ total }} Buchungen</p>
+    {{ ui.pager(page, pages, query, '/verwaltung/buchungen/') }}
+  {% endif %}
+{% endblock %}

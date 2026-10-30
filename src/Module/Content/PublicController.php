@@ -53,18 +53,32 @@ final class PublicController
         }
         $page = $this->content->publishedPage($slug);
         if ($page !== null && !in_array($slug, ['leistungen', 'faq', 'preise', 'kontakt', 'standorte'], true)) {
-            $tpl = match ($page['template']) {
-                'legal' => 'public/page_legal.twig',
-                'about' => 'public/page_about.twig',
-                default => 'public/page.twig',
-            };
-            return Response::html($this->view->render($tpl, [
-                'page' => $page,
-                'reviews' => $page['template'] === 'about' ? $this->content->reviews() : [],
-                'locations' => $page['template'] === 'about' ? $this->locations->active() : [],
-            ]));
+            return Response::html($this->pageHtml($page));
         }
         throw HttpException::notFound();
+    }
+
+    /** @param array<string,mixed> $page */
+    public function pageHtml(array $page): string
+    {
+        $tpl = match ($page['template']) {
+            'legal' => 'public/page_legal.twig',
+            'about' => 'public/page_about.twig',
+            default => 'public/page.twig',
+        };
+        return $this->view->render($tpl, [
+            'page' => $page,
+            'reviews' => $page['template'] === 'about' ? $this->content->reviews() : [],
+            'locations' => $page['template'] === 'about' ? $this->locations->active() : [],
+        ]);
+    }
+
+    /** Vorschau für die Verwaltung. @param array<string,mixed> $row */
+    public function serviceHtml(array $row): string
+    {
+        $service = $this->content->decodeService($row);
+        $parent = $row['parent_id'] ? $this->content->serviceById((int) $row['parent_id']) : null;
+        return (string) $this->renderService($service, $parent)->body;
     }
 
     public function childService(Request $req, string $parent, string $slug): Response

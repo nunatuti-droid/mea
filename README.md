@@ -10,9 +10,9 @@ Der Kern ist eine **dynamische Prüfungsverwaltung**: Jede Prüfung (z. B. telc 
 |---|---|---|
 | 1 | Bestandsaufnahme der alten Website | fertig |
 | 2 | Architektur, Datenmodell (`docs/adr/`) | fertig |
-| 3 | Öffentliche Website, Designsystem, Weiterleitungen, Tests | **dieser Stand** |
-| 4 | Buchung, PayPal, Backend mit 2FA | offen |
-| 5 | E-Mail-Warteschlange, Cron, Backups, Updates | offen |
+| 3 | Öffentliche Website, Designsystem, Weiterleitungen, Tests | fertig |
+| 4 | Verwaltung mit 2FA, Prüfungs- und Terminpflege, Kalender, Buchung, PayPal, E-Mail-Warteschlange | **dieser Stand** |
+| 5 | Betrieb: Backups, Updates, Überwachung, Dateiwächter | offen |
 | 6 | Umzug und Abnahme | offen |
 
 Anforderungen und Nachweise: [`docs/anforderungen.md`](docs/anforderungen.md). Designregeln: [`DESIGN.md`](DESIGN.md).
@@ -37,6 +37,26 @@ bin/console seed --demo       # --demo nur lokal/Vorschau: Beispieltermine und -
 bin/console serve             # http://127.0.0.1:8080
 ```
 
+### Erster Zugang zur Verwaltung
+
+```bash
+bin/console user:create-admin name@firma.de Vorname Nachname
+```
+
+Der Befehl gibt einen Einladungslink aus (48 Stunden gültig, einmal nutzbar). Darüber legt die Person ihr Passwort fest und richtet die Zwei-Faktor-Anmeldung mit einer Authenticator-App ein. Danach ist die Verwaltung unter `/verwaltung/` erreichbar; weitere Personen werden dort unter „Benutzer“ eingeladen.
+
+### Cronjob (jede Minute)
+
+```
+* * * * * cd /pfad/zur/website && php bin/console cron >/dev/null 2>&1
+```
+
+Der Cronjob gibt abgelaufene Reservierungen frei und versendet E-Mails aus der Warteschlange. Die Systemprüfung in der Verwaltung warnt, wenn er länger als 15 Minuten nicht gelaufen ist.
+
+### E-Mail und PayPal
+
+In `.env`: `MAIL_DSN` (SMTP-Zugang), `MAIL_FROM`, `MAIL_FROM_NAME` sowie `PAYPAL_MODE`, `PAYPAL_CLIENT_ID`, `PAYPAL_SECRET`, `PAYPAL_WEBHOOK_ID`. Ohne PayPal-Zugang ist die Online-Buchung gesperrt und die Website zeigt einen Hinweis. Ohne SMTP bleiben E-Mails in der Warteschlange und werden später gesendet. Webhook-Adresse bei PayPal: `https://DOMAIN/zahlung/paypal/webhook/` mit den Ereignissen `CHECKOUT.ORDER.APPROVED`, `PAYMENT.CAPTURE.COMPLETED`, `PAYMENT.CAPTURE.DENIED`, `PAYMENT.CAPTURE.REFUNDED`, `PAYMENT.CAPTURE.REVERSED`.
+
 `seed` legt Inhalte, Bilder (WebP in 480/960/1440/1920 px), Standorte, die Prüfungen A1–C1 als Entwurf ohne Preis, FAQ und Weiterleitungen an. `--demo` veröffentlicht die Prüfungen mit Beispielpreisen und -terminen und blendet einen Hinweis ein. Auf `APP_ENV=production` wird `--demo` verweigert.
 
 ## Tests
@@ -44,18 +64,22 @@ bin/console serve             # http://127.0.0.1:8080
 ```bash
 vendor/bin/phpunit                         # Unit- und Integrationstests (nutzt DB_NAME_TEST)
 npm install && BASE_URL=http://127.0.0.1:8080 npm run e2e   # Browser + Barrierefreiheit (axe)
+BASE=http://localhost:8080 ADMIN_EMAIL=… ADMIN_PASSWORD=… ADMIN_TOTP_SECRET=… node tests/e2e/admin.js   # Verwaltung (nur lokal)
 ```
+
+`tests/Integration/AcceptanceTest.php` enthält die verbindlichen Abnahmetests 7.9 (1–12): Eine neue Prüfung wird über die Verwaltung angelegt, veröffentlicht, gebucht und bezahlt (PayPal als Testdouble).
 
 Die Integrationstests bauen die Testdatenbank bei jedem Lauf neu auf. Deren Name muss „test“ enthalten.
 
 ## Aufbau
 
 ```
-bin/console          Kommandozeile (migrate, seed, serve)
+bin/console          Kommandozeile (migrate, seed, seed:emails, user:create-admin, cron, mail:send, serve)
 migrations/          Datenbankschema (Phinx, reines SQL, mit Rücknahme)
 public/              Document Root: index.php, CSS, JS, Schriften, erzeugte Bilder
 src/Core/            Router, Request/Response, Datenbank, Twig, Sitzung, CSRF
-src/Module/          Content, Exams, Locations, Inquiries, Media, Seo
+src/Admin/           Verwaltung: Anmeldung, Rechte, Formular-Baukasten, Bereiche
+src/Module/          Content, Exams, Bookings, Payments, Mail, Auth, Audit, Locations, Inquiries, Media, Seo
 src/Install/         Startdaten (ContentSeeder) und Vorschaudaten (DemoSeeder)
 templates/           Twig-Templates; ein Template für alle Prüfungen
 seeds/media/         Original-Fotos und Logos
@@ -75,6 +99,8 @@ tests/               Unit, Integration, e2e
 - CSP ohne Inline-Skripte, CSRF auf allen Formularen, IP-Adressen nur als Hash.
 - E-Mail-Adresse erscheint nicht im HTML-Quelltext; sie wird erst beim Klick zusammengesetzt.
 - Karte (OpenStreetMap) lädt erst nach Zustimmung per Klick. Keine Tracking-Cookies.
+- Verwaltung: Passwörter mit Argon2id, Zwei-Faktor-Anmeldung (TOTP) Pflicht, Backup-Codes, Kontosperre nach 5 Fehlversuchen, widerrufbare Sitzungen (30 Minuten Inaktivität, 12 Stunden maximal), erneute Bestätigung für kritische Aktionen, Rollen (Administrator, Redaktion, Buchungsverwaltung), Änderungsprotokoll ohne Geheimnisse.
+- Buchung: Platz per Zeilensperre, bestätigt nur nach serverseitigem Einzug oder geprüftem Webhook, Betrag wird abgeglichen, doppelte Ereignisse werden erkannt.
 
 ## Rechtliches
 

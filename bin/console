@@ -40,10 +40,57 @@ switch ($cmd) {
             echo "Beispieltermine angelegt (nur Vorschau).\n";
         }
         exit(0);
+    case 'seed:emails':
+        $n = (new \Mea\Install\EmailTemplateSeeder(Database::fromConfig($config)))->run();
+        echo "$n E-Mail-Vorlage(n) ergänzt (vorhandene bleiben unverändert).\n";
+        exit(0);
+    case 'user:create-admin':
+        // Erstes Administratorkonto: erzeugt eine Einladung. Der Link erscheint nur hier im Terminal.
+        $email = (string) ($argv[2] ?? '');
+        $name = trim(implode(' ', array_slice($argv, 3)));
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL) || $name === '') {
+            fwrite(STDERR, "Aufruf: bin/console user:create-admin <email> <Vorname Nachname>\n");
+            exit(1);
+        }
+        $app = new \Mea\Core\App($root);
+        try {
+            $r = $app->auth->invite($email, $name, 'admin', null);
+        } catch (\DomainException $e) {
+            fwrite(STDERR, $e->getMessage() . "\n");
+            exit(1);
+        }
+        echo "Einladung angelegt. Link (48 Stunden gültig, nur einmal nutzbar):\n";
+        echo $app->mailer->url('/verwaltung/einladung/' . $r['token'] . '/') . "\n";
+        echo "Hinweis: Die Einladung liegt auch in der E-Mail-Warteschlange.\n";
+        exit(0);
+    case 'mail:send':
+        $app = new \Mea\Core\App($root);
+        $w = $app->outbox();
+        if (!$w->isConfigured()) {
+            fwrite(STDERR, "E-Mail-Versand nicht eingerichtet (MAIL_DSN, MAIL_FROM).\n");
+            exit(1);
+        }
+        $r = $w->run((int) ($argv[2] ?? 50));
+        echo "{$r['sent']} gesendet, {$r['failed']} fehlgeschlagen.\n";
+        exit(0);
+    case 'cron':
+        // Jede Minute per Cronjob aufrufen. Eine Sperrdatei verhindert parallele Läufe.
+        $lock = fopen($root . '/storage/cron.lock', 'c');
+        if ($lock === false || !flock($lock, LOCK_EX | LOCK_NB)) {
+            exit(0);
+        }
+        $app = new \Mea\Core\App($root);
+        $expired = $app->bookings()->expireReservations();
+        $mail = $app->outbox()->run(50);
+        $app->settings->set('cron_last_run', gmdate('Y-m-d H:i:s'));
+        if ($expired || $mail['sent'] || $mail['failed']) {
+            $app->log->info('cron', ['expired' => $expired] + $mail);
+        }
+        exit(0);
     case 'serve':
         $port = $argv[2] ?? '8080';
         passthru('php -S 127.0.0.1:' . (int) $port . ' -t ' . escapeshellarg($root . '/public') . ' ' . escapeshellarg($root . '/public/index.php'));
         exit(0);
     default:
-        echo "Befehle:\n  migrate            Datenbank auf den neuesten Stand bringen\n  migrate:rollback   letzte Migration zurücknehmen\n  seed [--demo]      Startdaten anlegen (--demo: Beispieltermine, nur Vorschau)\n  serve [port]       lokaler Entwicklungsserver\n";
+        echo "Befehle:\n  migrate            Datenbank auf den neuesten Stand bringen\n  migrate:rollback   letzte Migration zurücknehmen\n  seed [--demo]      Startdaten anlegen (--demo: Beispieltermine, nur Vorschau)\n  seed:emails        fehlende E-Mail-Vorlagen ergänzen\n  user:create-admin <email> <name>  erstes Administratorkonto einladen\n  mail:send [n]      E-Mail-Warteschlange abarbeiten\n  cron               jede Minute: Reservierungen freigeben, E-Mails senden\n  serve [port]       lokaler Entwicklungsserver\n";
 }

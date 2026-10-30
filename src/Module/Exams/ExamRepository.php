@@ -71,6 +71,15 @@ final class ExamRepository
         return $e === null ? null : $this->decorate($e, true);
     }
 
+    /** Für die Vorschau in der Verwaltung: beliebiger Stand eines Datensatzes. @param array<string,mixed> $row @return array<string,mixed> */
+    public function previewRow(array $row): array
+    {
+        $p = isset($row['provider_id']) && $row['provider_id'] !== null ? $this->db->one('SELECT name, website FROM exam_providers WHERE id = ?', [$row['provider_id']]) : null;
+        $row['provider_name'] = $p['name'] ?? null;
+        $row['provider_website'] = $p['website'] ?? null;
+        return $this->decorate($row, true);
+    }
+
     public function isArchived(string $slug): bool
     {
         return $this->db->value("SELECT 1 FROM exam_types WHERE slug = ? AND status = 'archived'", [$slug]) !== null;

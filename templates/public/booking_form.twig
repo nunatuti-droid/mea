@@ -1,0 +1,146 @@
+{% extends 'layout/base.twig' %}
+{% import 'partials/macros.twig' as ui %}
+{% set seo_title = 'Anmeldung: ' ~ exam.public_name %}
+{% set canonical = '/pruefungen/' ~ exam.slug ~ '/' %}
+{% set robots_noindex = true %}
+{% macro err(errors, name) %}{% if errors[name] is defined %}<p class="field__error" id="{{ name }}-error">{{ icon('circle-alert') }}{{ errors[name] }}</p>{% endif %}{% endmacro %}
+{% macro input(name, def, required, values, errors, type) %}
+  {% import _self as m %}
+  <div class="field{{ errors[name] is defined ? ' field--error' }}">
+    <label for="b-{{ name }}">{{ def.label }}{% if required %}<span class="req" aria-hidden="true">*</span>{% else %} <span class="hint">(optional)</span>{% endif %}</label>
+    {% if (type ?? def.type) == 'select' %}
+      <select class="select" id="b-{{ name }}" name="{{ name }}"{% if def.autocomplete is defined %} autocomplete="{{ def.autocomplete }}"{% endif %}>
+        {% for k, l in def.options %}<option value="{{ k }}"{% if (values[name] ?? '') == k %} selected{% endif %}>{{ l }}</option>{% endfor %}
+      </select>
+    {% else %}
+      <input class="input" id="b-{{ name }}" name="{{ name }}" type="{{ type ?? def.type }}"{% if required %} required aria-required="true"{% endif %}{% if def.max is defined %} maxlength="{{ def.max }}"{% endif %}{% if def.autocomplete is defined %} autocomplete="{{ def.autocomplete }}"{% endif %} value="{{ values[name] ?? '' }}"{% if errors[name] is defined or def.help is defined %} aria-describedby="{{ def.help is defined ? 'b-' ~ name ~ '-help ' }}{{ errors[name] is defined ? name ~ '-error' }}"{% endif %}{% if errors[name] is defined %} aria-invalid="true"{% endif %}>
+    {% endif %}
+    {% if def.help is defined %}<p class="hint" id="b-{{ name }}-help">{{ def.help }}</p>{% endif %}
+    {{ m.err(errors, name) }}
+  </div>
+{% endmacro %}
+{% import _self as f %}
+{% block content %}
+  {% include 'partials/page_hero.twig' with {title: 'Anmeldung: ' ~ exam.public_name, intro: session.starts_local|format_date(pattern="EEEE, d. MMMM yyyy, HH:mm 'Uhr'", locale='de') ~ ' · ' ~ session.location_name, media_id: null, crumbs: [{label: 'Prüfungen', url: '/telc-pruefungszentrum/'}, {label: exam.public_name, url: '/pruefungen/' ~ exam.slug ~ '/'}, {label: 'Anmeldung'}]} %}
+  <section class="section">
+    <div class="container booking-layout">
+      <div>
+        <ol class="steps-inline" aria-label="Ablauf">
+          <li aria-current="step"><span>1</span>Angaben</li><li><span>2</span>Zahlung mit PayPal</li><li><span>3</span>Bestätigung per E-Mail</li>
+        </ol>
+        {% if not payment_available %}
+          <div class="notice notice--warning">{{ icon('circle-alert') }}<p><strong>Die Online-Zahlung ist gerade nicht verfügbar.</strong> Bitte melden Sie sich <a href="/kontakt/?pruefung={{ exam.public_name|url_encode }}">per Nachricht</a> oder telefonisch unter <a href="tel:{{ site.company.phone|tel }}">{{ site.company.phone_display }}</a> an.</p></div>
+        {% else %}
+        {% if form_error is defined and form_error %}<div class="alert alert--error" role="alert">{{ icon('circle-alert') }}<span>{{ form_error }}</span></div>{% endif %}
+        {% if errors is not empty %}
+          <div class="alert alert--error" role="alert" tabindex="-1" id="form-errors">{{ icon('circle-alert') }}<span>Bitte prüfen Sie {{ errors|length == 1 ? 'das markierte Feld' : 'die ' ~ errors|length ~ ' markierten Felder' }}.</span></div>
+        {% endif %}
+        <form class="form mt-5" method="post" novalidate>
+          <input type="hidden" name="_csrf" value="{{ csrf }}">
+          <input type="hidden" name="_t" value="{{ form_started }}">
+          <div class="hp" aria-hidden="true"><label for="website">Website (bitte leer lassen)</label><input id="website" name="website" type="text" tabindex="-1" autocomplete="off"></div>
+          <fieldset class="fieldset">
+            <legend>Teilnehmerin oder Teilnehmer</legend>
+            <p class="hint text-muted">Bitte genau wie im Ausweis schreiben. Diese Angaben erscheinen auf dem Zertifikat.</p>
+            {% if 'salutation' in required %}{{ f.input('salutation', standard.salutation, false, values, errors) }}{% endif %}
+            <div class="form__row">
+              {{ f.input('first_name', standard.first_name, true, values, errors) }}
+              {{ f.input('last_name', standard.last_name, true, values, errors) }}
+            </div>
+            {% if 'birth_date' in required or 'birth_place' in required %}
+            <div class="form__row">
+              {% if 'birth_date' in required %}{{ f.input('birth_date', standard.birth_date, true, values, errors) }}{% endif %}
+              {% if 'birth_place' in required %}{{ f.input('birth_place', standard.birth_place, true, values, errors) }}{% endif %}
+            </div>
+            {% endif %}
+          </fieldset>
+          <fieldset class="fieldset">
+            <legend>Kontakt</legend>
+            <div class="form__row">
+              {{ f.input('email', standard.email, true, values, errors) }}
+              {{ f.input('phone', standard.phone, 'phone' in required, values, errors) }}
+            </div>
+            {% if 'address' in required %}
+              {{ f.input('street', {label: 'Straße und Hausnummer', max: 150, autocomplete: 'street-address', type: 'text'}, true, values, errors) }}
+              <div class="form__row form__row--zip">
+                {{ f.input('postal_code', {label: 'PLZ', max: 10, autocomplete: 'postal-code', type: 'text'}, true, values, errors) }}
+                {{ f.input('city', {label: 'Ort', max: 80, autocomplete: 'address-level2', type: 'text'}, true, values, errors) }}
+              </div>
+            {% endif %}
+          </fieldset>
+          {% if custom is not empty %}
+            <fieldset class="fieldset">
+              <legend>Weitere Angaben für diese Prüfung</legend>
+              {% for c in custom %}
+                {% set n = 'x_' ~ c.field_key %}
+                {% if c.field_type == 'checkbox' %}
+                  <div class="field{{ errors[n] is defined ? ' field--error' }}">
+                    <label class="check"><input type="checkbox" name="{{ n }}" value="1"{% if (values[n] ?? '') == '1' %} checked{% endif %}{% if errors[n] is defined %} aria-invalid="true" aria-describedby="{{ n }}-error"{% endif %}><span>{{ c.label }}{% if c.is_required %}<span class="req" aria-hidden="true">*</span>{% endif %}</span></label>
+                    {% if c.help_text %}<p class="hint">{{ c.help_text }}</p>{% endif %}
+                    {{ f.err(errors, n) }}
+                  </div>
+                {% elseif c.field_type == 'select' %}
+                  {% set opts = {'': 'Bitte wählen'} %}{% for o in c.options %}{% set opts = opts|merge({(o): o}) %}{% endfor %}
+                  {{ f.input(n, {label: c.label, type: 'select', options: opts, help: c.help_text ?: null}|filter(v => v is not null), c.is_required, values, errors) }}
+                {% elseif c.field_type == 'textarea' %}
+                  <div class="field{{ errors[n] is defined ? ' field--error' }}">
+                    <label for="b-{{ n }}">{{ c.label }}{% if c.is_required %}<span class="req" aria-hidden="true">*</span>{% else %} <span class="hint">(optional)</span>{% endif %}</label>
+                    <textarea class="textarea" id="b-{{ n }}" name="{{ n }}" maxlength="2000"{% if errors[n] is defined %} aria-invalid="true" aria-describedby="{{ n }}-error"{% endif %}>{{ values[n] ?? '' }}</textarea>
+                    {% if c.help_text %}<p class="hint">{{ c.help_text }}</p>{% endif %}
+                    {{ f.err(errors, n) }}
+                  </div>
+                {% else %}
+                  {{ f.input(n, {label: c.label, type: c.field_type == 'number' ? 'text' : c.field_type, help: c.help_text ?: null, max: 255}|filter(v => v is not null), c.is_required, values, errors) }}
+                {% endif %}
+              {% endfor %}
+            </fieldset>
+          {% endif %}
+          {% if optional_fees is not empty %}
+            <fieldset class="fieldset">
+              <legend>Zusatzleistungen</legend>
+              {% for fee in optional_fees %}
+                <label class="check"><input type="checkbox" name="fees[]" value="{{ fee.id }}"{% if fee.id in chosen_fees %} checked{% endif %}><span>{{ fee.label }} (+ {{ fee.amount_cents|money(exam.currency) }})</span></label>
+              {% endfor %}
+            </fieldset>
+          {% endif %}
+          <fieldset class="fieldset">
+            <legend>Bedingungen</legend>
+            {% if rule.terms_html %}<div class="prose prose--sm terms-box">{{ rule.terms_html|raw }}</div>{% endif %}
+            <div class="field{{ errors.terms is defined ? ' field--error' }}">
+              <label class="check"><input type="checkbox" name="terms" value="1"{% if (values.terms ?? '') == '1' %} checked{% endif %}{% if errors.terms is defined %} aria-invalid="true" aria-describedby="terms-error"{% endif %}><span>Ich akzeptiere die {% if has_agb %}<a href="/agb/" target="_blank" rel="noopener">AGB</a> und die {% endif %}Teilnahme- und Zahlungsbedingungen für diese Prüfung.<span class="req" aria-hidden="true">*</span></span></label>
+              {{ f.err(errors, 'terms') }}
+            </div>
+            <div class="field{{ errors.privacy is defined ? ' field--error' }}">
+              <label class="check"><input type="checkbox" name="privacy" value="1"{% if (values.privacy ?? '') == '1' %} checked{% endif %}{% if errors.privacy is defined %} aria-invalid="true" aria-describedby="privacy-error"{% endif %}><span>Ich habe die <a href="/datenschutz/" target="_blank" rel="noopener">Datenschutzhinweise</a> gelesen. Meine Angaben werden zur Durchführung der Prüfung verarbeitet und an den Prüfungsanbieter übermittelt.<span class="req" aria-hidden="true">*</span></span></label>
+              {{ f.err(errors, 'privacy') }}
+            </div>
+          </fieldset>
+          <p class="hint text-muted mb-0">Felder mit <span class="req" aria-hidden="true">*</span> sind Pflichtfelder. Nach dem Klick reservieren wir Ihren Platz {{ rule.reservation_minutes ?? 20 }} Minuten lang und leiten Sie zu PayPal weiter. Die Anmeldung ist erst nach erfolgreicher Zahlung verbindlich.</p>
+          <div><button class="btn btn--lg" type="submit">{{ icon('ticket') }}Zahlungspflichtig anmelden{% if session.price %} · {{ session.price.total_cents|money(session.price.currency) }}{% endif %}</button></div>
+        </form>
+        {% endif %}
+      </div>
+      <aside class="booking-summary" aria-labelledby="summary-title">
+        <h2 id="summary-title" class="h-sm">Ihre Auswahl</h2>
+        <p class="booking-summary__exam">{{ exam.public_name }}</p>
+        <ul class="facts">
+          <li>{{ icon('calendar') }}<span>{{ session.starts_local|format_date(pattern="EEEE, d. MMMM yyyy", locale='de') }}<br>{{ session.starts_local|date('H:i') }} Uhr</span></li>
+          <li>{{ icon('map-pin') }}<span>{{ session.location_name }}</span></li>
+          <li>{{ icon('users') }}<span>{{ session.seats_free }} {{ session.seats_free == 1 ? 'Platz' : 'Plätze' }} frei</span></li>
+          <li>{{ icon('clock') }}<span>Anmeldeschluss {{ session.deadline_local|date('d.m.Y') }}</span></li>
+        </ul>
+        {% if session.price %}
+          <table class="price-table">
+            <caption class="visually-hidden">Preis</caption>
+            <tr><th scope="row">Prüfungsgebühr</th><td>{{ session.price.base_cents|money(session.price.currency) }}</td></tr>
+            {% for fee in session.price.fees %}<tr><th scope="row">{{ fee.label }}</th><td>{{ fee.amount_cents|money(session.price.currency) }}</td></tr>{% endfor %}
+            <tr class="price-table__total"><th scope="row">Gesamt</th><td>{{ session.price.total_cents|money(session.price.currency) }}</td></tr>
+          </table>
+          {% if optional_fees is not empty %}<p class="hint">Gewählte Zusatzleistungen kommen hinzu.</p>{% endif %}
+        {% endif %}
+        {% if session.notes_public %}<p class="hint">{{ session.notes_public }}</p>{% endif %}
+        <p class="hint">{{ icon('shield-check') }} Die Zahlung läuft über PayPal. Kartendaten werden nicht bei uns gespeichert.</p>
+      </aside>
+    </div>
+  </section>
+{% endblock %}

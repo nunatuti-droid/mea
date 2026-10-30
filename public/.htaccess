@@ -22,3 +22,11 @@ Options -Indexes
 <Files "index.php">
   Require all granted
 </Files>
+
+# Auch statische Dateien (Bilder, PDFs) nie als anderen Typ interpretieren
+<IfModule mod_headers.c>
+  Header always set X-Content-Type-Options "nosniff"
+  <FilesMatch "\.pdf$">
+    Header set Content-Disposition "inline"
+  </FilesMatch>
+</IfModule>

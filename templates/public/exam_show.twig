@@ -47,6 +47,7 @@
       </div>
 
       <div id="termine">
+        {% if notice %}<div class="alert alert--error mb-5" role="alert">{{ icon('circle-alert') }}<span>{{ notice }}</span></div>{% endif %}
         <h2 class="mt-7">Termine und Anmeldung</h2>
         {% if exam.sessions is not empty %}
           <div class="sessions">

@@ -1,0 +1,15 @@
+{% extends 'admin/layout.twig' %}
+{% set title = 'Anmelden' %}
+{% block auth %}
+  <h1>Anmelden</h1>
+  {% if notice %}<div class="alert alert--info" role="status">{{ icon('info') }}<p>{{ notice }}</p></div>{% endif %}
+  {% if error is defined and error %}<div class="alert alert--error" role="alert">{{ icon('circle-alert') }}<p>{{ error }}</p></div>{% endif %}
+  <form method="post" action="/verwaltung/anmelden/">
+    <input type="hidden" name="_csrf" value="{{ csrf }}">
+    <input type="hidden" name="weiter" value="{{ next }}">
+    <div class="field"><label for="email">E-Mail-Adresse</label><input id="email" type="email" name="email" value="{{ email }}" autocomplete="username" required autofocus></div>
+    <div class="field"><label for="password">Passwort</label><input id="password" type="password" name="password" autocomplete="current-password" required></div>
+    <button class="btn btn--primary" type="submit">Weiter</button>
+  </form>
+  <p class="text-sm" class="mt"><a href="/verwaltung/passwort-vergessen/">Passwort vergessen?</a></p>
+{% endblock %}

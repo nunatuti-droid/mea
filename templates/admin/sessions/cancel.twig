@@ -1,0 +1,17 @@
+{% extends 'admin/layout.twig' %}
+{% import 'admin/partials/ui.twig' as ui %}
+{% block content %}
+  <p class="crumb"><a href="/verwaltung/termine/{{ s.id }}/">{{ icon('arrow-left') }}Zurück zum Termin</a></p>
+  <h1>Termin absagen</h1>
+  <p><strong>{{ s.public_name }}</strong> am {{ s.starts_at|utc|date('d.m.Y \\u\\m H:i') }} Uhr, {{ s.location }}</p>
+  <div class="alert alert--warning" role="status">{{ icon('circle-alert') }}<div>
+    <p>{{ bookings|length }} aktive Buchungen. Offene Reservierungen werden freigegeben.</p>
+    {% if paid is not empty %}<p><strong>{{ paid|length }} Buchungen sind bezahlt.</strong> Zahlungen werden nicht automatisch erstattet. Entscheiden Sie danach bei jeder Buchung über Erstattung oder Umbuchung.</p>{% endif %}
+  </div></div>
+  <form method="post" class="card stack" data-confirm="Termin wirklich absagen?">
+    <input type="hidden" name="_csrf" value="{{ csrf }}">
+    <div class="field"><label for="reason">Grund (erscheint in der E-Mail an die Teilnehmenden) <span class="req" aria-hidden="true">*</span></label><textarea id="reason" name="reason" rows="3" maxlength="500" required></textarea></div>
+    <label class="check"><input type="checkbox" name="notify" value="1" checked> <span>Alle bestätigten Teilnehmenden per E-Mail informieren</span></label>
+    <div class="row"><button class="btn btn--danger" type="submit">{{ icon('ban') }}Termin absagen</button><a class="btn btn--ghost" href="/verwaltung/termine/{{ s.id }}/">Abbrechen</a></div>
+  </form>
+{% endblock %}

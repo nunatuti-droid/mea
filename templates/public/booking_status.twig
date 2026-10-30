@@ -1,0 +1,51 @@
+{% extends 'layout/base.twig' %}
+{% set seo_title = 'Ihre Anmeldung ' ~ b.public_ref %}
+{% set robots_noindex = true %}
+{% set canonical = '/' %}
+{% block content %}
+  {% set s = b.snapshot %}
+  {% set st = b.status %}
+  <section class="section">
+    <div class="container">
+      {% if notice %}<div class="alert alert--info mb-5" role="status">{{ icon('info') }}<span>{{ notice }}</span></div>{% endif %}
+      <div class="status-card">
+        <div class="status-card__head">
+          {% if st == 'confirmed' %}
+            <span class="status-card__icon">{{ icon('circle-check') }}</span>
+            <div><h1 class="h2">Anmeldung bestätigt</h1><p class="mb-0">Vielen Dank! Ihre Zahlung ist eingegangen. Die Bestätigung haben wir an {{ b.participant.email }} gesendet.</p></div>
+          {% elseif st in ['reserved', 'pending_payment'] and can_pay %}
+            <span class="status-card__icon status-card__icon--warn">{{ icon('clock') }}</span>
+            <div><h1 class="h2">Platz reserviert – Zahlung offen</h1><p class="mb-0">Ihr Platz ist bis {{ b.reserved_until|utc|date('H:i') }} Uhr reserviert. Die Anmeldung wird erst mit der Zahlung verbindlich.</p></div>
+          {% elseif st in ['reserved', 'pending_payment'] %}
+            <span class="status-card__icon status-card__icon--warn">{{ icon('clock') }}</span>
+            <div><h1 class="h2">Zahlung wird geprüft</h1><p class="mb-0">Sobald PayPal die Zahlung bestätigt, erhalten Sie eine E-Mail. Falls nicht, melden Sie sich bitte bei uns.</p></div>
+          {% else %}
+            <span class="status-card__icon status-card__icon--bad">{{ icon('circle-x') }}</span>
+            <div><h1 class="h2">{{ st == 'expired' ? 'Reservierung abgelaufen' : 'Anmeldung storniert' }}</h1><p class="mb-0">{{ b.cancel_reason ?: 'Diese Anmeldung ist nicht mehr aktiv.' }}</p></div>
+          {% endif %}
+        </div>
+        <dl class="dl">
+          <dt>Anmeldenummer</dt><dd>{{ b.public_ref }}</dd>
+          <dt>Prüfung</dt><dd>{{ s.exam.public_name }}</dd>
+          <dt>Termin</dt><dd>{{ b.starts_local ? b.starts_local|format_date(pattern="EEEE, d. MMMM yyyy, HH:mm 'Uhr'", locale='de') : '' }}</dd>
+          <dt>Ort</dt><dd>{{ s.session.location.name }}, {{ s.session.location.street }}{% if s.session.location.address_extra %}, {{ s.session.location.address_extra }}{% endif %}, {{ s.session.location.postal_code }} {{ s.session.location.city }}</dd>
+          <dt>Teilnehmer/in</dt><dd>{{ b.participant.first_name }} {{ b.participant.last_name }}</dd>
+          <dt>Betrag</dt><dd>{{ b.total_cents|money(b.currency) }}</dd>
+        </dl>
+        {% if can_pay %}
+          <div class="btn-row mt-6">
+            <form method="post" action="/buchung/{{ b.public_ref }}/bezahlen/">
+              <input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="k" value="{{ key }}">
+              <button class="btn" type="submit">{{ icon('euro') }}Jetzt mit PayPal bezahlen</button>
+            </form>
+            <form method="post" action="/buchung/{{ b.public_ref }}/bezahlen/">
+              <input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="k" value="{{ key }}"><input type="hidden" name="action" value="cancel">
+              <button class="btn btn--secondary" type="submit">Reservierung aufheben</button>
+            </form>
+          </div>
+        {% endif %}
+        <p class="hint text-muted mt-6">Fragen? Rufen Sie uns an: <a href="tel:{{ site.company.phone|tel }}">{{ site.company.phone_display }}</a>. Bitte nennen Sie Ihre Anmeldenummer.</p>
+      </div>
+    </div>
+  </section>
+{% endblock %}

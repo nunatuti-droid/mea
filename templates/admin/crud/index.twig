@@ -1,0 +1,62 @@
+{% extends 'admin/layout.twig' %}
+{% import 'admin/partials/ui.twig' as ui %}
+{% set title = r.plural %}
+{% block content %}
+  <div class="adm-head">
+    <div>
+      <h1>{{ r.plural }}</h1>
+      {% if r.intro %}<p class="adm-head__intro">{{ r.intro }}</p>{% endif %}
+    </div>
+    {% if r.creatable %}<a class="btn btn--primary" href="/verwaltung/{{ r.key }}/neu/">{{ icon('plus') }}{{ r.singular }} anlegen</a>{% endif %}
+  </div>
+  {% if r.indexPanel %}{% include r.indexPanel %}{% endif %}
+  {% if r.searchColumns is not empty or filters is not empty %}
+    <form class="toolbar" method="get" role="search">
+      {% if r.searchColumns is not empty %}
+        <label class="visually-hidden" for="q">Suchen</label>
+        <input type="search" id="q" name="q" value="{{ q }}" placeholder="Suchen …">
+      {% endif %}
+      {% for f in filters %}
+        <label class="visually-hidden" for="filter-{{ f.name }}">{{ f.label }}</label>
+        <select id="filter-{{ f.name }}" name="{{ f.name }}">
+          <option value="">{{ f.label }}: alle</option>
+          {% for k, l in f.options %}<option value="{{ k }}" {{ filter_values[f.name] == (k ~ '') ? 'selected' }}>{{ l }}</option>{% endfor %}
+        </select>
+      {% endfor %}
+      <button class="btn btn--ghost btn--sm" type="submit">{{ icon('search') }}Anwenden</button>
+      {% if query is not empty %}<a class="link-quiet" href="/verwaltung/{{ r.key }}/">Zurücksetzen</a>{% endif %}
+    </form>
+  {% endif %}
+  {% if rows is empty %}
+    <div class="empty">{{ icon('inbox') }}<p>{{ query is not empty ? 'Keine Treffer.' : 'Noch keine Einträge.' }}</p></div>
+  {% else %}
+    <div class="table-wrap" tabindex="0">
+      <table class="tbl">
+        <caption class="visually-hidden">{{ r.plural }}, {{ total }} Einträge</caption>
+        <thead><tr>{% for c in r.columns() %}<th scope="col"{% if c.format is defined and c.format in ['money', 'int'] %} class="num"{% endif %}>{{ c.label }}</th>{% endfor %}</tr></thead>
+        <tbody>
+          {% for row in rows %}
+            <tr>
+              {% for c in r.columns() %}
+                {% set v = row[c.key] ?? null %}
+                {% set fmt = c.format ?? 'text' %}
+                {% if loop.first %}<th scope="row"><a href="/verwaltung/{{ r.key }}/{{ row.id }}/">{{ v ?: '(ohne Titel)' }}</a></th>
+                {% else %}
+                  <td{% if fmt in ['money', 'int'] %} class="num"{% endif %}>
+                    {% if fmt == 'money' %}{{ v is null ? '–' : v|money }}
+                    {% elseif fmt == 'datetime' %}{{ v ? v|utc|date('d.m.Y H:i') : '–' }}
+                    {% elseif fmt == 'date' %}{{ v ? v|date('d.m.Y', false) : '–' }}
+                    {% elseif fmt starts with 'status:' %}{{ ui.status(v ~ '', labels[fmt|slice(7)]) }}
+                    {% else %}{{ v ?? '–' }}{% endif %}
+                  </td>
+                {% endif %}
+              {% endfor %}
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <p class="text-muted text-sm">{{ total }} {{ total == 1 ? 'Eintrag' : 'Einträge' }}</p>
+    {{ ui.pager(page, pages, query, '/verwaltung/' ~ r.key ~ '/') }}
+  {% endif %}
+{% endblock %}

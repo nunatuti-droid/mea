@@ -5,7 +5,7 @@ namespace Mea\Module\Inquiries;
 
 use Mea\Core\Database;
 
-/** Prüft und speichert Kontaktanfragen. Der Mailversand folgt in Phase 4 über die Warteschlange. */
+/** Prüft und speichert Kontaktanfragen. Die Benachrichtigung ans Büro läuft über die E-Mail-Warteschlange. */
 final class InquiryService
 {
     public const TOPICS = [
