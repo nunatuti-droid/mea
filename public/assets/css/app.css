@@ -54,7 +54,7 @@
 
   --s-1: 4px; --s-2: 8px; --s-3: 12px; --s-4: 16px; --s-5: 24px;
   --s-6: 32px; --s-7: 48px; --s-8: 64px; --s-9: 96px;
-  --section: clamp(56px, 4rem + 3vw, 96px);
+  --section: clamp(44px, 2.25rem + 2vw, 72px);
   --container: 1200px;
   --gutter: clamp(16px, 3vw, 24px);
 
@@ -101,7 +101,7 @@ a:hover { color: var(--c-action-hover); }
 .section--alt { background: var(--c-surface-alt); }
 .section--ink { background: var(--c-ink); color: var(--c-on-dark-muted); }
 .section--ink h2, .section--ink h3 { color: var(--c-on-dark); }
-.section-head { max-width: 760px; margin-bottom: var(--s-7); }
+.section-head { max-width: 760px; margin-bottom: var(--s-6); }
 .section-head--split { max-width: none; display: flex; flex-wrap: wrap; gap: var(--s-5); align-items: end; justify-content: space-between; }
 .section-head--split > div { max-width: 680px; }
 .section-head p { color: var(--c-muted); font-size: var(--fs-lead); margin: 0; }
@@ -267,7 +267,7 @@ body.nav-open { overflow: hidden; }
 /* Seitenkopf für Unterseiten */
 .page-hero { background: var(--c-surface-alt); border-bottom: 1px solid var(--c-border); position: relative; overflow: hidden; isolation: isolate; }
 .page-hero::after { content: ""; position: absolute; right: -120px; top: -160px; width: 360px; height: 360px; border-radius: 48px; transform: rotate(45deg); background: var(--c-brand-soft); z-index: -1; }
-.page-hero__grid { display: grid; grid-template-columns: 1.1fr .9fr; gap: var(--s-8); align-items: center; padding-block: clamp(40px, 3rem + 2vw, 80px); }
+.page-hero__grid { display: grid; grid-template-columns: 1.1fr .9fr; gap: var(--s-8); align-items: center; padding-block: clamp(32px, 2rem + 1.5vw, 60px); }
 .page-hero__grid--single { grid-template-columns: 1fr; }
 .page-hero h1 { margin-bottom: var(--s-4); }
 .page-hero .lead { margin-bottom: var(--s-5); }
@@ -354,7 +354,7 @@ body.nav-open { overflow: hidden; }
 @media (max-width: 900px) { .split { grid-template-columns: 1fr; gap: var(--s-6); } .split--reverse .split__media { order: 0; } }
 
 /* Schritte */
-.steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr)); gap: var(--s-5); counter-reset: step; }
+.steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr)); gap: var(--s-5); counter-reset: step; }
 .steps li { position: relative; padding: var(--s-5); padding-top: var(--s-7); background: #fff; border-radius: var(--r-md); border: 1px solid var(--c-border); counter-increment: step; }
 .steps li::before {
   content: counter(step); position: absolute; top: -18px; left: var(--s-5); width: 40px; height: 40px; display: grid; place-items: center;
@@ -642,3 +642,54 @@ body.offline { min-height: 100vh; display: grid; place-items: center; padding: v
 .exam-group__head { margin-bottom: var(--s-5); max-width: 70ch; }
 .exam-group__head h3 { font-size: var(--fs-h3); margin-bottom: var(--s-2); }
 .exam-group__head p { color: var(--c-muted); margin: 0; }
+
+/* ---------- Punkt 6: Design-Feinschliff ---------- */
+/* Überschriften der Abschnitte dürfen breiter laufen, damit sie einzeilig bleiben; der Einleitungstext bleibt lesbar schmal */
+.section-head { max-width: none; }
+.section-head p { max-width: 68ch; }
+.section-head--split > div { max-width: 760px; }
+h1, h2, h3 { text-wrap: balance; }
+/* Zwei gleichfarbige Abschnitte hintereinander: kein doppelter Abstand */
+.section:not(.section--alt):not(.section--ink) + .section:not(.section--alt):not(.section--ink) { padding-top: 0; }
+.section--alt + .section--alt { padding-top: 0; }
+
+/* Standortangaben, Telefonnummern und WhatsApp ohne Unterstreichung */
+a[href^="tel:"], a[href^="https://wa.me"], .location-card h2 a, .location-card a, .contact-list a, .site-footer address a {
+  text-decoration: none;
+}
+a[href^="tel:"]:hover, a[href^="https://wa.me"]:hover, .location-card h2 a:hover, .contact-list a:hover { text-decoration: underline; text-decoration-thickness: 1px; }
+.location-card h2 a { color: var(--c-ink); }
+.location-card h2 a:hover { color: var(--c-action); }
+
+/* Formulare: ruhige Karte, klare Felder, sichtbarer Fokus */
+.form { background: #fff; border: 1px solid var(--c-border); border-radius: var(--r-lg); padding: clamp(20px, 3vw, 36px); box-shadow: var(--sh-card); gap: var(--s-5); }
+.form__row { gap: var(--s-4) var(--s-5); }
+.field { gap: 8px; }
+.field label, .field legend { font-size: var(--fs-sm); font-weight: 650; letter-spacing: .005em; }
+.field .hint { font-weight: 500; }
+.input, .select, .textarea {
+  min-height: 52px; padding: 13px 16px; border: 1.5px solid #c6d5d1; border-radius: 12px;
+  background: #fbfdfc; box-shadow: inset 0 1px 2px rgba(14,48,66,.04);
+  transition: border-color .15s, box-shadow .15s, background-color .15s;
+}
+.textarea { min-height: 150px; }
+.input::placeholder, .textarea::placeholder { color: #8a9ba3; }
+.input:hover, .select:hover, .textarea:hover { border-color: #9fb7b1; background: #fff; }
+.input:focus, .select:focus, .textarea:focus { background: #fff; border-color: var(--c-action); box-shadow: 0 0 0 4px rgba(49,117,102,.16); }
+.select {
+  appearance: none; -webkit-appearance: none; padding-right: 44px; cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%23317566' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 14px center; background-size: 20px;
+}
+.field--error .input, .field--error .select, .field--error .textarea { border-color: var(--c-danger); background: #fffafa; }
+.check { padding: 14px 16px; border: 1px solid var(--c-border); border-radius: 12px; background: var(--c-page); cursor: pointer; transition: border-color .15s; }
+.check:hover { border-color: #9fb7b1; }
+.check input { width: 20px; height: 20px; }
+.form .btn[type="submit"] { justify-self: start; min-width: 220px; box-shadow: 0 8px 20px -10px rgba(49,117,102,.7); }
+.form .btn[type="submit"]:hover { transform: translateY(-1px); }
+@media (max-width: 640px) { .form .btn[type="submit"] { justify-self: stretch; } }
+@media (prefers-reduced-motion: reduce) { .form .btn[type="submit"]:hover { transform: none; } }
+/* Beratungs-Band: Überschrift einzeilig halten */
+.cta-band h2 { font-size: clamp(1.5rem, 1.2rem + 1vw, 2rem); }
+.cta-band > :first-child { min-width: 0; }
+@media (max-width: 1100px) { .cta-band { grid-template-columns: 1fr; } }

@@ -58,3 +58,17 @@ Jede Änderung wird hier festgehalten. Das Gesamt-Update wird erst erstellt, wen
 **Nach dem Hochladen nötig:** `migrate` ausführen.
 
 **Geprüft:** 108 automatische Tests grün, Liste in der Verwaltung und Übersicht auf der Website angesehen.
+
+## Punkt 6: Design-Feinschliff
+
+**Was geändert wurde (alle Seiten, nur Gestaltung)**
+- **Abstände:** Abschnittsabstand von bis zu 96 px auf höchstens 72 px reduziert (mobil 44 px). Abstand unter Abschnittsüberschriften von 48 px auf 32 px. Kopfbereich der Unterseiten flacher. Zwei gleichfarbige Abschnitte hintereinander bekommen keinen doppelten Abstand mehr. Dadurch sind die Abstände auf allen Unterseiten gleich.
+- **5-Schritte-Raster („Unser Rekrutierungsprozess im Überblick“):** alle fünf Karten stehen am Bildschirm jetzt in einer Reihe; die fünfte Karte rutscht nicht mehr allein in die nächste Zeile. Auf kleineren Bildschirmen umbrechen sie gleichmäßig.
+- **Überschriften:** Abschnittsüberschriften dürfen die volle Breite nutzen (die Überschrift oben bleibt einzeilig); Einleitungstexte bleiben angenehm schmal. Mehrzeilige Überschriften werden ausgeglichen umbrochen statt mit einem einzelnen Wort in der zweiten Zeile. Die Überschrift im grünen Beratungs-Band ist etwas kleiner und bleibt einzeilig.
+- **Formulare (Kontakt, Anmeldung):** Formular steht in einer weißen Karte mit Schatten; Felder größer und weicher (abgerundet, hellerer Hintergrund), deutlicher Hover- und Fokuszustand, eigene Pfeile in Auswahllisten, Zustimmungs-Häkchen in einem eigenen Kästchen, Absende-Schaltfläche mit leichtem Schatten (mobil volle Breite).
+- **Keine Unterstreichungen** mehr bei Telefonnummern, WhatsApp, Standortnamen und Standortangaben (Unterstreichung erst beim Darüberfahren).
+- Verwaltung: Such- und Filterleiste der Listen steht wieder in einer Zeile.
+
+**Dateien:** `public/assets/css/app.css`, `public/assets/css/admin.css`.
+
+**Geprüft:** Browser-Test aller Hauptseiten bei 1280 px und 375 px inkl. Barrierefreiheit (axe) ohne Befund.
