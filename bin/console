@@ -193,9 +193,21 @@ switch ($cmd) {
             exit(1);
         }
         $kp = \Mea\Module\Security\FileGuard::generateKeyPair();
-        file_put_contents($dir . '/mea-release.secret', $kp['secret']);
-        chmod($dir . '/mea-release.secret', 0600);
-        echo "Geheimer Schlüssel: $dir/mea-release.secret (sicher aufbewahren, nie auf den Server)\n";
+        if (in_array('--sealed', $argv, true)) {
+            // Verschlüsselt ablegen; Passphrase aus MEA_RELEASE_PASSPHRASE
+            $target = $dir . '/mea-release.secret.sealed';
+            if (file_exists($target)) {
+                fwrite(STDERR, "$target existiert bereits und wird nicht überschrieben.\n");
+                exit(1);
+            }
+            file_put_contents($target, \Mea\Module\Ops\SealedKey::seal($kp['secret'], \Mea\Module\Ops\SealedKey::passphrase()));
+            @chmod($target, 0600);
+            echo "Verschlüsselter geheimer Schlüssel: $target\n";
+        } else {
+            file_put_contents($dir . '/mea-release.secret', $kp['secret']);
+            chmod($dir . '/mea-release.secret', 0600);
+            echo "Geheimer Schlüssel: $dir/mea-release.secret (sicher aufbewahren, nie auf den Server)\n";
+        }
         echo "In die .env des Servers eintragen:\nRELEASE_PUBLIC_KEY={$kp['public']}\n";
         exit(0);
     case 'release:build':
@@ -215,7 +227,7 @@ switch ($cmd) {
             fwrite(STDERR, "Aufruf: bin/console release:build <build-ordner> <version> <geheimer-schlüssel> <ziel.zip> [--changelog=datei] [--min=version]\n");
             exit(1);
         }
-        \Mea\Module\Ops\UpdateService::build(realpath($src), $version, trim((string) file_get_contents($keyFile)), $notes, $min, $out);
+        \Mea\Module\Ops\UpdateService::build(realpath($src), $version, \Mea\Module\Ops\SealedKey::load($keyFile), $notes, $min, $out);
         echo "Paket erstellt: $out (" . hash_file('sha256', $out) . ")\n";
         exit(0);
     case 'release:sign-manifest':
@@ -225,7 +237,7 @@ switch ($cmd) {
             fwrite(STDERR, "Aufruf: bin/console release:sign-manifest <geheimer-schlüssel>\n");
             exit(1);
         }
-        (new \Mea\Module\Security\FileGuard($root, null))->writeSignedManifest(trim((string) file_get_contents($keyFile)), trim((string) @file_get_contents($root . '/VERSION')));
+        (new \Mea\Module\Security\FileGuard($root, null))->writeSignedManifest(\Mea\Module\Ops\SealedKey::load($keyFile), trim((string) @file_get_contents($root . '/VERSION')));
         echo "integrity.json und integrity.sig geschrieben.\n";
         exit(0);
     case 'update:install':
