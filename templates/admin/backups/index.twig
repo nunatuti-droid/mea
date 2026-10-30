@@ -1,0 +1,58 @@
+{% extends 'admin/layout.twig' %}
+{% import 'admin/partials/ui.twig' as ui %}
+{% block content %}
+  <div class="adm-head">
+    <div><h1>Sicherungen</h1><p class="adm-head__intro">Gesichert werden Datenbank, Originalbilder und Medien. Die Dateien sind verschlüsselt und liegen außerhalb des öffentlichen Bereichs. Jede Nacht entsteht automatisch eine Sicherung.</p></div>
+    <form method="post" action="/verwaltung/sicherungen/erstellen/" class="inline"><input type="hidden" name="_csrf" value="{{ csrf }}"><button class="btn btn--primary" type="submit">{{ icon('database') }}Jetzt sichern</button></form>
+  </div>
+
+  {% set stale = not last_download or last_download|utc < date('-30 days') %}
+  {% if stale %}
+    <div class="alert alert--warning" role="status">{{ icon('circle-alert') }}<p><strong>Bitte eine Sicherung extern speichern.</strong> Eine Sicherung auf demselben Server schützt nicht vor einem Serverausfall. Laden Sie mindestens einmal im Monat die neueste Sicherung herunter und bewahren Sie sie getrennt auf.{% if last_download %} Zuletzt heruntergeladen: {{ last_download|utc|date('d.m.Y') }}.{% endif %}</p></div>
+  {% endif %}
+  {% if not own_key %}
+    <div class="alert alert--info" role="status">{{ icon('info') }}<p>Die Sicherungen sind mit einem Schlüssel aus <span class="mono">APP_KEY</span> verschlüsselt. Bewahren Sie die <span class="mono">.env</span>-Datei (oder einen eigenen <span class="mono">BACKUP_KEY</span>) getrennt und sicher auf. Ohne diesen Schlüssel lässt sich keine Sicherung wiederherstellen.</p></div>
+  {% endif %}
+
+  <div class="grid-3">
+    <div class="stat"><span class="stat__label">{{ icon('database') }}Letzte Sicherung</span><span class="stat__value">{{ last_ok ? last_ok.created_at|utc|date('d.m. H:i') : '–' }}</span></div>
+    <div class="stat{{ job and job.last_status == 'failed' ? ' stat--warn' }}"><span class="stat__label">{{ icon('timer') }}Nächtliche Sicherung</span><span class="stat__value">{{ not job ? 'noch nie' : (job.last_status == 'failed' ? 'Fehler' : 'in Ordnung') }}</span></div>
+    <div class="stat{{ stale ? ' stat--warn' }}"><span class="stat__label">{{ icon('download') }}Extern gespeichert</span><span class="stat__value">{{ last_download ? last_download|utc|date('d.m.Y') : 'nie' }}</span></div>
+  </div>
+  {% if job and job.last_status == 'failed' %}<p class="text-sm mt">Letzter Fehler: {{ job.last_message }}</p>{% endif %}
+
+  <section class="card mt">
+    <h2 class="h3">Vorhandene Sicherungen</h2>
+    {% if backups is empty %}<p class="text-muted">Noch keine Sicherung vorhanden.</p>{% else %}
+      <div class="table-wrap" tabindex="0"><table class="tbl tbl--compact"><caption class="visually-hidden">Sicherungen</caption>
+        <thead><tr><th scope="col">Zeitpunkt</th><th scope="col">Art</th><th scope="col">Ergebnis</th><th scope="col" class="num">Größe</th><th scope="col">Version</th><th scope="col">Aktionen</th></tr></thead>
+        <tbody>{% for b in backups %}<tr>
+          <td class="nowrap">{{ b.created_at|utc|date('d.m.Y H:i') }}{% if b.note %}<br><span class="text-sm text-muted">{{ b.note }}</span>{% endif %}</td>
+          <td>{{ kinds[b.kind] }}{% if b.user_name %}<br><span class="text-sm text-muted">{{ b.user_name }}</span>{% endif %}</td>
+          <td>{% if b.status == 'ok' %}<span class="badge badge--success">In Ordnung</span>{% if b.verified_at %}<br><span class="text-sm text-muted">geprüft {{ b.verified_at|utc|date('d.m. H:i') }}</span>{% endif %}{% elseif b.status == 'running' %}<span class="badge badge--neutral">Läuft</span>{% else %}<span class="badge badge--danger">Fehler</span><br><span class="text-sm">{{ b.error }}</span>{% endif %}</td>
+          <td class="num">{{ b.size_bytes ? ((b.size_bytes / 1048576)|number_format(1, ',', '.') ~ ' MB') : '–' }}</td>
+          <td class="mono text-sm">{{ b.app_version }}</td>
+          <td><div class="row">
+            {% if b.status == 'ok' %}
+              <a class="btn btn--ghost btn--sm" href="/verwaltung/sicherungen/{{ b.id }}/herunterladen/">{{ icon('download') }}Herunterladen</a>
+              <form method="post" action="/verwaltung/sicherungen/{{ b.id }}/pruefen/" class="inline"><input type="hidden" name="_csrf" value="{{ csrf }}"><button class="btn btn--ghost btn--sm" type="submit">{{ icon('shield-check') }}Prüfen</button></form>
+              <a class="btn btn--ghost btn--sm" href="/verwaltung/sicherungen/{{ b.id }}/wiederherstellen/">{{ icon('history') }}Wiederherstellen</a>
+            {% endif %}
+            {% if b.status != 'running' %}{{ ui.confirm_post('/verwaltung/sicherungen/' ~ b.id ~ '/loeschen/', 'Löschen', 'Sicherung endgültig löschen?', csrf, 'ghost', 'trash-2') }}{% endif %}
+          </div></td>
+        </tr>{% endfor %}</tbody>
+      </table></div>
+    {% endif %}
+  </section>
+
+  <section class="card">
+    <h2 class="h3">Sicherung hochladen</h2>
+    <p class="text-sm text-muted">Nur Sicherungen dieser Website (Endung .meabak) werden angenommen. Die Datei wird vor der Übernahme vollständig geprüft. Höchstgröße: {{ max_upload }}; größere Dateien bitte per SSH nach <span class="mono">storage/backups</span> kopieren.</p>
+    <form method="post" action="/verwaltung/sicherungen/hochladen/" enctype="multipart/form-data" class="row">
+      <input type="hidden" name="_csrf" value="{{ csrf }}">
+      <label class="visually-hidden" for="backup">Sicherungsdatei</label>
+      <input type="file" id="backup" name="backup" accept=".meabak" required>
+      <button class="btn btn--ghost" type="submit">{{ icon('upload') }}Hochladen und prüfen</button>
+    </form>
+  </section>
+{% endblock %}

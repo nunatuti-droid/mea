@@ -80,17 +80,166 @@ switch ($cmd) {
             exit(0);
         }
         $app = new \Mea\Core\App($root);
-        $expired = $app->bookings()->expireReservations();
-        $mail = $app->outbox()->run(50);
-        $app->settings->set('cron_last_run', gmdate('Y-m-d H:i:s'));
-        if ($expired || $mail['sent'] || $mail['failed']) {
-            $app->log->info('cron', ['expired' => $expired] + $mail);
+        $only = isset($argv[2]) ? array_slice($argv, 2) : null;
+        if ($only !== null && array_diff($only, array_keys(\Mea\Module\Ops\Scheduler::JOBS))) {
+            fwrite(STDERR, "Unbekannter Job. Möglich: " . implode(', ', array_keys(\Mea\Module\Ops\Scheduler::JOBS)) . "\n");
+            exit(1);
         }
+        foreach ((new \Mea\Module\Ops\Scheduler($app))->run(null, $only) as $job => $msg) {
+            if ($only !== null || !str_ends_with($msg, ' 0 fehlgeschlagen') && $msg !== '0 freigegeben' && $msg !== 'Versand nicht eingerichtet') {
+                echo "$job: $msg\n";
+            }
+        }
+        exit(0);
+    case 'selftest':
+        // Prüft, ob die Anwendung mit dem aktuellen Programmstand startet und Seiten ausliefert (nach Updates)
+        try {
+            $app = new \Mea\Core\App($root);
+            foreach (['/', '/telc-pruefungszentrum/', '/kontakt/', '/sitemap.xml'] as $path) {
+                $res = $app->handle(new \Mea\Core\Request('GET', $path, [], [], ['REMOTE_ADDR' => '127.0.0.1']));
+                if ($res->status !== 200) {
+                    throw new RuntimeException("$path antwortet mit {$res->status}");
+                }
+            }
+            echo "Selbsttest bestanden.\n";
+            exit(0);
+        } catch (Throwable $e) {
+            fwrite(STDERR, $e->getMessage() . "\n");
+            exit(1);
+        }
+    case 'backup:create':
+        $app = new \Mea\Core\App($root);
+        $id = $app->backups()->create('manual', null, 'Per Kommandozeile');
+        echo "Sicherung #$id erstellt: " . $app->backups()->path($app->backups()->get($id)) . "\n";
+        exit(0);
+    case 'backup:list':
+        $app = new \Mea\Core\App($root);
+        foreach ($app->db->all('SELECT id, created_at, kind, status, size_bytes, file_name FROM backups ORDER BY id DESC LIMIT 30') as $b) {
+            printf("#%-4d %s UTC  %-11s %-7s %8.1f MB  %s\n", $b['id'], $b['created_at'], $b['kind'], $b['status'], ((int) $b['size_bytes']) / 1048576, $b['file_name']);
+        }
+        exit(0);
+    case 'backup:restore':
+        // Notfall: Wiederherstellung per SSH, wenn die Verwaltung nicht erreichbar ist
+        $id = (int) ($argv[2] ?? 0);
+        if ($id < 1 || !in_array('--ja', $argv, true)) {
+            fwrite(STDERR, "Aufruf: bin/console backup:restore <id> --ja   (überschreibt Datenbank und Medien; vorher wird automatisch gesichert)\n");
+            exit(1);
+        }
+        $app = new \Mea\Core\App($root);
+        $r = $app->backups()->restore($id, null);
+        $app->audit->record('backup.restored', "Sicherung #$id per Kommandozeile wiederhergestellt", 'backup', $id);
+        echo implode("\n", $r['log']) . "\n";
+        exit(0);
+    case 'integrity:check':
+        $app = new \Mea\Core\App($root);
+        $r = $app->fileGuard()->check();
+        echo "Status: {$r['status']}, geprüft: {$r['checked']}, Referenz: " . ($r['version'] ?? '–') . "\n";
+        foreach (['changed' => 'geändert', 'missing' => 'fehlt', 'unexpected' => 'unerwartet'] as $k => $l) {
+            foreach ($r[$k] as $p) {
+                echo "  $l: $p\n";
+            }
+        }
+        exit($r['status'] === 'ok' ? 0 : 2);
+    case 'release:keygen':
+        // Nur auf dem Entwicklungsrechner. Der geheime Schlüssel darf nie auf den Server.
+        $dir = $argv[2] ?? '';
+        if ($dir === '' || !is_dir($dir) || str_starts_with(realpath($dir) ?: '', $root)) {
+            fwrite(STDERR, "Aufruf: bin/console release:keygen <ordner außerhalb des Projekts>\n");
+            exit(1);
+        }
+        $kp = \Mea\Module\Security\FileGuard::generateKeyPair();
+        file_put_contents($dir . '/mea-release.secret', $kp['secret']);
+        chmod($dir . '/mea-release.secret', 0600);
+        echo "Geheimer Schlüssel: $dir/mea-release.secret (sicher aufbewahren, nie auf den Server)\n";
+        echo "In die .env des Servers eintragen:\nRELEASE_PUBLIC_KEY={$kp['public']}\n";
+        exit(0);
+    case 'release:build':
+        // Nur auf dem Entwicklungsrechner: signiertes Updatepaket aus einem Build-Ordner bauen
+        [, , $src, $version, $keyFile, $out] = array_pad($argv, 6, '');
+        $notes = '';
+        $min = '0.0.0';
+        foreach ($argv as $a) {
+            if (str_starts_with($a, '--changelog=')) {
+                $notes = (string) file_get_contents(substr($a, 12));
+            }
+            if (str_starts_with($a, '--min=')) {
+                $min = substr($a, 6);
+            }
+        }
+        if (!is_dir($src) || !preg_match('/^\d+\.\d+\.\d+$/', $version) || !is_file($keyFile) || $out === '') {
+            fwrite(STDERR, "Aufruf: bin/console release:build <build-ordner> <version> <geheimer-schlüssel> <ziel.zip> [--changelog=datei] [--min=version]\n");
+            exit(1);
+        }
+        \Mea\Module\Ops\UpdateService::build(realpath($src), $version, trim((string) file_get_contents($keyFile)), $notes, $min, $out);
+        echo "Paket erstellt: $out (" . hash_file('sha256', $out) . ")\n";
+        exit(0);
+    case 'release:sign-manifest':
+        // Referenzprüfsummen für den Dateiwächter (Entwicklungsrechner oder Erstinstallation per SSH)
+        $keyFile = $argv[2] ?? '';
+        if (!is_file($keyFile)) {
+            fwrite(STDERR, "Aufruf: bin/console release:sign-manifest <geheimer-schlüssel>\n");
+            exit(1);
+        }
+        (new \Mea\Module\Security\FileGuard($root, null))->writeSignedManifest(trim((string) file_get_contents($keyFile)), trim((string) @file_get_contents($root . '/VERSION')));
+        echo "integrity.json und integrity.sig geschrieben.\n";
+        exit(0);
+    case 'update:install':
+        $file = $argv[2] ?? '';
+        if (!is_file($file) || !in_array('--ja', $argv, true)) {
+            fwrite(STDERR, "Aufruf: bin/console update:install <paket.zip> --ja\n");
+            exit(1);
+        }
+        $app = new \Mea\Core\App($root);
+        $info = $app->updates()->inspect($file);
+        echo "Update {$info['from']} → {$info['version']}\n";
+        $r = $app->updates()->install($file, null);
+        echo implode("\n", $r['log']) . "\n";
+        exit(0);
+    case 'update:revert':
+        if (!in_array('--ja', $argv, true)) {
+            fwrite(STDERR, "Aufruf: bin/console update:revert --ja   (nimmt das letzte Update samt Datenbankstand zurück)\n");
+            exit(1);
+        }
+        $app = new \Mea\Core\App($root);
+        echo implode("\n", $app->updates()->revertLast(null)) . "\n";
+        exit(0);
+    case 'maintenance:on':
+    case 'maintenance:off':
+        $flag = \Mea\Core\App::maintenanceFlag($root);
+        $cmd === 'maintenance:on' ? file_put_contents($flag, 'manuell') : @unlink($flag);
+        echo $cmd === 'maintenance:on' ? "Wartungsmodus aktiv.\n" : "Wartungsmodus beendet.\n";
+        exit(0);
+    case 'security:unblock':
+        // Notfall: eigene IP wurde gesperrt
+        $app = new \Mea\Core\App($root);
+        $ip = $argv[2] ?? '';
+        if ($ip === '--alle') {
+            $n = $app->db->run("DELETE FROM ip_rules WHERE source = 'auto'");
+        } elseif (\Mea\Module\Security\IpAddress::valid($ip)) {
+            $n = $app->db->run("DELETE FROM ip_rules WHERE source = 'auto' AND ip_hash = ?", [$app->firewall->ipHash($ip)]);
+        } else {
+            fwrite(STDERR, "Aufruf: bin/console security:unblock <ip>|--alle\n");
+            exit(1);
+        }
+        $app->audit->record('security.unblock', "$n automatische Sperre(n) per Kommandozeile aufgehoben", 'ip_rule', null);
+        echo "$n Sperre(n) aufgehoben.\n";
+        exit(0);
+    case 'user:reset-2fa':
+        // Notfall: Administrator hat Handy und Backup-Codes verloren
+        $app = new \Mea\Core\App($root);
+        $u = $app->db->one('SELECT * FROM users WHERE email = ?', [mb_strtolower((string) ($argv[2] ?? ''))]);
+        if ($u === null) {
+            fwrite(STDERR, "Aufruf: bin/console user:reset-2fa <email>\n");
+            exit(1);
+        }
+        $app->auth->resetTotp((int) $u['id']);
+        $app->audit->record('user.2fa_reset', '2FA per Kommandozeile zurückgesetzt: ' . $u['email'], 'user', (int) $u['id']);
+        echo "Zwei-Faktor-Anmeldung zurückgesetzt. Bei der nächsten Anmeldung wird sie neu eingerichtet.\n";
         exit(0);
     case 'serve':
         $port = $argv[2] ?? '8080';
         passthru('php -S 127.0.0.1:' . (int) $port . ' -t ' . escapeshellarg($root . '/public') . ' ' . escapeshellarg($root . '/public/index.php'));
         exit(0);
     default:
-        echo "Befehle:\n  migrate            Datenbank auf den neuesten Stand bringen\n  migrate:rollback   letzte Migration zurücknehmen\n  seed [--demo]      Startdaten anlegen (--demo: Beispieltermine, nur Vorschau)\n  seed:emails        fehlende E-Mail-Vorlagen ergänzen\n  user:create-admin <email> <name>  erstes Administratorkonto einladen\n  mail:send [n]      E-Mail-Warteschlange abarbeiten\n  cron               jede Minute: Reservierungen freigeben, E-Mails senden\n  serve [port]       lokaler Entwicklungsserver\n";
+        echo "Befehle:\n  migrate            Datenbank auf den neuesten Stand bringen\n  migrate:rollback   letzte Migration zurücknehmen\n  seed [--demo]      Startdaten anlegen (--demo: Beispieltermine, nur Vorschau)\n  seed:emails        fehlende E-Mail-Vorlagen ergänzen\n  user:create-admin <email> <name>  erstes Administratorkonto einladen\n  mail:send [n]      E-Mail-Warteschlange abarbeiten\n  cron [job …]       jede Minute: Wartungsjobs (mit Job-Namen: sofort ausführen)\n  selftest           Startet die Anwendung und prüft wichtige Seiten\n  backup:create | backup:list | backup:restore <id> --ja\n  integrity:check    Dateiwächter: Programmdateien mit signierter Referenz vergleichen\n  update:install <paket.zip> --ja | update:revert --ja\n  maintenance:on | maintenance:off\n  security:unblock <ip>|--alle   automatische IP-Sperren aufheben\n  user:reset-2fa <email>         Zwei-Faktor-Anmeldung zurücksetzen\n  release:keygen | release:build | release:sign-manifest   nur Entwicklungsrechner\n  serve [port]       lokaler Entwicklungsserver\n";
 }

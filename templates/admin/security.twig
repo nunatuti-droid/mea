@@ -1,0 +1,62 @@
+{% extends 'admin/layout.twig' %}
+{% import 'admin/partials/ui.twig' as ui %}
+{% block content %}
+  <div class="adm-head"><div><h1>Sicherheit</h1><p class="adm-head__intro">Auffällige Anfragen, automatische und manuelle Sperren. Dieser Schutz ergänzt die Firewall des Hosters, ersetzt sie aber nicht. IP-Adressen werden nur gekürzt angezeigt.</p></div></div>
+  <div class="grid-3">
+    <div class="stat"><span class="stat__label">{{ icon('shield') }}Ereignisse, 24 Stunden</span><span class="stat__value">{{ stats.day ?? 0 }}</span></div>
+    <div class="stat"><span class="stat__label">{{ icon('shield') }}Ereignisse, 7 Tage</span><span class="stat__value">{{ stats.week ?? 0 }}</span></div>
+    <div class="stat{{ bans ? ' stat--warn' }}"><span class="stat__label">{{ icon('lock') }}Aktive automatische Sperren</span><span class="stat__value">{{ bans|length }}</span></div>
+  </div>
+
+  {% if bans is not empty %}
+    <section class="card mt">
+      <h2 class="h3">Automatische Sperren</h2>
+      <div class="table-wrap" tabindex="0"><table class="tbl tbl--compact"><caption class="visually-hidden">Automatische Sperren</caption>
+        <thead><tr><th scope="col">Adresse</th><th scope="col">Grund</th><th scope="col">Bis</th><th scope="col"><span class="visually-hidden">Aktion</span></th></tr></thead>
+        <tbody>{% for b in bans %}<tr><td class="mono">{{ b.ip_masked }}</td><td>{{ b.reason }}</td><td>{{ b.expires_at|utc|date('d.m.Y H:i') }}</td>
+          <td>{{ ui.confirm_post('/verwaltung/sicherheit/regeln/' ~ b.id ~ '/entfernen/', 'Aufheben', 'Sperre jetzt aufheben?', csrf) }}</td></tr>{% endfor %}</tbody>
+      </table></div>
+    </section>
+  {% endif %}
+
+  <section class="card mt" id="regeln">
+    <h2 class="h3">Sperr- und Freigabeliste</h2>
+    <p class="text-sm text-muted">Freigegebene Adressen werden nie automatisch gesperrt, zum Beispiel das Büronetz. Ihre aktuelle Adresse: <span class="mono">{{ my_ip }}</span></p>
+    {% if rules is not empty %}
+      <div class="table-wrap" tabindex="0"><table class="tbl tbl--compact"><caption class="visually-hidden">Manuelle Regeln</caption>
+        <thead><tr><th scope="col">Art</th><th scope="col">Adresse/Bereich</th><th scope="col">Grund</th><th scope="col">Gültig bis</th><th scope="col">Von</th><th scope="col"><span class="visually-hidden">Aktion</span></th></tr></thead>
+        <tbody>{% for r in rules %}<tr><td>{{ r.rule == 'block' ? 'Sperre' : 'Freigabe' }}</td><td class="mono">{{ r.cidr }}</td><td>{{ r.reason }}</td>
+          <td>{{ r.expires_at ? r.expires_at|utc|date('d.m.Y') : 'unbegrenzt' }}</td><td>{{ r.user_name ?? '–' }}</td>
+          <td>{{ ui.confirm_post('/verwaltung/sicherheit/regeln/' ~ r.id ~ '/entfernen/', 'Entfernen', 'Regel entfernen?', csrf) }}</td></tr>{% endfor %}</tbody>
+      </table></div>
+    {% endif %}
+    <form method="post" action="/verwaltung/sicherheit/regeln/" class="form-grid mt" novalidate>
+      <input type="hidden" name="_csrf" value="{{ csrf }}">
+      {{ ui.field({name: 'rule', label: 'Art', type: 'select', required: true, options: {block: 'Sperren', allow: 'Freigeben (nie sperren)'}}, values, errors, []) }}
+      {{ ui.field({name: 'cidr', label: 'IP-Adresse oder Bereich', required: true, help: 'z. B. 203.0.113.7 oder 203.0.113.0/24'}, values, errors, []) }}
+      {{ ui.field({name: 'reason', label: 'Grund', required: true, max: 255}, values, errors, []) }}
+      {{ ui.field({name: 'days', label: 'Dauer in Tagen', type: 'int', help: 'Leer = unbegrenzt'}, values, errors, []) }}
+      <div class="field"><button class="btn btn--primary" type="submit">{{ icon('save') }}Regel speichern</button></div>
+    </form>
+  </section>
+
+  <section class="card mt">
+    <div class="row row--between"><h2 class="h3">Sicherheitsprotokoll</h2>
+      <form method="get" class="row"><label class="visually-hidden" for="f-art">Art</label>
+        <select id="f-art" name="art"><option value="">Alle Ereignisse</option>{% for k, l in types %}<option value="{{ k }}" {{ type == k ? 'selected' }}>{{ l }}</option>{% endfor %}</select>
+        <button class="btn btn--ghost btn--sm" type="submit">Anwenden</button></form></div>
+    {% if events is empty %}<p class="text-muted">Keine Ereignisse.</p>{% else %}
+      <div class="table-wrap" tabindex="0"><table class="tbl tbl--compact"><caption class="visually-hidden">Sicherheitsereignisse</caption>
+        <thead><tr><th scope="col">Zeit</th><th scope="col">Ereignis</th><th scope="col">Adresse</th><th scope="col">Anfrage</th><th scope="col" class="num">Punkte</th></tr></thead>
+        <tbody>{% for e in events %}<tr>
+          <td class="nowrap">{{ e.created_at|utc|date('d.m.Y H:i:s') }}</td>
+          <td><span class="badge badge--{{ e.severity == 'critical' ? 'danger' : (e.severity == 'warning' ? 'warning' : 'neutral') }}">{{ types[e.event_type] ?? e.event_type }}</span>{% if e.detail %}<br><span class="text-sm text-muted">{{ e.detail }}</span>{% endif %}</td>
+          <td class="mono">{{ e.ip_masked ?? '–' }}</td>
+          <td class="mono text-sm">{{ e.method }} {{ e.path }}</td>
+          <td class="num">{{ e.points }}</td>
+        </tr>{% endfor %}</tbody>
+      </table></div>
+      {{ ui.pager(page, pages, query, '/verwaltung/sicherheit/') }}
+    {% endif %}
+  </section>
+{% endblock %}

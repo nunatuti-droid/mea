@@ -8,3 +8,5 @@
 /.phpunit.cache/
 /test-results/
 /playwright-report/
+/integrity.json
+/integrity.sig

@@ -591,6 +591,13 @@ final class BookingService
         return $n;
     }
 
+    /** Terminerinnerung mit den aktuellen Termindaten (idempotent je Buchung). */
+    public function sendReminder(int $bookingId): void
+    {
+        $sid = (int) $this->db->value('SELECT exam_session_id FROM bookings WHERE id = ?', [$bookingId]);
+        $this->notifyCustomerAboutSession($bookingId, $sid, 'session_reminder', '', 'reminder');
+    }
+
     private function notifyCustomerAboutSession(int $bookingId, int $sessionId, string $template, string $message, string $key): void
     {
         $b = $this->db->one('SELECT * FROM bookings WHERE id = ?', [$bookingId]);

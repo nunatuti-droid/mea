@@ -61,6 +61,16 @@
         <ul class="list-plain">{% for s in cancelled %}<li><a href="/verwaltung/termine/{{ s.id }}/">{{ s.public_name }}</a><span class="text-sm text-muted">{{ s.starts_at|utc|date('d.m.Y H:i') }}</span></li>{% endfor %}</ul>
       </section>
     {% endif %}
+    {% if ops %}
+      <section class="card">
+        <div class="row row--between"><h2 class="h3">Sicherung und Updates</h2><a class="link-quiet" href="/verwaltung/sicherungen/">Sicherungen</a></div>
+        <dl class="kv">
+          <dt>Letzte Sicherung</dt><dd>{{ ops.backup ? ops.backup.created_at|utc|date('d.m.Y H:i') : 'keine' }}</dd>
+          <dt>Version</dt><dd class="mono">{{ ops.version }}{% if ops.update %} <span class="text-sm text-muted">(letztes Update {{ ops.update.started_at|utc|date('d.m.Y') }}: {{ ops.update.status == 'installed' ? 'installiert' : ops.update.status }})</span>{% endif %}</dd>
+          <dt>Dateiwächter</dt><dd>{{ {ok: 'unverändert', changed: 'Abweichungen!', invalid_reference: 'Referenz ungültig!', no_reference: 'keine Referenz'}[ops.integrity] ?? 'noch nicht geprüft' }}</dd>
+        </dl>
+      </section>
+    {% endif %}
     {% if can.audit %}
       <section class="card">
         <div class="row row--between"><h2 class="h3">Letzte Änderungen</h2><a class="link-quiet" href="/verwaltung/protokoll/">Protokoll</a></div>

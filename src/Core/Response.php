@@ -12,7 +12,19 @@ final class Response
         public array $headers = [],
         /** @var list<string> fertige Set-Cookie-Werte */
         public array $cookies = [],
+        /** Datei, die beim Senden gestreamt wird (große Downloads) */
+        public ?string $file = null,
     ) {}
+
+    /** Datei als Download (wird beim Senden in Blöcken gelesen). */
+    public static function download(string $path, string $name, string $type = 'application/octet-stream'): self
+    {
+        return new self('', 200, [
+            'Content-Type' => $type,
+            'Content-Disposition' => 'attachment; filename="' . preg_replace('/[^A-Za-z0-9._-]/', '_', $name) . '"',
+            'Content-Length' => (string) (filesize($path) ?: 0),
+        ], [], $path);
+    }
 
     /** @param array{expires?:int,secure?:bool,samesite?:string,path?:string,httponly?:bool} $o */
     public function withCookie(string $name, string $value, array $o = []): self
@@ -69,6 +81,13 @@ final class Response
         }
         foreach ($this->cookies as $cookie) {
             header('Set-Cookie: ' . $cookie, false);
+        }
+        if ($this->file !== null) {
+            while (ob_get_level() > 0) {
+                ob_end_clean();
+            }
+            readfile($this->file);
+            return;
         }
         echo $this->body;
     }

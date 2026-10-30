@@ -15,7 +15,7 @@ final class AdminModule
     public function register(AdminKernel $k): void
     {
         $app = $this->app;
-        (new AuthController($app->auth, $app->view, $app->crypto))->register($k);
+        (new AuthController($app->auth, $app->view, $app->crypto, $app->firewall))->register($k);
         $dash = new DashboardController($app);
         $k->get('/verwaltung/', 'dashboard', $dash->index(...));
 
@@ -23,6 +23,7 @@ final class AdminModule
             new ExamAdminController($app), new SessionAdminController($app), new MediaController($app),
             new SettingsController($app), new BookingAdminController($app), new UserController($app),
             new EmailLogController($app), new AuditController($app), new SystemController($app),
+            new SecurityController($app), new BackupController($app), new UpdateController($app),
         ] as $controller) {
             $controller->register($k);
         }

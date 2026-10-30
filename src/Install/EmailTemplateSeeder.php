@@ -112,6 +112,23 @@ final class EmailTemplateSeeder
                 'body' => '<p>Guten Tag {{ name }},</p><p>{{ hinweis|nl2br }}</p><p>Wenn Sie das nicht selbst waren, ändern Sie bitte sofort Ihr Passwort und informieren Sie die Administration.</p>',
                 'vars' => ['name', 'hinweis', 'firma.name'],
             ],
+            'session_reminder' => [
+                'name' => 'Terminerinnerung',
+                'description' => 'Geht einige Tage vor der Prüfung an alle bestätigten Teilnehmenden (Anzahl der Tage unter Firmendaten einstellbar).',
+                'subject' => 'Erinnerung: {{ pruefung.name }} am {{ termin.datum }}',
+                'body' => '<p>Guten Tag {{ teilnehmer.name }},</p><p>wir erinnern Sie an Ihre Prüfung:</p>' . $exam
+                    . '{% if termin.hinweise %}<p><strong>Hinweise zum Termin:</strong><br>{{ termin.hinweise|nl2br }}</p>{% endif %}'
+                    . '<p>Bitte kommen Sie rechtzeitig und bringen Sie einen gültigen Lichtbildausweis mit.</p>' . $contact,
+                'vars' => self::BOOKING_VARS,
+            ],
+            'system_alert' => [
+                'name' => 'Systemmeldung (Administratoren)',
+                'description' => 'Automatische Meldung an Administratoren, z. B. bei fehlgeschlagener Sicherung oder veränderten Programmdateien.',
+                'subject' => 'Website-Hinweis: {{ titel }}',
+                'body' => '<p>Guten Tag {{ name }},</p><p>{{ text }}</p>{% if details %}<p><strong>Details:</strong><br>{{ details|nl2br }}</p>{% endif %}'
+                    . '<p>Diese Nachricht wurde automatisch von der Website erzeugt.</p>',
+                'vars' => ['name', 'titel', 'text', 'details'],
+            ],
             'inquiry_notification' => [
                 'name' => 'Neue Kontaktanfrage (Büro)',
                 'description' => 'Interne Benachrichtigung an das Büro bei einer neuen Anfrage über das Kontaktformular.',

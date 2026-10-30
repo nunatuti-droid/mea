@@ -39,7 +39,7 @@ final class SystemCheck
             $add('Datenbank', 'Verbindung', 'error', 'keine Verbindung');
         }
 
-        foreach (['storage/logs', 'storage/uploads', 'storage/cache', 'public/media'] as $dir) {
+        foreach (['storage/logs', 'storage/uploads', 'storage/cache', 'storage/backups', 'storage/tmp', 'public/media'] as $dir) {
             $path = $root . '/' . $dir;
             @mkdir($path, 0750, true);
             $add('Dateien', "Schreibrecht $dir", is_writable($path) ? 'ok' : 'error', is_writable($path) ? 'beschreibbar' : 'nicht beschreibbar');
@@ -72,7 +72,56 @@ final class SystemCheck
         $cron = $this->app->settings->get('cron_last_run');
         $cronOk = is_string($cron) && time() - (int) strtotime($cron . ' UTC') < 900;
         $add('Betrieb', 'Cronjob', $cronOk ? 'ok' : 'warn', is_string($cron) ? 'zuletzt ' . self::local($cron) : 'noch nie gelaufen – Cronjob einrichten (siehe README)');
-        $add('Betrieb', 'Backups und Updates', 'warn', 'werden in Phase 5 eingerichtet');
+        try {
+            foreach ((new \Mea\Module\Ops\Scheduler($this->app))->status() as $j) {
+                if ($j['freq'] === 'minute') {
+                    continue;
+                }
+                $limit = ['hourly' => 3 * 3600, 'nightly' => 26 * 3600, 'monthly' => 32 * 86400][$j['freq']] ?? 86400;
+                $age = $j['last_success_at'] ? time() - (int) strtotime($j['last_success_at'] . ' UTC') : null;
+                $status = $j['last_status'] === 'failed' ? 'error' : ($age === null || $age > $limit ? 'warn' : 'ok');
+                $add('Wartungsjobs', $j['label'], $status, $j['last_status'] === 'failed' ? 'Fehler: ' . $j['last_message']
+                    : ($age === null ? 'noch nicht gelaufen' : 'zuletzt ' . self::local((string) $j['last_success_at']) . ($j['last_message'] ? ' – ' . $j['last_message'] : '')));
+            }
+
+            $last = $this->app->db->one("SELECT * FROM backups WHERE status = 'ok' ORDER BY id DESC LIMIT 1");
+            $age = $last ? time() - (int) strtotime($last['created_at'] . ' UTC') : null;
+            $add('Sicherung', 'Letzte Sicherung', $age === null ? 'error' : ($age > 36 * 3600 ? 'warn' : 'ok'),
+                $age === null ? 'keine vorhanden – unter „Sicherungen“ anlegen' : self::local((string) $last['created_at']) . ', ' . number_format(((int) $last['size_bytes']) / 1048576, 1, ',', '.') . ' MB');
+            $dl = $this->app->db->value('SELECT MAX(downloaded_at) FROM backups');
+            $add('Sicherung', 'Extern gespeichert', $dl && time() - strtotime($dl . ' UTC') < 35 * 86400 ? 'ok' : 'warn',
+                $dl ? 'zuletzt heruntergeladen ' . self::local((string) $dl) : 'noch nie heruntergeladen – Sicherung auf demselben Server schützt nicht vor Serverausfall');
+            $add('Sicherung', 'Schlüssel', $c->get('BACKUP_KEY') ? 'ok' : 'warn', $c->get('BACKUP_KEY') ? 'eigener BACKUP_KEY' : 'aus APP_KEY abgeleitet – .env getrennt aufbewahren');
+
+            $run = $this->app->db->one('SELECT * FROM integrity_runs ORDER BY id DESC LIMIT 1');
+            $add('Dateiintegrität', 'Dateiwächter', match ($run['status'] ?? null) {
+                'ok' => 'ok', 'changed', 'invalid_reference' => 'error', default => 'warn',
+            }, match ($run['status'] ?? null) {
+                'ok' => $run['checked_files'] . ' Dateien unverändert (Prüfung ' . self::local((string) $run['created_at']) . ')',
+                'changed' => 'Abweichungen gefunden – Details unter Sicherheit',
+                'invalid_reference' => 'Referenz-Signatur ungültig',
+                'no_reference' => 'keine signierte Referenz installiert (integrity.json, RELEASE_PUBLIC_KEY)',
+                default => 'noch nicht geprüft',
+            });
+
+            $add('Updates', 'Installierte Version', 'ok', $this->app->version());
+            $add('Updates', 'Prüfschlüssel für Updates', $c->get('RELEASE_PUBLIC_KEY') ? 'ok' : 'warn', $c->get('RELEASE_PUBLIC_KEY') ? 'Fingerabdruck ' . $this->app->fileGuard()->keyFingerprint() : 'fehlt – Updates werden nicht angenommen');
+            $failedUpdate = $this->app->db->one("SELECT * FROM app_updates ORDER BY id DESC LIMIT 1");
+            if ($failedUpdate && $failedUpdate['status'] !== 'installed') {
+                $add('Updates', 'Letztes Update', $failedUpdate['status'] === 'running' ? 'error' : 'warn', $failedUpdate['version'] . ': ' . $failedUpdate['status']);
+            }
+            $bans = (int) $this->app->db->value("SELECT COUNT(*) FROM ip_rules WHERE source = 'auto' AND expires_at > UTC_TIMESTAMP()");
+            $crit = (int) $this->app->db->value("SELECT COUNT(*) FROM security_events WHERE severity = 'critical' AND created_at > UTC_TIMESTAMP() - INTERVAL 1 DAY");
+            $add('Sicherheit', 'Anwendungsschutz', $crit > 0 ? 'warn' : 'ok', "$bans aktive automatische Sperren, $crit kritische Ereignisse in 24 Stunden");
+        } catch (\Throwable) {
+            $add('Betrieb', 'Betriebsdaten', 'warn', 'nicht lesbar – Migrationen ausführen');
+        }
+        $add('Betrieb', 'Wartungsmodus', is_file(\Mea\Core\App::maintenanceFlag($root)) ? 'warn' : 'ok', is_file(\Mea\Core\App::maintenanceFlag($root)) ? 'aktiv – Besucher sehen eine Wartungsseite' : 'aus');
+        foreach (['.env', 'storage', 'composer.json'] as $f) {
+            if (file_exists($root . '/public/' . $f)) {
+                $add('Dateien', "public/$f", 'error', 'darf nicht im öffentlichen Ordner liegen');
+            }
+        }
         return $out;
     }
 

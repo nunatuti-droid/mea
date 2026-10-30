@@ -72,9 +72,31 @@ Die Tests laufen gegen PayPal als Testdouble. Ein Test mit dem echten PayPal-San
 | HTML aus dem Editor bereinigt | ✓ | `tests/Unit/AdminHelpersTest::testSanitizerRemovesDangerousMarkup` |
 | Barrierefreiheit der Verwaltung | ✓ (automatisch) | `tests/e2e/admin.js`: axe ohne Verstöße auf allen Verwaltungsseiten, Desktop und Handy |
 
+## Betrieb (Phase 5)
+
+| Anforderung | Stand | Nachweis |
+|---|---|---|
+| Anwendungs-Firewall: Angriffsmuster, Punktekonto, befristete Sperre, Erlaubnisliste | ✓ | `FirewallTest` (7 Tests) |
+| Fehlversuche bei Anmeldung/2FA führen zur IP-Sperre | ✓ | `FirewallTest::testFailedLoginsCountTowardsBan` |
+| Eigene IP kann nicht gesperrt werden | ✓ | `FirewallTest` |
+| Wartungsmodus: Besucher 503, Verwaltung erreichbar | ✓ | `FirewallTest` |
+| Dateiwächter mit signierter Referenz (geändert, fehlend, unerwartet, Skripte in Medien) | ✓ | `tests/Unit/OpsUnitTest`, manuell: 12.871 Dateien in ca. 3 s |
+| Sicherung verschlüsselt, Rechte 0600, außerhalb des Webroots | ✓ | `OpsTest::testBackupAndRestoreRoundTrip` |
+| Manipulierte oder falsch verschlüsselte Sicherung wird erkannt | ✓ | `OpsTest::testTamperedBackupIsRejected`, `OpsUnitTest` |
+| Wiederherstellung mit Sicherung vorher und automatischem Rückfall | ✓ | `OpsTest::testFailedRestoreRollsBackToPreviousState` |
+| Updates nur mit gültiger Signatur, Prüfsumme je Datei, keine Rückstufung | ✓ | `OpsTest::testRejectsForeignTamperedAndOldPackages` |
+| Update mit Sicherung, Selbsttest, automatischer Rücknahme; manuelle Rücknahme | ✓ | `OpsTest::testUpdateInstallAndRevert`, `testFailedSelfTestRollsBackUpdate` |
+| Löschfristen (Anfragen, unbezahlte Buchungen, bezahlte erst nach Aufbewahrungsfrist) | ✓ | `SchedulerTest::testRetentionAnonymizesOnlyDueRecords` |
+| Terminerinnerung genau einmal | ✓ | `SchedulerTest::testRemindersAreSentOnceForConfirmedBookingsInWindow` |
+| Nächtliche Jobs einmal pro Nacht, Wiederholung nach Fehler | ✓ | `SchedulerTest::testNightlyJobsRunOnceAfterTwoAndRetryAfterFailure` |
+| Keine Shell aus dem Web; Notfallbefehle per SSH | ✓ | `bin/console`, `docs/betrieb.md` |
+| Überwachung: Systemprüfung (Cron, Sicherung, externe Kopie, Dateiwächter, Updates, Sicherheit) | ✓ | Verwaltung → System; nächtlicher Job `health` mit E-Mail |
+
+Die Löschfristen (z. B. 10 Jahre für bezahlte Buchungen) sind Voreinstellungen und müssen von einer Fachperson bestätigt werden.
+
 ## Spätere Phasen
 
-Backups, signierte Updates, Überwachung, Dateiwächter, Löschfristen per Cron (Phase 5); Umzug und Abnahme (Phase 6).
+Umzug von WordPress und Abnahme (Phase 6).
 
 ## Offene Punkte bei MEA
 
