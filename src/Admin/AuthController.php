@@ -18,7 +18,7 @@ final class AuthController
     private const PENDING_TTL = 300;
     private const SETUP_TTL = 900;
 
-    public function __construct(private AuthService $auth, private View $view, private Crypto $crypto) {}
+    public function __construct(private AuthService $auth, private View $view, private Crypto $crypto, private ?\Mea\Module\Security\Firewall $firewall = null) {}
 
     public function register(AdminKernel $k): void
     {
@@ -75,6 +75,7 @@ final class AuthController
         $next = self::safeNext($req->input('weiter'));
         $res = $this->auth->attemptPassword($email, (string) ($req->post['password'] ?? ''), $req->ip());
         if ($res['status'] !== 'ok') {
+            $this->firewall?->record('login_failed', $req, 1, 'warning');
             $msg = $res['status'] === 'blocked'
                 ? 'Zu viele Anmeldeversuche. Bitte warten Sie 15 Minuten und versuchen Sie es erneut.'
                 : 'E-Mail-Adresse oder Passwort ist falsch.';
@@ -119,6 +120,7 @@ final class AuthController
         }
         $result = $this->auth->verifySecondFactor($p['user'], $req->input('code'));
         if ($result !== 'ok') {
+            $this->firewall?->record('2fa_failed', $req, 1, 'warning');
             if ($result === 'blocked') {
                 Session::forget('auth_pending');
                 Session::flash('auth_notice', 'Zu viele falsche Codes. Bitte melden Sie sich in einigen Minuten erneut an.');

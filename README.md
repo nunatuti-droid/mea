@@ -11,8 +11,8 @@ Der Kern ist eine **dynamische Prüfungsverwaltung**: Jede Prüfung (z. B. telc 
 | 1 | Bestandsaufnahme der alten Website | fertig |
 | 2 | Architektur, Datenmodell (`docs/adr/`) | fertig |
 | 3 | Öffentliche Website, Designsystem, Weiterleitungen, Tests | fertig |
-| 4 | Verwaltung mit 2FA, Prüfungs- und Terminpflege, Kalender, Buchung, PayPal, E-Mail-Warteschlange | **dieser Stand** |
-| 5 | Betrieb: Backups, Updates, Überwachung, Dateiwächter | offen |
+| 4 | Verwaltung mit 2FA, Prüfungs- und Terminpflege, Kalender, Buchung, PayPal, E-Mail-Warteschlange | fertig |
+| 5 | Betrieb: Schutzschicht, Dateiwächter, verschlüsselte Sicherungen, signierte Updates, nächtliche Wartung, Notfallbefehle | **dieser Stand** |
 | 6 | Umzug und Abnahme | offen |
 
 Anforderungen und Nachweise: [`docs/anforderungen.md`](docs/anforderungen.md). Designregeln: [`DESIGN.md`](DESIGN.md).
@@ -51,7 +51,11 @@ Der Befehl gibt einen Einladungslink aus (48 Stunden gültig, einmal nutzbar). D
 * * * * * cd /pfad/zur/website && php bin/console cron >/dev/null 2>&1
 ```
 
-Der Cronjob gibt abgelaufene Reservierungen frei und versendet E-Mails aus der Warteschlange. Die Systemprüfung in der Verwaltung warnt, wenn er länger als 15 Minuten nicht gelaufen ist.
+Der Cronjob gibt jede Minute abgelaufene Reservierungen frei und versendet E-Mails. Stündlich räumt er auf; nachts ab 2 Uhr erstellt er eine Sicherung, anonymisiert Daten nach Fristen, verschickt Terminerinnerungen, prüft die Programmdateien und führt die Systemprüfung aus. Fehler gehen per E-Mail an die Administratoren. Die Systemprüfung in der Verwaltung warnt, wenn der Cronjob länger als 15 Minuten nicht gelaufen ist.
+
+### Betrieb, Sicherungen, Updates, Notfälle
+
+Siehe [`docs/betrieb.md`](docs/betrieb.md). Kurz: `BACKUP_KEY` (optional) und `RELEASE_PUBLIC_KEY` in die `.env`; die `.env` getrennt von den Sicherungen aufbewahren; Sicherungen regelmäßig herunterladen und extern speichern.
 
 ### E-Mail und PayPal
 
@@ -74,16 +78,17 @@ Die Integrationstests bauen die Testdatenbank bei jedem Lauf neu auf. Deren Name
 ## Aufbau
 
 ```
-bin/console          Kommandozeile (migrate, seed, seed:emails, user:create-admin, cron, mail:send, serve)
+bin/console          Kommandozeile (migrate, seed, cron, backup:*, update:*, Notfallbefehle; ohne Argument: Liste)
 migrations/          Datenbankschema (Phinx, reines SQL, mit Rücknahme)
 public/              Document Root: index.php, CSS, JS, Schriften, erzeugte Bilder
 src/Core/            Router, Request/Response, Datenbank, Twig, Sitzung, CSRF
 src/Admin/           Verwaltung: Anmeldung, Rechte, Formular-Baukasten, Bereiche
-src/Module/          Content, Exams, Bookings, Payments, Mail, Auth, Audit, Locations, Inquiries, Media, Seo
+src/Module/          Content, Exams, Bookings, Payments, Mail, Auth, Audit, Locations, Inquiries, Media, Seo,
+                     Security (Firewall, Dateiwächter), Ops (Sicherung, Update, Wartungsjobs)
 src/Install/         Startdaten (ContentSeeder) und Vorschaudaten (DemoSeeder)
 templates/           Twig-Templates; ein Template für alle Prüfungen
 seeds/media/         Original-Fotos und Logos
-storage/             Logs und Original-Uploads (nicht öffentlich)
+storage/             Logs, Original-Uploads, Sicherungen, Update-Rücknahmedaten (nicht öffentlich)
 tests/               Unit, Integration, e2e
 ```
 
@@ -100,6 +105,10 @@ tests/               Unit, Integration, e2e
 - E-Mail-Adresse erscheint nicht im HTML-Quelltext; sie wird erst beim Klick zusammengesetzt.
 - Karte (OpenStreetMap) lädt erst nach Zustimmung per Klick. Keine Tracking-Cookies.
 - Verwaltung: Passwörter mit Argon2id, Zwei-Faktor-Anmeldung (TOTP) Pflicht, Backup-Codes, Kontosperre nach 5 Fehlversuchen, widerrufbare Sitzungen (30 Minuten Inaktivität, 12 Stunden maximal), erneute Bestätigung für kritische Aktionen, Rollen (Administrator, Redaktion, Buchungsverwaltung), Änderungsprotokoll ohne Geheimnisse.
+- Schutzschicht: erkennt Angriffsmuster in Adressen, sperrt auffällige IP-Adressen befristet; Wartungsmodus.
+- Dateiwächter: vergleicht Programmdateien nachts mit einer signierten Referenz.
+- Sicherungen verschlüsselt (libsodium) außerhalb des Webroots, Updates nur als signierte Pakete mit automatischer Rücknahme.
+- Keine Shell-Befehle aus der Verwaltung; Notfälle über feste Befehle per SSH.
 - Buchung: Platz per Zeilensperre, bestätigt nur nach serverseitigem Einzug oder geprüftem Webhook, Betrag wird abgeglichen, doppelte Ereignisse werden erkannt.
 
 ## Rechtliches

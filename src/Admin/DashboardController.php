@@ -45,6 +45,12 @@ final class DashboardController
                  WHERE a.action NOT LIKE \'auth.%\' ORDER BY a.id DESC LIMIT 8',
             ) : [],
             'warnings' => $ctx->can('system') ? (new SystemCheck($this->app))->warnings() : [],
+            'ops' => $ctx->can('system') ? [
+                'backup' => $db->one("SELECT created_at, size_bytes FROM backups WHERE status = 'ok' ORDER BY id DESC LIMIT 1"),
+                'version' => $this->app->version(),
+                'update' => $db->one('SELECT version, status, started_at FROM app_updates ORDER BY id DESC LIMIT 1'),
+                'integrity' => $db->value('SELECT status FROM integrity_runs ORDER BY id DESC LIMIT 1'),
+            ] : null,
         ];
         return Response::html($this->app->view->render('admin/dashboard.twig', $data));
     }

@@ -16,6 +16,7 @@ final class SystemController
     {
         $k->get('/verwaltung/system/', 'system', $this->index(...));
         $k->post('/verwaltung/system/mailtest/', 'system', $this->mailTest(...));
+        $k->post('/verwaltung/system/dateien-pruefen/', 'system', $this->integrity(...));
     }
 
     public function index(Request $req, AdminContext $ctx): Response
@@ -25,6 +26,15 @@ final class SystemController
             $groups[$row['group']][] = $row;
         }
         return Response::html($this->app->view->render('admin/system.twig', ['title' => 'Systemprüfung', 'groups' => $groups]));
+    }
+
+    public function integrity(Request $req, AdminContext $ctx): Response
+    {
+        $res = (new \Mea\Module\Ops\Scheduler($this->app))->run(null, ['integrity'])['integrity'] ?? '';
+        $run = $this->app->db->one('SELECT * FROM integrity_runs ORDER BY id DESC LIMIT 1');
+        $diff = $run && $run['changed_json'] ? (array) json_decode((string) $run['changed_json'], true) : [];
+        AdminKernel::flash('Dateiwächter: ' . $res . ($diff ? ' – ' . implode(', ', array_slice($diff, 0, 5)) : ''), str_starts_with($res, 'ok') ? 'success' : 'error');
+        return Response::redirect('/verwaltung/system/', 303);
     }
 
     /** Einfache Nachricht ohne Vorlage direkt an die eigene Adresse senden. */

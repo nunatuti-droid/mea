@@ -1,6 +1,6 @@
 # Architekturentscheidungen (ADR)
 
-Festgelegt in Phase 2. Spalte „Stand“ zeigt, was bis Phase 4 umgesetzt ist.
+Festgelegt in Phase 2. Spalte „Stand“ zeigt, was bis Phase 5 umgesetzt ist.
 
 | Nr. | Entscheidung | Grund | Verworfen | Stand |
 |---|---|---|---|---|
@@ -13,8 +13,11 @@ Festgelegt in Phase 2. Spalte „Stand“ zeigt, was bis Phase 4 umgesetzt ist.
 | ADR-07 | PayPal über REST-API (Orders v2) mit Guzzle hinter `PaymentGateway` | später Stripe ergänzbar; alte SDKs eingestellt | WooCommerce-Plugin | umgesetzt; Test mit echter Sandbox steht aus |
 | ADR-08 | Zahlung gilt erst nach Server-Abgleich (Capture oder geprüfter Webhook) | Browser-Rückkehr ist fälschbar | Bestätigung per Weiterleitung | umgesetzt, getestet |
 | ADR-09 | E-Mails über Warteschlange in der Datenbank, Versand per Cron | keine doppelten Mails, Wiederholung bei Fehler | Versand im Request | umgesetzt (Phase 4) |
-| ADR-10 | Updates als signierte Pakete (Ed25519) | manipulierte Pakete werden erkannt | Prüfsumme im Paket | Phase 5 |
-| ADR-11 | Backups verschlüsselt (libsodium), außerhalb des Webroots plus extern | Schutz bei Serverausfall | nur lokale Sicherung | Phase 5 |
+| ADR-10 | Updates als signierte Pakete (Ed25519) | manipulierte Pakete werden erkannt | Prüfsumme im Paket | umgesetzt: Prüfschlüssel nur in `.env`, Sicherung und automatische Rücknahme, getestet (`OpsTest`) |
+| ADR-11 | Backups verschlüsselt (libsodium), außerhalb des Webroots plus extern | Schutz bei Serverausfall | nur lokale Sicherung | umgesetzt: XChaCha20-Poly1305 (secretstream), nächtlich, monatliche Erinnerung zur externen Kopie, Wiederherstellung mit Rückfall getestet |
 | ADR-12 | Kein LMS, keine Konten für Teilnehmende | Bestandsseite nutzt kein LMS; Gastbuchung ist einfacher | LearnPress nachbauen | umgesetzt |
 | ADR-13 | Standorte als Datensätze | Standorte ändern sich ohne Code | feste Liste | umgesetzt |
 | ADR-14 | Keine Tracking-Cookies, Schriften lokal, Karte erst nach Klick | kein Cookie-Banner nötig, schneller | Complianz weiter nutzen | umgesetzt |
+| ADR-15 | Anwendungs-Firewall im Programm (Muster in Pfad und Anfrage, Punktekonto je IP, befristete Sperre) | läuft auf Webhosting ohne Serverzugriff | Fail2ban/WAF auf dem Server (auf Webhosting meist nicht einstellbar) | umgesetzt (Phase 5) |
+| ADR-16 | Dateiwächter mit signierter Referenz (SHA-256-Liste, Ed25519) | erkennt veränderte und eingeschleuste Dateien; Referenz nicht unbemerkt fälschbar | unsignierte Prüfsummenliste | umgesetzt (Phase 5) |
+| ADR-17 | Keine Shell aus der Verwaltung; Notfälle über feste Befehle in `bin/console` per SSH | keine Befehlsausführung aus Benutzereingaben | Web-Terminal | umgesetzt (Phase 5) |

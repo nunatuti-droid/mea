@@ -1,0 +1,65 @@
+{% extends 'admin/layout.twig' %}
+{% import 'admin/partials/ui.twig' as ui %}
+{% block content %}
+  <div class="adm-head"><div><h1>Updates</h1><p class="adm-head__intro">Updates kommen als signiertes Paket vom Entwickler. Vor der Installation wird automatisch gesichert; schlägt etwas fehl, wird der vorherige Stand wiederhergestellt.</p></div></div>
+  {% if maintenance %}<div class="alert alert--warning" role="status">{{ icon('wrench') }}<p>Der Wartungsmodus ist aktiv. Besucher sehen eine Wartungsseite.</p></div>{% endif %}
+
+  <div class="grid-3">
+    <div class="stat"><span class="stat__label">{{ icon('package') }}Installierte Version</span><span class="stat__value mono">{{ version }}</span></div>
+    <div class="stat{{ not fingerprint ? ' stat--warn' }}"><span class="stat__label">{{ icon('shield-check') }}Prüfschlüssel</span><span class="stat__value mono">{{ fingerprint ?? 'fehlt' }}</span></div>
+    <div class="stat{{ maintenance ? ' stat--warn' }}"><span class="stat__label">{{ icon('wrench') }}Wartungsmodus</span><span class="stat__value">{{ maintenance ? 'an' : 'aus' }}</span></div>
+  </div>
+  {% if not fingerprint %}<p class="text-sm mt">Ohne Prüfschlüssel (<span class="mono">RELEASE_PUBLIC_KEY</span> in der .env) werden keine Updates angenommen.</p>{% endif %}
+
+  {% if info %}
+    <section class="card mt{{ info.problems ? ' card--danger' }}">
+      <h2 class="h3">Paket geprüft: Version {{ info.from }} → {{ info.version }}</h2>
+      <p class="text-sm">Signatur gültig, {{ info.files }} Dateien unverändert. Voraussetzungen: ab Version {{ info.requires.min_version }}, PHP {{ info.requires.php }}.</p>
+      {% if info.changelog %}<h3 class="h3">Änderungen</h3><pre class="pre">{{ info.changelog }}</pre>{% endif %}
+      {% if info.problems %}
+        <div class="alert alert--error" role="alert">{{ icon('circle-alert') }}<ul>{% for p in info.problems %}<li>{{ p }}</li>{% endfor %}</ul></div>
+      {% else %}
+        <ol class="text-sm"><li>Sicherung von Datenbank und Medien</li><li>Wartungsmodus</li><li>Dateien installieren, Datenbank aktualisieren</li><li>Selbsttest</li><li>Website wieder freigeben – oder bei Fehlern automatisch zurück</li></ol>
+        <form method="post" action="/verwaltung/updates/installieren/">
+          <input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="token" value="{{ token }}">
+          <button class="btn btn--primary" type="submit">{{ icon('package') }}Update jetzt installieren</button>
+        </form>
+      {% endif %}
+    </section>
+  {% endif %}
+
+  <section class="card mt">
+    <h2 class="h3">Updatepaket hochladen</h2>
+    <p class="text-sm text-muted">Für die Installation bestätigen Sie vorher Ihre Identität (Passwort und Code). Höchstgröße: {{ max_upload }}. Größere Pakete per SSH: <span class="mono">bin/console update:install paket.zip --ja</span></p>
+    <form method="post" action="/verwaltung/updates/hochladen/" enctype="multipart/form-data" class="row">
+      <input type="hidden" name="_csrf" value="{{ csrf }}">
+      <label class="visually-hidden" for="package">Updatepaket</label>
+      <input type="file" id="package" name="package" accept=".zip" required>
+      <button class="btn btn--ghost" type="submit">{{ icon('upload') }}Hochladen und prüfen</button>
+    </form>
+  </section>
+
+  <section class="card">
+    <h2 class="h3">Verlauf</h2>
+    {% if history is empty %}<p class="text-muted">Noch keine Updates installiert.</p>{% else %}
+      <div class="table-wrap" tabindex="0"><table class="tbl tbl--compact"><caption class="visually-hidden">Updateverlauf</caption>
+        <thead><tr><th scope="col">Zeitpunkt</th><th scope="col">Version</th><th scope="col">Ergebnis</th><th scope="col">Von</th><th scope="col">Protokoll</th></tr></thead>
+        <tbody>{% for u in history %}<tr>
+          <td class="nowrap">{{ u.started_at|utc|date('d.m.Y H:i') }}</td>
+          <td class="mono">{{ u.from_version }} → {{ u.version }}</td>
+          <td>{{ ui.status(u.status, {installed: {label: 'Installiert', tone: 'success'}, running: {label: 'Läuft', tone: 'neutral'}, failed: {label: 'Fehlgeschlagen', tone: 'danger'}, rolled_back: {label: 'Zurückgenommen', tone: 'warning'}}) }}</td>
+          <td>{{ u.user_name ?? 'Kommandozeile' }}</td>
+          <td>{% if u.log %}<details><summary class="text-sm">anzeigen</summary><pre class="pre">{{ u.log }}</pre></details>{% endif %}</td>
+        </tr>{% endfor %}</tbody>
+      </table></div>
+      {% if can_revert %}<div class="mt">{{ ui.confirm_post('/verwaltung/updates/zuruecknehmen/', 'Letztes Update zurücknehmen', 'Letztes Update zurücknehmen? Programmdateien und Datenbank gehen auf den Stand vor dem Update zurück. Daten seit dem Update gehen verloren.', csrf, 'danger', 'history') }}</div>{% endif %}
+    {% endif %}
+  </section>
+
+  <section class="card">
+    <h2 class="h3">Wartungsmodus</h2>
+    <p class="text-sm text-muted">Für manuelle Arbeiten. Die Verwaltung bleibt erreichbar.</p>
+    <form method="post" action="/verwaltung/updates/wartung/"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="on" value="{{ maintenance ? '0' : '1' }}">
+      <button class="btn btn--ghost" type="submit">{{ icon('wrench') }}{{ maintenance ? 'Wartungsmodus beenden' : 'Wartungsmodus einschalten' }}</button></form>
+  </section>
+{% endblock %}

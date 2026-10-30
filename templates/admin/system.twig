@@ -2,7 +2,7 @@
 {% block content %}
   <div class="adm-head">
     <div><h1>Systemprüfung</h1><p class="adm-head__intro">Server, Konfiguration und Dienste auf einen Blick. Gelb heißt: vor dem Livegang klären. Rot heißt: funktioniert nicht.</p></div>
-    <form method="post" action="/verwaltung/system/mailtest/" class="inline"><input type="hidden" name="_csrf" value="{{ csrf }}"><button class="btn btn--ghost" type="submit">{{ icon('send') }}Test-E-Mail an mich senden</button></form>
+    <div class="row"><form method="post" action="/verwaltung/system/dateien-pruefen/" class="inline"><input type="hidden" name="_csrf" value="{{ csrf }}"><button class="btn btn--ghost" type="submit">{{ icon('file-check') }}Dateien jetzt prüfen</button></form><form method="post" action="/verwaltung/system/mailtest/" class="inline"><input type="hidden" name="_csrf" value="{{ csrf }}"><button class="btn btn--ghost" type="submit">{{ icon('send') }}Test-E-Mail an mich senden</button></form></div>
   </div>
   {% set tones = {ok: 'success', warn: 'warning', error: 'danger'} %}
   {% set words = {ok: 'In Ordnung', warn: 'Prüfen', error: 'Fehler'} %}

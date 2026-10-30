@@ -19,6 +19,9 @@ use PHPUnit\Framework\TestCase;
 abstract class IntegrationTestCase extends TestCase
 {
     private static ?Database $db = null;
+    private static bool $dirty = false;
+    /** false für Tests mit DDL (Wiederherstellung, Update): danach wird die Testdatenbank neu aufgebaut */
+    protected bool $transactional = true;
     private static ?Config $config = null;
     protected App $app;
 
@@ -62,8 +65,14 @@ abstract class IntegrationTestCase extends TestCase
 
     protected function setUp(): void
     {
+        if (self::$dirty) {
+            self::$db = null;
+            self::$dirty = false;
+        }
         $db = self::db();
-        $db->pdo()->beginTransaction();
+        if ($this->transactional) {
+            $db->pdo()->beginTransaction();
+        }
         $this->app = new App(self::root(), self::$config, $db);
         $_SESSION = [];
     }
@@ -73,6 +82,15 @@ abstract class IntegrationTestCase extends TestCase
         if (self::db()->pdo()->inTransaction()) {
             self::db()->pdo()->rollBack();
         }
+        if (!$this->transactional) {
+            self::$dirty = true;
+        }
+    }
+
+    protected static function config(): Config
+    {
+        self::db();
+        return self::$config;
     }
 
     /** @param array<string,mixed> $post */

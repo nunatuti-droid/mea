@@ -30,6 +30,12 @@ final class Crypto
         return sodium_crypto_generichash('mea:' . $context, $this->master, SODIUM_CRYPTO_SECRETBOX_KEYBYTES);
     }
 
+    /** Abgeleiteter 32-Byte-Schlüssel für einen Zweck (z. B. Sicherungen). */
+    public function subKey(string $context): string
+    {
+        return $this->key($context);
+    }
+
     public function encrypt(string $plain, string $context): string
     {
         $nonce = random_bytes(SODIUM_CRYPTO_SECRETBOX_NONCEBYTES);

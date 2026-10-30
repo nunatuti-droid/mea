@@ -1,0 +1,150 @@
+<?php
+declare(strict_types=1);
+
+namespace Mea\Module\Security;
+
+use Mea\Core\Crypto;
+use Mea\Core\Database;
+use Mea\Core\Request;
+use Psr\Clock\ClockInterface;
+
+/**
+ * Anwendungsschutz vor dem Routing: Sperr- und Freigabelisten, Erkennung typischer
+ * Angriffsmuster, Punktekonto je IP und zeitlich begrenzte automatische Sperren.
+ * Ersetzt keine Firewall des Hosters. IP-Adressen werden nur als Hash und gekürzt gespeichert.
+ */
+final class Firewall
+{
+    /** Punkte innerhalb des Fensters, ab denen gesperrt wird */
+    public const BAN_THRESHOLD = 10;
+    public const WINDOW_MINUTES = 10;
+    public const BAN_MINUTES = 60;
+    public const REPEAT_BAN_HOURS = 24;
+
+    /** Muster => [Ereignis, Punkte, sofort ablehnen] */
+    private const PATTERNS = [
+        '#(\.\./|\.\.\\\\|%2e%2e|%252e|\x00|%00)#i' => ['path_traversal', 5, true],
+        '#/(etc/passwd|proc/self|win\.ini|boot\.ini)#i' => ['path_traversal', 5, true],
+        '#(\bunion\b[\s+/*]+(all[\s+/*]+)?select\b|\binformation_schema\b|\bsleep\s*\(\s*\d|\bbenchmark\s*\(|\bwaitfor\s+delay\b|\'\s*or\s+\'?1\'?\s*=\s*\'?1)#i' => ['sql_injection', 5, true],
+        '#(<\s*script\b|javascript:|onerror\s*=|onload\s*=|<\s*svg[^>]*on\w+\s*=|<\s*iframe\b)#i' => ['xss_attempt', 4, true],
+        '#(\beval\s*\(|base64_decode\s*\(|\bsystem\s*\(|\bshell_exec\b|\bpassthru\b|\$\{jndi:|<\?php)#i' => ['code_injection', 5, true],
+        '#/(wp-login\.php|xmlrpc\.php|wp-config|phpmyadmin|pma/|adminer|\.env|\.git/|\.svn/|\.ht(access|passwd)|composer\.(json|lock)|vendor/phpunit|phpinfo|server-status|cgi-bin/|shell\.php|config\.php)#i' => ['probe', 2, false],
+    ];
+
+    public function __construct(private Database $db, private Crypto $crypto, private ClockInterface $clock) {}
+
+    /**
+     * @return array{action:'allow'|'block'|'reject'|'probe', reason:string}
+     *   block = gesperrte IP, reject = Angriffsmuster (403), probe = Scanner (404), allow = weiter
+     */
+    public function inspect(Request $req): array
+    {
+        $ip = $req->ip();
+        if ($this->isAllowed($ip)) {
+            return ['action' => 'allow', 'reason' => 'allowlist'];
+        }
+        if ($this->isBlocked($ip)) {
+            return ['action' => 'block', 'reason' => 'blocked'];
+        }
+        $subject = rawurldecode(rawurldecode($req->path)) . ' ' . rawurldecode(http_build_query($req->query));
+        foreach (self::PATTERNS as $re => [$type, $points, $reject]) {
+            if (preg_match($re, $subject) || preg_match($re, $req->path)) {
+                $this->record($type, $req, $points, $reject ? 'warning' : 'info');
+                return ['action' => $reject ? 'reject' : 'probe', 'reason' => $type];
+            }
+        }
+        return ['action' => 'allow', 'reason' => ''];
+    }
+
+    /** Ereignis speichern und Punkte zählen; bei Überschreitung automatisch sperren. */
+    public function record(string $type, Request $req, int $points = 1, string $severity = 'warning', string $detail = ''): void
+    {
+        $ip = $req->ip();
+        $hash = $this->ipHash($ip);
+        $this->db->insert('security_events', [
+            'event_type' => $type, 'severity' => $severity, 'ip_hash' => $hash, 'ip_masked' => IpAddress::mask($ip),
+            'method' => mb_substr($req->method, 0, 10), 'path' => mb_substr(self::cleanPath($req->path), 0, 255),
+            'points' => max(0, min(255, $points)), 'detail' => $detail !== '' ? mb_substr($detail, 0, 255) : null, 'created_at' => $this->now(),
+        ]);
+        if ($points <= 0 || $this->isAllowed($ip)) {
+            return;
+        }
+        $since = $this->clock->now()->modify('-' . self::WINDOW_MINUTES . ' minutes')->format('Y-m-d H:i:s');
+        $score = (int) $this->db->value('SELECT COALESCE(SUM(points), 0) FROM security_events WHERE ip_hash = ? AND created_at >= ?', [$hash, $since]);
+        if ($score >= self::BAN_THRESHOLD && !$this->isBlocked($ip)) {
+            $this->autoBan($ip, $type);
+        }
+    }
+
+    private function autoBan(string $ip, string $type): void
+    {
+        $hash = $this->ipHash($ip);
+        $weekAgo = $this->clock->now()->modify('-7 days')->format('Y-m-d H:i:s');
+        $repeat = $this->db->value("SELECT 1 FROM ip_rules WHERE ip_hash = ? AND source = 'auto' AND created_at >= ? LIMIT 1", [$hash, $weekAgo]) !== null;
+        $until = $this->clock->now()->modify($repeat ? '+' . self::REPEAT_BAN_HOURS . ' hours' : '+' . self::BAN_MINUTES . ' minutes');
+        $this->db->insert('ip_rules', [
+            'rule' => 'block', 'ip_hash' => $hash, 'ip_masked' => IpAddress::mask($ip), 'source' => 'auto',
+            'reason' => 'Automatisch: ' . $type . ($repeat ? ' (wiederholt)' : ''), 'expires_at' => $until->format('Y-m-d H:i:s'),
+            'created_at' => $this->now(),
+        ]);
+        $this->db->insert('security_events', [
+            'event_type' => 'auto_ban', 'severity' => 'critical', 'ip_hash' => $hash, 'ip_masked' => IpAddress::mask($ip),
+            'detail' => 'Gesperrt bis ' . $until->format('Y-m-d H:i') . ' UTC', 'created_at' => $this->now(),
+        ]);
+    }
+
+    public function isBlocked(string $ip): bool
+    {
+        $hash = $this->ipHash($ip);
+        if ($this->db->value("SELECT 1 FROM ip_rules WHERE rule = 'block' AND ip_hash = ? AND (expires_at IS NULL OR expires_at > ?) LIMIT 1", [$hash, $this->now()]) !== null) {
+            return true;
+        }
+        foreach ($this->manualRanges('block') as $cidr) {
+            if (IpAddress::inCidr($ip, $cidr)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public function isAllowed(string $ip): bool
+    {
+        foreach ($this->manualRanges('allow') as $cidr) {
+            if (IpAddress::inCidr($ip, $cidr)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** @var array<string, list<string>>|null */
+    private ?array $ranges = null;
+
+    /** @return list<string> */
+    private function manualRanges(string $rule): array
+    {
+        if ($this->ranges === null) {
+            $this->ranges = ['block' => [], 'allow' => []];
+            foreach ($this->db->all('SELECT rule, cidr FROM ip_rules WHERE cidr IS NOT NULL AND (expires_at IS NULL OR expires_at > ?)', [$this->now()]) as $r) {
+                $this->ranges[$r['rule']][] = (string) $r['cidr'];
+            }
+        }
+        return $this->ranges[$rule];
+    }
+
+    public function ipHash(string $ip): string
+    {
+        return $this->crypto->hash($ip, 'ip');
+    }
+
+    /** Pfad ohne Steuerzeichen; Abfrageparameter werden nie gespeichert (können Daten enthalten). */
+    private static function cleanPath(string $path): string
+    {
+        return preg_replace('/[^\x20-\x7E]/', '?', $path) ?? '';
+    }
+
+    private function now(): string
+    {
+        return $this->clock->now()->format('Y-m-d H:i:s');
+    }
+}

@@ -57,6 +57,10 @@ final class SettingsController
             ['name' => 'retention__bookings_years', 'label' => 'Bezahlte Buchungen aufbewahren (Jahre)', 'type' => 'int', 'min' => 6, 'maxValue' => 15, 'default' => 10, 'group' => 'Datenschutzfristen',
                 'help' => 'Buchungs- und Zahlungsbelege unterliegen gesetzlichen Aufbewahrungspflichten (in der Regel 6 bzw. 10 Jahre). Bitte mit der Steuerberatung abstimmen.'],
             ['name' => 'retention__email_log_days', 'label' => 'E-Mail-Protokoll löschen nach (Tagen)', 'type' => 'int', 'min' => 30, 'maxValue' => 3650, 'default' => 180, 'group' => 'Datenschutzfristen'],
+            ['name' => 'reminders__days_before', 'label' => 'Terminerinnerung an Teilnehmende (Tage vorher)', 'type' => 'int', 'min' => 1, 'maxValue' => 30, 'default' => 3, 'group' => 'Automatik'],
+            ['name' => 'backup__keep_days', 'label' => 'Nächtliche Sicherungen aufbewahren (Tage)', 'type' => 'int', 'min' => 3, 'maxValue' => 365, 'default' => 14, 'group' => 'Automatik',
+                'help' => 'Die drei neuesten Sicherungen bleiben immer erhalten. Sicherungen liegen auf demselben Server; bitte regelmäßig herunterladen.'],
+            ['name' => 'backup__keep_manual_days', 'label' => 'Manuelle Sicherungen aufbewahren (Tage)', 'type' => 'int', 'min' => 7, 'maxValue' => 3650, 'default' => 90, 'group' => 'Automatik'],
             ['name' => 'retention__audit_years', 'label' => 'Änderungsprotokoll aufbewahren (Jahre)', 'type' => 'int', 'min' => 1, 'maxValue' => 10, 'default' => 3, 'group' => 'Datenschutzfristen'],
         ];
     }

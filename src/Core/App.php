@@ -50,6 +50,7 @@ final class App
     private Router $router;
     public readonly ContentRepository $content;
     public readonly PublicController $publicPages;
+    public readonly \Mea\Module\Security\Firewall $firewall;
 
     public function __construct(public readonly string $root, ?Config $config = null, ?Database $db = null, ?\Psr\Clock\ClockInterface $clock = null)
     {
@@ -75,6 +76,7 @@ final class App
         $exams = $this->exams = new ExamRepository($this->db, new PriceCalculator());
         $this->mailer = new Mailer($this->db, new TemplateRenderer($this->db, $root), $settings, $baseUrl);
         $this->audit = new AuditLog($this->db, $this->crypto);
+        $this->firewall = new \Mea\Module\Security\Firewall($this->db, $this->crypto, $this->clock);
         $limiter = new RateLimiter($this->db, $this->crypto->hash('ratelimit', 'salt'));
         $this->auth = new AuthService($this->db, $this->crypto, new Totp($this->clock), $limiter, $this->mailer, $this->audit, $this->clock);
 
@@ -157,6 +159,28 @@ final class App
         );
     }
 
+    public function version(): string
+    {
+        return trim((string) @file_get_contents($this->root . '/VERSION')) ?: '0.0.0';
+    }
+
+    public function backups(): \Mea\Module\Ops\BackupService
+    {
+        $b64 = $this->config->get('BACKUP_KEY');
+        $key = $b64 !== null ? (string) base64_decode($b64, true) : $this->crypto->subKey('backup');
+        return new \Mea\Module\Ops\BackupService($this->db, $this->root, new \Mea\Module\Ops\BackupCrypto($key), $this->log, $this->version());
+    }
+
+    public function updates(): \Mea\Module\Ops\UpdateService
+    {
+        return new \Mea\Module\Ops\UpdateService($this->db, $this->root, $this->config->get('RELEASE_PUBLIC_KEY'), $this->backups(), $this->log, $this->version());
+    }
+
+    public function fileGuard(): \Mea\Module\Security\FileGuard
+    {
+        return new \Mea\Module\Security\FileGuard($this->root, $this->config->get('RELEASE_PUBLIC_KEY'));
+    }
+
     public function outbox(): OutboxWorker
     {
         $c = $this->settings->get('company', []);
@@ -171,7 +195,11 @@ final class App
     public function handle(Request $req): Response
     {
         try {
-            $response = $this->dispatch($req);
+            $guard = $this->guard($req);
+            $response = $guard ?? $this->dispatch($req);
+            if ($guard === null && $response->status === 404 && preg_match('/\.(php\d?|asp|aspx|jsp|cgi|bak|sql|zip|tar|gz|old|swp|ini|log)$/i', $req->path)) {
+                $this->firewall->record('probe', $req, 1, 'info'); // Suche nach Dateien, die es hier nicht gibt
+            }
         } catch (HttpException $e) {
             $response = $this->errorPage($e->getCode() ?: 404);
         } catch (\Throwable $e) {
@@ -179,6 +207,38 @@ final class App
             $response = $this->errorPage(500);
         }
         return $this->secure($response, $req);
+    }
+
+    /** Wartungsmodus und Anwendungsschutz vor dem Routing. */
+    private function guard(Request $req): ?Response
+    {
+        $isAdmin = str_starts_with($req->path, '/verwaltung/');
+        if (is_file(self::maintenanceFlag($this->root)) && !$isAdmin) {
+            return self::staticPage(503, 'Wartungsarbeiten', 'Die Website wird gerade aktualisiert. Bitte versuchen Sie es in wenigen Minuten erneut.')
+                ->withHeader('Retry-After', '300');
+        }
+        $check = $this->firewall->inspect($req);
+        return match ($check['action']) {
+            'block' => self::staticPage(403, 'Zugriff vorübergehend gesperrt', 'Von Ihrer Verbindung kamen auffällige Anfragen. Der Zugriff ist deshalb vorübergehend gesperrt. Wenn Sie uns erreichen möchten, rufen Sie uns bitte an.'),
+            'reject' => self::staticPage(403, 'Anfrage abgelehnt', 'Diese Anfrage wurde aus Sicherheitsgründen abgelehnt.'),
+            'probe' => $this->errorPage(404),
+            default => null,
+        };
+    }
+
+    public static function maintenanceFlag(string $root): string
+    {
+        return $root . '/storage/maintenance.flag';
+    }
+
+    /** Einfache Seite ohne Datenbankzugriff (Sperre, Wartung). */
+    private static function staticPage(int $code, string $title, string $text): Response
+    {
+        $t = htmlspecialchars($title, ENT_QUOTES);
+        $body = '<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">'
+            . '<meta name="robots" content="noindex"><title>' . $t . '</title><link rel="stylesheet" href="/assets/css/app.css"></head>'
+            . '<body><main class="container section"><h1>' . $t . '</h1><p class="lead">' . htmlspecialchars($text, ENT_QUOTES) . '</p></main></body></html>';
+        return Response::html($body, $code)->withHeader('Cache-Control', 'no-store');
     }
 
     private function dispatch(Request $req): Response
