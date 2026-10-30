@@ -24,6 +24,8 @@ final class View
         $loader = new FilesystemLoader($root . '/templates');
         $this->twig = new Environment($loader, [
             'cache' => $debug ? false : $root . '/storage/cache/twig',
+            // Geänderte Vorlagen sofort übernehmen (z. B. nach Hochladen einzelner Dateien)
+            'auto_reload' => true,
             'autoescape' => 'html',
             'strict_variables' => $debug,
         ]);
