@@ -15,8 +15,15 @@ final class BackupService
 {
     /** Tabellen, die nicht gesichert und bei der Wiederherstellung nicht überschrieben werden */
     public const SKIP_TABLES = ['backups', 'rate_limits', 'cron_runs'];
-    /** Gesicherte Ordner relativ zum Projekt */
-    public const DIRS = ['storage/uploads', 'public/media'];
+    /** Datenordner, die bei einer Wiederherstellung zurückgespielt werden (relativ zum Projekt) */
+    public const DIRS = ['storage/uploads', 'storage/applications', 'public/media'];
+    /** Datenordner in Sicherungen im alten Format 1 (nur Datenbank, Bilder, Medien) */
+    private const DIRS_V1 = ['storage/uploads', 'public/media'];
+    /**
+     * Nicht gesichert: die Sicherungen selbst, Arbeits- und Zwischenspeicher-Ordner sowie die
+     * Rücksprung-Kopien früherer Updates. Alles andere im Projektordner kommt in die Sicherung.
+     */
+    public const EXCLUDE = ['.git', 'node_modules', 'storage/backups', 'storage/tmp', 'storage/cache', 'storage/updates'];
     private const SEP = "\n-- @@MEA@@\n";
 
     public function __construct(
@@ -39,6 +46,7 @@ final class BackupService
     /** @return int ID der Sicherung */
     public function create(string $kind, ?int $userId = null, string $note = ''): int
     {
+        @set_time_limit(0);
         $free = @disk_free_space($this->root);
         $file = sprintf('mea-%s-%s-%s.meabak', gmdate('Ymd-His'), $kind, bin2hex(random_bytes(3)));
         $id = $this->db->insert('backups', ['file_name' => $file, 'kind' => $kind, 'status' => 'running', 'note' => $note ?: null,
@@ -56,15 +64,22 @@ final class BackupService
             }
             $files = ['database.sql' => hash_file('sha256', $sqlFile)];
             $zip->addFile($sqlFile, 'database.sql');
-            foreach (self::DIRS as $dir) {
-                foreach ($this->filesIn($this->root . '/' . $dir) as $abs) {
-                    $rel = 'files/' . $dir . '/' . substr($abs, strlen($this->root . '/' . $dir) + 1);
-                    $zip->addFile($abs, $rel);
-                    $files[$rel] = hash_file('sha256', $abs);
-                }
+            $readme = $tmp . '/LIESMICH.txt';
+            file_put_contents($readme, self::README);
+            $zip->addFile($readme, 'LIESMICH.txt');
+            $files['LIESMICH.txt'] = hash_file('sha256', $readme);
+            $bytes = 0;
+            foreach ($this->allFiles() as $rel) {
+                $abs = $this->root . '/' . $rel;
+                $zip->addFile($abs, 'files/' . $rel);
+                $files['files/' . $rel] = hash_file('sha256', $abs);
+                $bytes += (int) filesize($abs);
+            }
+            if ($free !== false && $free < 2 * $bytes + 200 * 1024 * 1024) {
+                throw new \RuntimeException('Zu wenig freier Speicherplatz für eine vollständige Sicherung (benötigt etwa ' . (int) ceil((2 * $bytes) / 1048576 + 200) . ' MB).');
             }
             $schema = (string) $this->db->value('SELECT MAX(version) FROM schema_migrations');
-            $manifest = ['format' => 1, 'app_version' => $this->appVersion, 'schema_version' => $schema, 'created_at' => gmdate('c'),
+            $manifest = ['format' => 2, 'scope' => 'full', 'app_version' => $this->appVersion, 'schema_version' => $schema, 'created_at' => gmdate('c'),
                 'kind' => $kind, 'tables' => $counts, 'files' => $files];
             $zip->addFromString('manifest.json', (string) json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
             if (!$zip->close()) {
@@ -101,12 +116,13 @@ final class BackupService
                 throw new BackupException('Das Archiv in der Sicherung ist beschädigt.');
             }
             $manifest = json_decode((string) $zip->getFromName('manifest.json'), true);
-            if (!is_array($manifest) || ($manifest['format'] ?? null) !== 1 || !is_array($manifest['files'] ?? null)) {
+            if (!is_array($manifest) || !in_array($manifest['format'] ?? null, [1, 2], true) || !is_array($manifest['files'] ?? null)) {
                 throw new BackupException('Die Sicherung hat kein gültiges Inhaltsverzeichnis.');
             }
+            $pattern = $manifest['format'] === 1 ? '#^(database\.sql|files/(storage/uploads|public/media)/[^\x00]+)$#' : '#^(database\.sql|LIESMICH\.txt|files/[^\x00]+)$#';
             foreach ($manifest['files'] as $name => $hash) {
                 $name = (string) $name;
-                if (str_contains($name, '..') || str_starts_with($name, '/') || !preg_match('#^(database\.sql|files/(storage/uploads|public/media)/[^\x00]+)$#', $name)) {
+                if (str_contains($name, '..') || str_starts_with($name, '/') || str_contains($name, '\\') || !preg_match($pattern, $name)) {
                     throw new BackupException('Die Sicherung enthält einen unzulässigen Pfad.');
                 }
                 $stream = $zip->getStream($name);
@@ -124,7 +140,19 @@ final class BackupService
                 throw new BackupException('Die Sicherung enthält nicht aufgeführte Dateien.');
             }
             if ($extractTo !== null) {
-                $zip->extractTo($extractTo);
+                // Nur Datenbank und Datenordner auspacken; Programmdateien werden nicht zurückgespielt
+                $dirs = self::restoreDirs($manifest);
+                $wanted = array_values(array_filter(array_keys($manifest['files']), static function (string $n) use ($dirs): bool {
+                    foreach ($dirs as $d) {
+                        if (str_starts_with($n, 'files/' . $d . '/')) {
+                            return true;
+                        }
+                    }
+                    return $n === 'database.sql';
+                }));
+                if (!$zip->extractTo($extractTo, $wanted)) {
+                    throw new BackupException('Die Sicherung konnte nicht ausgepackt werden.');
+                }
             }
             $zip->close();
             return $manifest;
@@ -330,7 +358,7 @@ final class BackupService
                 $migrator->migrate();
                 $log[] = 'Datenbank auf den aktuellen Programmstand gebracht.';
             }
-            foreach (self::DIRS as $dir) {
+            foreach (self::restoreDirs($manifest) as $dir) {
                 $this->swapDir($tmp . '/files/' . $dir, $this->root . '/' . $dir);
             }
             $log[] = 'Dateien eingespielt.';
@@ -512,23 +540,59 @@ final class BackupService
         return $fh;
     }
 
-    /** @return list<string> */
-    private function filesIn(string $dir): array
+    /** @param array<string,mixed> $manifest @return list<string> */
+    private static function restoreDirs(array $manifest): array
     {
-        if (!is_dir($dir)) {
-            return [];
-        }
-        $out = [];
-        $it = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS));
-        foreach ($it as $f) {
-            /** @var \SplFileInfo $f */
-            if ($f->isFile() && !$f->isLink()) {
-                $out[] = $f->getPathname();
+        return ($manifest['format'] ?? 1) === 1 ? self::DIRS_V1 : self::DIRS;
+    }
+
+    /** Alle zu sichernden Dateien des Projektordners, relativ und sortiert. @return list<string> */
+    private function allFiles(): array
+    {
+        $root = $this->root;
+        $skip = array_map(fn(string $d) => $root . '/' . $d, self::EXCLUDE);
+        $dirIt = new \RecursiveDirectoryIterator($root, \FilesystemIterator::SKIP_DOTS);
+        $filter = new \RecursiveCallbackFilterIterator($dirIt, static function (\SplFileInfo $f) use ($skip): bool {
+            if ($f->isLink()) {
+                return false;
             }
+            if ($f->isDir()) {
+                // ausgeschlossene Ordner, Git-Verwaltungsdaten und Reste abgebrochener Wiederherstellungen (*.old-xxxx)
+                return !in_array($f->getPathname(), $skip, true) && $f->getFilename() !== '.git' && !preg_match('/\.old-[0-9a-f]{8}$/', $f->getFilename());
+            }
+            return $f->isFile() && $f->isReadable();
+        });
+        $out = [];
+        foreach (new \RecursiveIteratorIterator($filter) as $f) {
+            /** @var \SplFileInfo $f */
+            $out[] = substr($f->getPathname(), strlen($root) + 1);
         }
         sort($out);
         return $out;
     }
+
+    private const README = <<<'TXT'
+        MEA – vollständige Sicherung
+        ============================
+
+        Inhalt
+        - database.sql   komplette Datenbank (ohne Sperrlisten und Cron-Stand)
+        - files/         alle Dateien des Webauftritts: Programm, Vorlagen, Bibliotheken (vendor),
+                         .env mit den Schlüsseln, Bilder, Medien, Bewerbungsunterlagen, Protokolle.
+                         Nicht enthalten: storage/backups, storage/tmp, storage/cache, storage/updates.
+        - manifest.json  Inhaltsverzeichnis mit SHA-256 jeder Datei
+
+        Wiederherstellen auf demselben Server
+          Verwaltung → Sicherungen → Wiederherstellen. Dabei werden Datenbank, Bilder, Medien und
+          Bewerbungsunterlagen zurückgespielt. Programmdateien bleiben auf dem installierten Stand.
+
+        Umzug auf einen neuen Server (komplett)
+          1. Inhalt von files/ in den Projektordner kopieren (Webserver zeigt auf public/).
+          2. Leere Datenbank anlegen, Zugangsdaten in .env eintragen.
+          3. database.sql einspielen, z. B.  mysql -u BENUTZER -p DATENBANK < database.sql
+          4. php bin/console migrate   und   php bin/console selftest
+          Siehe auch docs/betrieb.md im Projektordner.
+        TXT;
 
     private function tmpDir(): string
     {

@@ -36,7 +36,8 @@ Die `.env` ist **nicht** in den Sicherungen enthalten. Bewahren Sie eine Kopie d
 
 ## Sicherungen
 
-- Inhalt: komplette Datenbank (ohne Sperrlisten und Cron-Stand), hochgeladene Originale (`storage/uploads`) und Medien (`public/media`). Programmdateien sind nicht enthalten; sie kommen aus dem Repository oder einem Updatepaket.
+- Inhalt (ab 0.9.3): komplette Datenbank (ohne Sperrlisten und Cron-Stand) und **alle Dateien des Projektordners**: Programm, Vorlagen, `vendor`, `.env`, hochgeladene Originale (`storage/uploads`), Bewerbungsunterlagen (`storage/applications`), Medien (`public/media`), Protokolle. Nicht enthalten: `storage/backups`, `storage/tmp`, `storage/cache`, `storage/updates` sowie `.git` und `node_modules`. Eine `LIESMICH.txt` in der Sicherung erklärt den Umzug auf einen neuen Server.
+- Wiederherstellen in der Verwaltung spielt Datenbank, `storage/uploads`, `storage/applications` und `public/media` zurück. Programmdateien bleiben auf dem installierten Stand; sie stecken für einen Serverumzug in der Sicherung. Ältere Sicherungen (vor 0.9.3) enthalten nur Datenbank, Originale und Medien und bleiben einspielbar.
 - Format: ZIP mit Inhaltsverzeichnis und SHA-256 je Datei, verschlüsselt mit libsodium (XChaCha20-Poly1305). Ablage in `storage/backups` (Rechte 0600, außerhalb des Webroots).
 - Aufbewahrung (Verwaltung → Einstellungen): nächtliche Sicherungen 14 Tage, manuelle 90 Tage. Die drei neuesten erfolgreichen Sicherungen bleiben immer.
 - **Externe Kopie:** Eine Sicherung auf demselben Server hilft nicht bei einem Serverausfall. Laden Sie regelmäßig die neueste Sicherung herunter (Verwaltung → Sicherungen) und bewahren Sie sie getrennt auf. Die Systemprüfung warnt, wenn das länger als 35 Tage her ist; zusätzlich kommt monatlich eine Erinnerungs-E-Mail.

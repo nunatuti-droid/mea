@@ -321,6 +321,23 @@ Das Aussehen der ganzen Website lässt sich jetzt in der Verwaltung einstellen: 
 
 **Nach dem Einspielen:** nichts weiter nötig. Das Update führt die Datenbankschritte selbst aus; die CSS-Datei entsteht beim ersten Seitenaufruf.
 
+# Update 0.9.3 – Vollständige Sicherung (31.10.2026)
+
+**Anlass:** Die Sicherung enthielt nur die Datenbank, die Originalbilder (`storage/uploads`) und die Medien (`public/media`). Programmdateien, `.env` und sogar die Bewerbungsunterlagen (`storage/applications`) fehlten.
+
+**Was neu ist**
+- Jede Sicherung enthält die Datenbank und **alle Dateien des Projektordners**. Ausgenommen sind nur `storage/backups` (die Sicherungen selbst), `storage/tmp`, `storage/cache`, `storage/updates` (Rücksprung-Kopien früherer Updates) und Git-Verwaltungsdaten (`.git`, `node_modules`).
+- Neue Datei `LIESMICH.txt` in jeder Sicherung mit Inhalt und Anleitung für den Umzug auf einen neuen Server.
+- Wiederherstellen in der Verwaltung spielt Datenbank, Originalbilder, Medien und jetzt auch Bewerbungsunterlagen zurück. Programmdateien werden bewusst nicht zurückgespielt, damit Programm und Datenbank zusammenpassen; sie stecken für den Serverumzug in der Sicherung.
+- Ältere Sicherungen (Format 1) bleiben gültig und einspielbar.
+- Speicherplatz wird vorher geprüft (etwa doppelte Größe des Projektordners frei).
+
+**Dateien:** `src/Module/Ops/BackupService.php`, `src/Admin/BackupController.php`, `templates/admin/backups/{index,zip,restore}.twig`, `docs/betrieb.md`, `tests/Integration/OpsTest.php`.
+
+**Geprüft:** `OpsTest` (Inhalt vollständig, Ausnahmen fehlen, Bewerbungen werden zurückgespielt, Programmdateien nicht). Auf einer Testkopie mit 0.9.3: Sicherung 20,6 MB in 4 Sekunden, Wiederherstellung einer neuen und einer alten Sicherung erfolgreich, ZIP mit Passwort mit 7-Zip geprüft (7876 Dateien). Alle 178 Tests bestanden.
+
+**Einschränkung:** Gesichert wird der Projektordner der Website. Andere Ordner auf dem Server (z. B. andere Webseiten im selben Paket, E-Mail-Postfächer, Serverkonfiguration) sind nicht enthalten; dafür ist die Datensicherung des Hosters zuständig.
+
 # Update 0.9.2 – Sicherung als ZIP mit Passwort (31.10.2026)
 
 **Anlass:** Sicherungen wurden nur als verschlüsselte `.meabak`-Datei heruntergeladen, die sich nicht mit einem Entpackprogramm öffnen lässt.

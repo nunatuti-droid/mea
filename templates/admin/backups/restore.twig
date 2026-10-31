@@ -4,7 +4,7 @@
   <div class="adm-head"><div><h1>Sicherung wiederherstellen</h1></div></div>
   <section class="card card--danger card--narrow">
     <p><strong>Stand vom {{ b.created_at|utc|date('d.m.Y H:i') }}</strong> ({{ kinds[b.kind] }}, Version {{ b.app_version }})</p>
-    <p>Datenbank und Medien werden auf diesen Stand zurückgesetzt. Alles, was seitdem passiert ist (Buchungen, Zahlungen, Anfragen, Änderungen), geht dabei verloren.</p>
+    <p>Datenbank, Bilder, Medien und Bewerbungsunterlagen werden auf diesen Stand zurückgesetzt. Programmdateien bleiben auf dem installierten Stand (dafür gibt es die Updates). Alles, was seitdem passiert ist (Buchungen, Zahlungen, Anfragen, Änderungen), geht dabei verloren.</p>
     <ul>
       <li>Vorher wird der aktuelle Stand automatisch gesichert.</li>
       <li>Während der Wiederherstellung ist die Website im Wartungsmodus.</li>

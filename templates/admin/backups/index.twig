@@ -2,7 +2,7 @@
 {% import 'admin/partials/ui.twig' as ui %}
 {% block content %}
   <div class="adm-head">
-    <div><h1>Sicherungen</h1><p class="adm-head__intro">Gesichert werden Datenbank, Originalbilder und Medien. Die Dateien sind verschlüsselt und liegen außerhalb des öffentlichen Bereichs. Zum externen Aufbewahren laden Sie am besten „Als ZIP“ herunter: Sie vergeben ein eigenes Passwort und können die Datei mit 7-Zip öffnen. Jede Nacht entsteht automatisch eine Sicherung.</p></div>
+    <div><h1>Sicherungen</h1><p class="adm-head__intro">Gesichert werden die Datenbank und alle Dateien des Webauftritts (Programm, Einstellungen, Bilder, Medien, Bewerbungsunterlagen). Nicht enthalten sind nur die Sicherungen selbst, Zwischenspeicher und Update-Kopien. Die Dateien sind verschlüsselt und liegen außerhalb des öffentlichen Bereichs. Zum externen Aufbewahren laden Sie am besten „Als ZIP“ herunter: Sie vergeben ein eigenes Passwort und können die Datei mit 7-Zip öffnen. Jede Nacht entsteht automatisch eine Sicherung.</p></div>
     <form method="post" action="/verwaltung/sicherungen/erstellen/" class="inline"><input type="hidden" name="_csrf" value="{{ csrf }}"><button class="btn btn--primary" type="submit">{{ icon('database') }}Jetzt sichern</button></form>
   </div>
 

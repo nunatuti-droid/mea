@@ -29,7 +29,7 @@ final class OpsTest extends IntegrationTestCase
         parent::setUp();
         // Fester Pfad je Prozess: Phinx lädt Migrationsklassen nur einmal pro Datei
         $this->tmp = sys_get_temp_dir() . '/mea-ops-' . getmypid();
-        foreach (['storage/uploads/originals', 'public/media/2026', 'storage/backups', 'storage/tmp', 'src', 'templates', 'migrations'] as $d) {
+        foreach (['storage/uploads/originals', 'storage/applications/1', 'storage/cache', 'storage/updates/rollback-1', 'public/media/2026', 'storage/backups', 'storage/tmp', 'src', 'templates', 'migrations', 'vendor/acme'] as $d) {
             mkdir($this->tmp . '/' . $d, 0755, true);
         }
         foreach (glob(self::root() . '/migrations/*.php') as $f) {
@@ -41,6 +41,11 @@ final class OpsTest extends IntegrationTestCase
         file_put_contents($this->tmp . '/src/Foo.php', "<?php // v1\n");
         file_put_contents($this->tmp . '/src/Old.php', "<?php // alt\n");
         file_put_contents($this->tmp . '/templates/page.twig', "v1\n");
+        file_put_contents($this->tmp . '/storage/applications/1/cv.bin', 'BEWERBUNG');
+        file_put_contents($this->tmp . '/vendor/acme/lib.php', '<?php // lib');
+        file_put_contents($this->tmp . '/.env', 'APP_KEY=x');
+        file_put_contents($this->tmp . '/storage/cache/x.php', 'CACHE');
+        file_put_contents($this->tmp . '/storage/updates/rollback-1/a', 'ROLLBACK');
         $this->crypto = new BackupCrypto(random_bytes(32));
         $this->backups = new BackupService(self::db(), $this->tmp, $this->crypto, new NullLogger(), '1.0.0');
     }
@@ -74,6 +79,15 @@ final class OpsTest extends IntegrationTestCase
         $manifest = $this->backups->verify($id);
         self::assertArrayHasKey('files/public/media/2026/a-800.webp', $manifest['files']);
         self::assertArrayHasKey('exam_types', $manifest['tables']);
+        // Vollständig: Programm, Bibliotheken, .env, Bewerbungen; ohne Sicherungen, Zwischenspeicher, Update-Kopien
+        self::assertSame(2, $manifest['format']);
+        foreach (['files/src/Foo.php', 'files/templates/page.twig', 'files/vendor/acme/lib.php', 'files/.env', 'files/VERSION', 'files/storage/applications/1/cv.bin', 'LIESMICH.txt'] as $f) {
+            self::assertArrayHasKey($f, $manifest['files']);
+        }
+        foreach (array_keys($manifest['files']) as $f) {
+            self::assertDoesNotMatchRegularExpression('#^files/storage/(backups|tmp|cache|updates)/#', $f);
+        }
+        file_put_contents($this->tmp . '/src/Foo.php', "<?php // v2\n");
 
         // Änderungen nach der Sicherung
         $this->setMarker('nachher');
@@ -81,6 +95,7 @@ final class OpsTest extends IntegrationTestCase
         $this->createExam('nach-sicherung');
         file_put_contents($this->tmp . '/public/media/2026/a-800.webp', 'VERÄNDERT');
         file_put_contents($this->tmp . '/public/media/2026/neu.webp', 'NEU');
+        file_put_contents($this->tmp . '/storage/applications/1/neu.bin', 'NEU');
 
         $r = $this->backups->restore($id, null);
         self::assertGreaterThan(0, $r['pre_backup']);
@@ -89,6 +104,9 @@ final class OpsTest extends IntegrationTestCase
         self::assertSame('WEBP-A', file_get_contents($this->tmp . '/public/media/2026/a-800.webp'));
         self::assertFileDoesNotExist($this->tmp . '/public/media/2026/neu.webp');
         self::assertSame('ORIGINAL-A', file_get_contents($this->tmp . '/storage/uploads/originals/a.jpg'));
+        self::assertSame('BEWERBUNG', file_get_contents($this->tmp . '/storage/applications/1/cv.bin'));
+        self::assertFileDoesNotExist($this->tmp . '/storage/applications/1/neu.bin');
+        self::assertSame("<?php // v2\n", file_get_contents($this->tmp . '/src/Foo.php'), 'Programmdateien werden nicht zurückgespielt');
         self::assertFileDoesNotExist(\Mea\Core\App::maintenanceFlag($this->tmp));
         // Die Sicherungsliste selbst wird nicht überschrieben
         self::assertSame('pre_restore', self::db()->value('SELECT kind FROM backups WHERE id = ?', [$r['pre_backup']]));

@@ -4,7 +4,7 @@
   <div class="adm-head"><div><h1>Sicherung als ZIP herunterladen</h1></div></div>
   <section class="card card--narrow">
     <p><strong>Stand vom {{ b.created_at|utc|date('d.m.Y H:i') }}</strong> ({{ kinds[b.kind] }}, Version {{ b.app_version }})</p>
-    <p>Sie erhalten eine ZIP-Datei mit Datenbank, Originalbildern und Medien. Jede Datei darin ist mit Ihrem Passwort verschlüsselt (AES-256).</p>
+    <p>Sie erhalten eine ZIP-Datei mit der Datenbank und allen Dateien des Webauftritts. Eine Anleitung zum Umzug auf einen neuen Server liegt als LIESMICH.txt bei. Jede Datei darin ist mit Ihrem Passwort verschlüsselt (AES-256).</p>
     <ul>
       <li>Öffnen mit 7-Zip, WinZip oder unter macOS mit Keka. Das in Windows eingebaute Entpacken kann diese Verschlüsselung nicht öffnen.</li>
       <li>Zum Wiederherstellen laden Sie die ZIP-Datei unter „Sicherung hochladen“ hoch und geben dasselbe Passwort ein.</li>

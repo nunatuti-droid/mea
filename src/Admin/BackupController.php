@@ -65,7 +65,7 @@ final class BackupController
     {
         try {
             $m = $this->app->backups()->verify((int) $id);
-            AdminKernel::flash('Sicherung ist vollständig und unverändert (' . count($m['tables']) . ' Tabellen, ' . (count($m['files']) - 1) . ' Dateien).');
+            AdminKernel::flash('Sicherung ist vollständig und unverändert (' . count($m['tables']) . ' Tabellen, ' . count(preg_grep('#^files/#', array_keys($m['files']))) . ' Dateien).');
         } catch (BackupException $e) {
             AdminKernel::flash('Prüfung fehlgeschlagen: ' . $e->getMessage(), 'error');
         }
