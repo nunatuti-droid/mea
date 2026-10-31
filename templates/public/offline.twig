@@ -6,8 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex, nofollow">
   <title>Wartungsarbeiten · {{ company.name }}</title>
-  <link rel="preload" href="/assets/fonts/plus-jakarta-sans-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="{{ asset('css/app.css') }}">
+  {% include 'partials/design_head.twig' %}
   <link rel="icon" href="{{ media_url(company.logo_icon_media_id, 480) }}">
 </head>
 <body class="offline">

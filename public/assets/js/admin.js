@@ -281,4 +281,150 @@
       if (rm) { rm.closest('[data-repeat-item]').remove(); dirty = true; }
     });
   });
+
+  // Designsystem: Reiter, Farbwähler, Live-Vorschau
+  const ds = $('[data-ds]');
+  if (ds) {
+    const form = $('[data-ds-form]', ds);
+    const tabs = $('[data-ds-tabs]', ds);
+    const tabButtons = $$('[data-ds-tab]', ds);
+    const panels = $$('[data-ds-panel]', ds);
+    const extras = $$('[data-ds-extra]');
+    const tabInput = $('[data-ds-tab-input]', ds);
+    const showTab = (id, focus, remember = true) => {
+      if (!panels.some(p => p.dataset.dsPanel === id)) id = panels[0].dataset.dsPanel;
+      tabButtons.forEach(b => { const on = b.dataset.dsTab === id; b.setAttribute('aria-selected', String(on)); b.tabIndex = on ? 0 : -1; if (on && focus) b.focus(); });
+      panels.forEach(p => { p.hidden = p.dataset.dsPanel !== id; });
+      extras.forEach(x => { x.hidden = x.dataset.dsExtra !== id; });
+      tabInput.value = id;
+      if (remember) { try { history.replaceState(null, '', '#reiter-' + id); } catch (e) { /* ohne Verlauf */ } }
+    };
+    tabs.hidden = false;
+    tabButtons.forEach((b, i) => {
+      b.addEventListener('click', () => showTab(b.dataset.dsTab));
+      b.addEventListener('keydown', e => {
+        const d = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
+        if (d) { e.preventDefault(); showTab(tabButtons[(i + d + tabButtons.length) % tabButtons.length].dataset.dsTab, true); }
+      });
+    });
+    const firstError = $('.ds-field.has-error', ds);
+    const fromHash = (location.hash.match(/^#reiter-([a-z]+)/) || [])[1];
+    showTab(firstError ? firstError.closest('[data-ds-panel]').dataset.dsPanel : (location.hash === '#schriften' ? 'typography' : fromHash), false, false);
+    if (location.hash === '#schriften') $('#schriften')?.scrollIntoView();
+    $$('[data-ds-goto]').forEach(a => a.addEventListener('click', e => {
+      const f = $('[data-ds-field="' + a.dataset.dsGoto + '"]', ds);
+      if (!f) return;
+      e.preventDefault();
+      showTab(f.closest('[data-ds-panel]').dataset.dsPanel);
+      $('input:not([type=color]),select', f).focus();
+    }));
+
+    // Farbwähler und HEX-Feld synchron halten
+    $$('input[data-color-for]', ds).forEach(picker => {
+      const text = document.getElementById(picker.dataset.colorFor);
+      picker.addEventListener('input', () => { text.value = picker.value; text.dispatchEvent(new Event('input', { bubbles: true })); });
+      text.addEventListener('input', () => {
+        let v = text.value.trim().toLowerCase();
+        if (/^#?[0-9a-f]{3}$/.test(v)) v = '#' + v.replace('#', '').split('').map(c => c + c).join('');
+        if (/^#?[0-9a-f]{6}$/.test(v)) picker.value = v.startsWith('#') ? v : '#' + v;
+      });
+    });
+
+    // Markierung „geändert“ und Einzel-Zurücksetzen
+    const fields = $$('[data-ds-field]', ds);
+    const control = f => $('input:not([type=color]),select', f);
+    const same = (a, b) => (a !== '' && b !== '' && !isNaN(a) && !isNaN(b)) ? Math.abs(parseFloat(a) - parseFloat(b)) < 1e-6 : String(a).toLowerCase() === String(b).toLowerCase();
+    const mark = f => f.classList.toggle('is-changed', !same(control(f).value.trim(), f.dataset.default));
+    fields.forEach(f => control(f).addEventListener('input', () => mark(f)));
+    fields.forEach(f => control(f).addEventListener('change', () => mark(f)));
+    $$('[data-ds-reset]', ds).forEach(b => b.addEventListener('click', () => {
+      const f = b.closest('[data-ds-field]');
+      const c = control(f);
+      c.value = f.dataset.default;
+      const picker = $('input[type=color]', f);
+      if (picker) picker.value = f.dataset.default;
+      c.dispatchEvent(new Event('input', { bubbles: true }));
+      c.focus();
+    }));
+
+    // Live-Vorschau: Server prüft und berechnet die Variablen, die Seite im Rahmen übernimmt sie sofort
+    const frame = $('[data-ds-frame]', ds);
+    const wrap = $('[data-ds-frame-wrap]', ds);
+    const note = $('[data-ds-preview-note]', ds);
+    const warnBox = $('[data-ds-warnings]');
+    let vars = null, timer = null, seq = 0, device = 1280;
+    const applyVars = () => {
+      const doc = frame.contentDocument;
+      if (!doc || !doc.documentElement) return;
+      // Cookie-Hinweis verdeckt sonst die Vorschau
+      const c = doc.querySelector('.consent'); if (c) c.hidden = true;
+      if (!vars) return;
+      Object.entries(vars).forEach(([k, v]) => doc.documentElement.style.setProperty(k, v));
+    };
+    const showErrors = errors => {
+      fields.forEach(f => {
+        const key = f.dataset.dsField, box = $('[data-ds-error]', f), c = control(f);
+        const msg = errors[key];
+        f.classList.toggle('has-error', !!msg);
+        if (msg) { $('span', box).textContent = msg; box.hidden = false; c.setAttribute('aria-invalid', 'true'); } else { box.hidden = true; c.removeAttribute('aria-invalid'); }
+      });
+      tabButtons.forEach(b => {
+        const n = $$('.ds-field.has-error', $('#tab-' + b.dataset.dsTab)).length;
+        let badge = $('.ds-tabs__err', b);
+        if (n && !badge) { badge = document.createElement('span'); badge.className = 'ds-tabs__err'; b.append(badge); }
+        if (badge) { if (n) { badge.textContent = String(n); badge.setAttribute('aria-label', n + ' Fehler'); } else badge.remove(); }
+      });
+    };
+    const showWarnings = list => {
+      if (!warnBox) return;
+      const ul = $('ul', warnBox);
+      ul.replaceChildren(...list.map(w => { const li = document.createElement('li'); li.textContent = w; return li; }));
+      warnBox.hidden = list.length === 0;
+    };
+    const refresh = async () => {
+      const my = ++seq;
+      const fd = new FormData(form);
+      try {
+        const res = await fetch(form.dataset.previewUrl, { method: 'POST', body: fd, credentials: 'same-origin', headers: { 'Accept': 'application/json' } });
+        const data = await res.json();
+        if (my !== seq) return;
+        vars = data.vars; applyVars(); showErrors(data.errors || {}); showWarnings(data.warnings || []);
+        note.textContent = data.ok ? 'Vorschau mit Ihren Änderungen (noch nicht gespeichert).' : 'Vorschau: Felder mit Fehler zeigen den gespeicherten Wert.';
+        note.classList.add('is-live');
+      } catch (e) {
+        note.textContent = 'Vorschau gerade nicht möglich. Speichern funktioniert trotzdem.';
+      }
+    };
+    form.addEventListener('input', e => { if (e.target.closest('[data-ds-field]')) { clearTimeout(timer); timer = setTimeout(refresh, 250); } });
+    form.addEventListener('change', e => { if (e.target.tagName === 'SELECT') { clearTimeout(timer); timer = setTimeout(refresh, 50); } });
+    frame.addEventListener('load', () => {
+      applyVars();
+      // Links im Rahmen bleiben in der Vorschau
+      const doc = frame.contentDocument;
+      doc && doc.addEventListener('click', e => {
+        const a = e.target.closest && e.target.closest('a[href]');
+        if (!a) return;
+        const u = new URL(a.href, location.href);
+        if (u.origin !== location.origin || u.pathname.startsWith('/verwaltung/')) { e.preventDefault(); return; }
+        u.searchParams.set('designvorschau', '1');
+        a.href = u.toString();
+      }, true);
+    });
+    const fit = () => {
+      const w = wrap.clientWidth, h = wrap.clientHeight;
+      const scale = Math.min(1, w / device);
+      frame.style.width = (device * scale < w ? w / scale : device) + 'px';
+      frame.style.height = (h / scale) + 'px';
+      frame.style.transform = 'scale(' + scale + ')';
+      if (device < 1280) { frame.style.width = device + 'px'; frame.style.left = Math.max(0, (w - device * scale) / 2) + 'px'; } else { frame.style.left = '0'; }
+    };
+    $$('[data-ds-device]', ds).forEach(b => b.addEventListener('click', () => {
+      device = +b.dataset.dsDevice;
+      $$('[data-ds-device]', ds).forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+      fit();
+    }));
+    window.addEventListener('resize', fit);
+    fit();
+    $('[data-ds-page]', ds).addEventListener('change', e => { frame.src = e.target.value + '?designvorschau=1'; });
+  }
 })();

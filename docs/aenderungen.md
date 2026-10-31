@@ -294,3 +294,29 @@ Grundlage: Firmendaten von der bisherigen Datenschutzseite (meabildungszentrum.d
 - Startseite, „Zulassungen und Partner“: mehr Kontrast. Der Bereich hat einen leicht getönten Hintergrund, die weißen Kästen einen kräftigeren Rand und Schatten, die Namen sind dunkler.
 
 **Dateien:** `public/assets/css/app.css`.
+
+# Update 0.8.0 – Designsystem in der Verwaltung
+
+Das Aussehen der ganzen Website lässt sich jetzt in der Verwaltung einstellen: **Einstellungen → Designsystem** (nur Administratoren). Es müssen keine CSS-Dateien mehr bearbeitet werden. Mit den Standardwerten sieht die Website aus wie bisher.
+
+## Die Seite „Designsystem“
+- **Fünf Reiter:** Typografie (Schriftfamilien, Größen am Computer, Gewicht, Zeilenhöhe, Buchstabenabstand, Großschreibung, kursiv), Farben (Primär-, Sekundär-, Akzentfarbe, Hintergründe, Text, Links, Buttons mit Hover/Klick/Fokus, Rahmen, Erfolg/Warnung/Fehler), Layout (Inhaltsbreite, Seitenrand, Sektionsabstand, Abstandsfaktor, Abstände zwischen Überschrift, Text und Elementen), Komponenten (Buttons, Karten, Formulare, Eckradien, Rahmenstärken, Schatten), Responsive (Werte für Handys, Tablet wird stufenlos dazwischen berechnet).
+- **Farbwähler und HEX-Feld** nebeneinander, beide bleiben gleich.
+- **Live-Vorschau** rechts: die echte Website (Startseite, Leistungen, Prüfungsübersicht, eine Prüfungsseite, Standorte, Kontakt, FAQ) als Computer, Tablet oder Handy. Jede Änderung erscheint sofort, gespeichert wird erst mit „Speichern“.
+- Jedes Feld zeigt den **Standardwert** und hat einen Knopf „Standard“. Geänderte Felder sind markiert, oben steht, wie viele Werte geändert sind.
+- **Prüfung beim Tippen und beim Speichern:** Fehler stehen direkt am Feld und am Reiter. Hinweise zur Lesbarkeit, wenn ein Farbpaar zu wenig Kontrast hat (Speichern bleibt möglich).
+- **„Alles auf Standard zurücksetzen“** mit Rückfrage.
+- **Eigene Schriften:** WOFF2- oder WOFF-Datei hochladen (max. 2 MB), danach in allen Schriftfeldern wählbar. Eine Schrift, die verwendet wird, lässt sich nicht löschen.
+- **Mitgelieferte Schriften:** zusätzlich zu Plus Jakarta Sans jetzt Inter, Open Sans, Source Sans 3, Nunito, Lora, Source Serif 4, Merriweather und zwei Systemschriften. Alle liegen auf dem eigenen Server; nichts wird von Google geladen (Datenschutz).
+
+## Technik
+- Standardwerte stehen im Programm, in der Datenbank nur Abweichungen (neue Tabellen `design_tokens`, `design_fonts`).
+- Die Werte gehen als **CSS-Variablen** an die Website (`--color-primary`, `--font-size-h1`, `--radius-card` …). Die Datei `public/media/design/design-<prüfsumme>.css` entsteht bei jedem Speichern neu; Browser dürfen sie ein Jahr lang zwischenspeichern, weil sich der Name mit jedem Inhalt ändert. Kein zusätzlicher Datenbankzugriff pro Seitenaufruf.
+- `app.css` ist komplett auf die Variablen umgestellt: keine festen Farben, Schriftnamen, Schriftgrößen oder -gewichte mehr. Doppelte und sich widersprechende Regeln sind zusammengeführt. Ein Test passt darauf auf.
+- Nebenbei behoben: Auf dem Handy stand im Seitenkopf der Unterseiten das Bild neben dem Text statt darunter (eine doppelte Regel hat die Handy-Ansicht überschrieben).
+- Sicherheit: kein Feld nimmt CSS-Text an; Farben nur HEX, Zahlen nur im erlaubten Bereich, alles andere nur aus festen Listen. Neues Recht „Designsystem“, CSRF-Schutz, jede Änderung im Änderungsprotokoll. Schriftdateien werden am Inhalt erkannt.
+- Die Vorschau darf die eigene Website in einem Rahmen zeigen (nur mit `?designvorschau=1`, nur von derselben Adresse). Sonst bleibt das Einbetten verboten.
+
+**Dateien:** `src/Module/Design/*` (neu), `src/Admin/DesignController.php` (neu), `templates/admin/design/edit.twig` (neu), `templates/partials/design_head.twig` (neu), `migrations/20261105100022_create_design_system.php` (neu), `public/assets/css/app.css` (neu aufgebaut), `public/assets/fonts/*` (7 Schriften neu), `public/assets/css/admin.css`, `public/assets/js/admin.js`, `templates/admin/layout.twig`, `templates/admin/_icons.svg`, `templates/layout/base.twig`, `templates/public/offline.twig`, `src/Core/App.php`, `src/Core/View.php`, `src/Admin/AdminModule.php`, `src/Module/Auth/Roles.php`, `src/Module/Security/FileGuard.php`, `DESIGN.md`, `docs/betrieb.md`, `docs/adr/README.md`, Tests `DesignSystemTest`, `DesignSystemUnitTest`, `DesignCssUsageTest` (neu).
+
+**Nach dem Einspielen:** nichts weiter nötig. Das Update führt die Datenbankschritte selbst aus; die CSS-Datei entsteht beim ersten Seitenaufruf.

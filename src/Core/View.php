@@ -69,6 +69,12 @@ final class View
         $this->twig->addFilter(new TwigFilter('obfuscate', static fn(string $s): string => base64_encode(strrev($s))));
     }
 
+    /** Weitere Twig-Funktion (nur vor dem ersten Rendern möglich). */
+    public function addFunction(string $name, callable $fn): void
+    {
+        $this->twig->addFunction(new TwigFunction($name, $fn));
+    }
+
     public function addGlobal(string $name, mixed $value): void
     {
         $this->twig->addGlobal($name, $value);

@@ -25,6 +25,7 @@ final class Roles
         'applications' => 'Bewerbungen und Unterlagen',
         'emails' => 'E-Mail-Vorlagen und Protokoll',
         'settings' => 'Firmendaten, SEO, Datenschutzfristen',
+        'design' => 'Designsystem (Schriften, Farben, Abstände der Website)',
         'users' => 'Benutzer und Rollen',
         'audit' => 'Änderungsprotokoll',
         'system' => 'Systemprüfung',

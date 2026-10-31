@@ -16,9 +16,7 @@
   {% if seo_description is defined and seo_description %}<meta property="og:description" content="{{ seo_description }}">{% endif %}
   <meta property="og:url" content="{{ base_url }}{{ canonical ?? '/' }}">
   {% if og_image is defined and og_image %}<meta property="og:image" content="{{ abs_url(og_image) }}">{% endif %}
-  <meta name="theme-color" content="#0e3042">
-  <link rel="preload" href="/assets/fonts/plus-jakarta-sans-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="{{ asset('css/app.css') }}">
+  {% include 'partials/design_head.twig' %}
   <link rel="icon" href="{{ media_url(company.logo_icon_media_id, 480) }}">
   {% block head %}{% endblock %}
   <script src="{{ asset('js/app.js') }}" defer></script>

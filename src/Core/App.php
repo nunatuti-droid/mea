@@ -98,6 +98,10 @@ final class App
         $this->view->addGlobal('rating_summary', $this->content->ratingSummary());
         $this->view->addGlobal('footer_reviews', $this->content->reviews());
         $this->view->addGlobal('google_reviews', $this->content->googleReviews(3));
+        // Designsystem: Adresse der erzeugten CSS-Variablen, vorab geladene Schriften, Browserfarbe
+        $this->view->addFunction('design_css', fn(): string => $this->design()->stylesheetUrl());
+        $this->view->addFunction('design_preloads', fn(): array => $this->design()->preloads());
+        $this->view->addFunction('design_theme_color', fn(): string => $this->design()->themeColor());
 
         $pages = $this->publicPages = new PublicController($this->view, $this->content, $exams, $locations, $settings);
         $examCtl = new ExamController($this->view, $exams, $this->content);
@@ -139,6 +143,7 @@ final class App
         $r->get('/kontakt/', $contact->show(...));
         $r->post('/kontakt/', $contact->submit(...));
         $r->post('/einwilligung/', (new \Mea\Module\Consent\ConsentController($this->db, $this->consent, $limiter))->record(...));
+        $r->get(\Mea\Module\Design\DesignService::FALLBACK_URL, $this->designFallback(...));
         $r->get('/sitemap.xml', $seo->sitemap(...));
         $r->get('/robots.txt', $seo->robots(...));
         $r->get('/{parent:[a-z0-9-]+}/{slug:[a-z0-9-]+}/', $pages->childService(...));
@@ -149,6 +154,43 @@ final class App
     private ?\Mea\Module\Bookings\BookingService $bookingService = null;
     private ?\Mea\Module\Applications\ApplicationService $applicationService = null;
     private ?\Mea\Module\Content\GoogleReviewSync $googleSync = null;
+    private ?\Mea\Module\Design\DesignService $designService = null;
+    private ?string $designDir = null;
+
+    public function design(): \Mea\Module\Design\DesignService
+    {
+        return $this->designService ??= new \Mea\Module\Design\DesignService($this->db, $this->settings, $this->designDir(), $this->log);
+    }
+
+    /** Ordner der erzeugten CSS-Dateien (öffentlich, vom Dateiwächter und von Updates ausgenommen). */
+    public function designDir(): string
+    {
+        return $this->designDir ?? $this->root . '/public/media/design';
+    }
+
+    public function fontDir(): string
+    {
+        return dirname($this->designDir()) . '/fonts';
+    }
+
+    /** Für Tests: erzeugte Dateien in einen eigenen Ordner schreiben. */
+    public function useDesignDir(string $dir): void
+    {
+        $this->designDir = $dir;
+        $this->designService = null;
+    }
+
+    /** Ausweg, falls public/media nicht beschreibbar ist: CSS-Variablen direkt aus der Anwendung. */
+    private function designFallback(Request $req): Response
+    {
+        $css = $this->design()->stylesheet();
+        $etag = '"' . substr(hash('sha256', $css), 0, 16) . '"';
+        if (trim((string) ($req->server['HTTP_IF_NONE_MATCH'] ?? '')) === $etag) {
+            return new Response('', 304, ['ETag' => $etag]);
+        }
+        return Response::text($css, 'text/css')->withHeader('ETag', $etag)
+            ->withHeader('Cache-Control', isset($req->query['v']) ? 'public, max-age=31536000, immutable' : 'public, max-age=300');
+    }
 
     public function googleReviews(): \Mea\Module\Content\GoogleReviewSync
     {
@@ -272,12 +314,13 @@ final class App
     private function guard(Request $req): ?Response
     {
         $isAdmin = str_starts_with($req->path, '/verwaltung/');
-        if (is_file(self::maintenanceFlag($this->root)) && !$isAdmin && !$this->bypassMaintenance) {
+        $isDesignCss = $req->path === \Mea\Module\Design\DesignService::FALLBACK_URL;
+        if (is_file(self::maintenanceFlag($this->root)) && !$isAdmin && !$isDesignCss && !$this->bypassMaintenance) {
             return self::staticPage(503, 'Wartungsarbeiten', 'Die Website wird gerade aktualisiert. Bitte versuchen Sie es in wenigen Minuten erneut.')
                 ->withHeader('Retry-After', '300');
         }
         // Website im Backend offline geschaltet: Wartungsseite, Verwaltung und Zahlungsrückmeldungen bleiben erreichbar
-        if (!$this->bypassMaintenance && !\Mea\Module\Ops\SiteStatus::alwaysReachable($req->path) && !$this->siteStatus->isOnline()) {
+        if (!$this->bypassMaintenance && !$isDesignCss && !\Mea\Module\Ops\SiteStatus::alwaysReachable($req->path) && !$this->siteStatus->isOnline()) {
             return $this->offlinePage();
         }
         $check = $this->firewall->inspect($req);
@@ -312,7 +355,7 @@ final class App
     {
         $t = htmlspecialchars($title, ENT_QUOTES);
         $body = '<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">'
-            . '<meta name="robots" content="noindex"><title>' . $t . '</title><link rel="stylesheet" href="/assets/css/app.css"></head>'
+            . '<meta name="robots" content="noindex"><title>' . $t . '</title><link rel="stylesheet" href="/media/design/aktuell.css?v=' . gmdate('YmdH') . '"><link rel="stylesheet" href="/assets/css/app.css"></head>'
             . '<body><main class="container section"><h1>' . $t . '</h1><p class="lead">' . htmlspecialchars($text, ENT_QUOTES) . '</p></main></body></html>';
         return Response::html($body, $code)->withHeader('Cache-Control', 'no-store');
     }
@@ -366,12 +409,17 @@ final class App
         $csp = "default-src 'self'; script-src 'self'" . $add($x['script']) . "; style-src 'self'; img-src 'self' data:" . $add($x['img']) . "; font-src 'self'; "
             . "frame-src 'self' https://www.google.com" . $add($x['frame']) . "; connect-src 'self'" . $add($x['connect']) . "; form-action 'self'; "
             . "base-uri 'self'; frame-ancestors 'none'; object-src 'none'";
+        // Live-Vorschau des Designsystems: die Verwaltung zeigt öffentliche Seiten in einem Rahmen derselben Website
+        $framable = isset($req->query['designvorschau']) && !str_starts_with($req->path, '/verwaltung/');
+        if ($framable) {
+            $csp = str_replace("frame-ancestors 'none'", "frame-ancestors 'self'", $csp);
+        }
         $h = [
             'Content-Security-Policy' => $csp,
             'X-Content-Type-Options' => 'nosniff',
             'Referrer-Policy' => 'strict-origin-when-cross-origin',
             'Permissions-Policy' => 'camera=(), microphone=(), geolocation=(), payment=()',
-            'X-Frame-Options' => 'DENY',
+            'X-Frame-Options' => $framable ? 'SAMEORIGIN' : 'DENY',
             'Cross-Origin-Opener-Policy' => 'same-origin',
         ];
         if ($req->isSecure()) {

@@ -84,7 +84,7 @@ Der geheime Schlüssel kommt nie auf den Server und nie ins Repository.
 
 ## Dateiwächter
 
-Vergleicht alle Programmdateien mit der signierten Referenz (`integrity.json` + `integrity.sig`, erzeugt beim Paketbau). Meldet geänderte, fehlende und unerwartete Dateien sowie alles in `public/media`, was kein Bild oder PDF ist. Läuft nachts; manuell in der Verwaltung (System → „Dateien jetzt prüfen“) oder per `php bin/console integrity:check`.
+Vergleicht alle Programmdateien mit der signierten Referenz (`integrity.json` + `integrity.sig`, erzeugt beim Paketbau). Meldet geänderte, fehlende und unerwartete Dateien sowie alles in `public/media`, was kein Bild, PDF, Design-CSS (`public/media/design`) oder Webfont (`public/media/fonts`) ist. Läuft nachts; manuell in der Verwaltung (System → „Dateien jetzt prüfen“) oder per `php bin/console integrity:check`.
 
 Bei einer Meldung: nicht ignorieren. Prüfen, ob gerade jemand Dateien von Hand geändert hat. Falls nicht: Wartungsmodus an, Zugangsdaten ändern, aktuelles Updatepaket erneut installieren (stellt alle Programmdateien wieder her), unerwartete Dateien löschen, Logs prüfen.
 
@@ -130,3 +130,13 @@ Logs: `storage/logs/`.
 4. `php bin/console migrate`, ersten Administrator anlegen (`user:create-admin`).
 5. In der Verwaltung unter Sicherungen die extern gespeicherte Sicherung hochladen und wiederherstellen.
 6. Cron einrichten, Systemprüfung aufrufen.
+
+## Designsystem
+
+Verwaltung → Einstellungen → **Designsystem** (nur Administratoren). Schriften, Farben, Abstände, Radien und Schatten der Website.
+Gespeichert werden nur Abweichungen von den Standardwerten (Tabelle `design_tokens`); die erzeugte CSS-Datei liegt in
+`public/media/design/` (Name mit Prüfsumme, wird bei jeder Änderung neu erzeugt), eigene Schriften in `public/media/fonts/`.
+Beides ist in den Sicherungen enthalten und wird bei Updates nicht verändert. Fehlt die CSS-Datei (z. B. nach einer
+Wiederherstellung), entsteht sie beim nächsten Seitenaufruf neu. Notfall bei verunglücktem Design: in der Verwaltung
+„Alles auf Standard zurücksetzen“ oder per SQL `DELETE FROM design_tokens;` und danach eine beliebige Seite aufrufen
+(bei SQL zusätzlich `DELETE FROM settings WHERE setting_key = 'design_cache';`).

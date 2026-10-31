@@ -8,66 +8,101 @@ Fotos der MEA-Standorte tragen die Seite, Grün steht für Handlung, Dunkelblau 
 Referenzen: die bestehende MEA-Website (Inhalte, Marke), perfekt-deutsch.de (Nutzerführung zur Prüfung),
 Eduma (Kartenlogik, Abschnittsfolge). Es wurden keine Gestaltungselemente kopiert.
 
-Alle Werte stehen als CSS-Variablen in `public/assets/css/app.css` (`:root`). Seiten verwenden nur Namen, nie Rohwerte.
+Alle Werte sind **in der Verwaltung unter Einstellungen → Designsystem** einstellbar und erreichen die Website als
+CSS-Variablen. Komponenten (`public/assets/css/app.css`) verwenden nur diese Namen, nie Rohwerte. Ein Test
+(`tests/Unit/DesignCssUsageTest.php`) schlägt fehl, sobald in `app.css` eine Farbe, ein Schriftname, eine feste Schriftgröße
+oder ein festes Schriftgewicht steht oder eine Variable benutzt wird, die das Designsystem nicht kennt.
+
+## So funktioniert das Designsystem
+
+| Baustein | Datei | Aufgabe |
+| --- | --- | --- |
+| Felder und Standardwerte | `src/Module/Design/DesignSchema.php` | rund 110 Werte mit Bereich (min/max/Schritt), Bezeichnung, Reiter und CSS-Variable |
+| Prüfung | `src/Module/Design/DesignValidator.php` | HEX-Farben, Zahlen im erlaubten Bereich, nur Werte aus festen Listen, Kontrast-Hinweise (WCAG) |
+| Schriften | `src/Module/Design/FontLibrary.php` | 8 Webfonts lokal in `public/assets/fonts` (SIL OFL), 2 Systemschriften, eigene Uploads (WOFF2/WOFF) |
+| CSS-Erzeugung | `src/Module/Design/DesignCss.php` | `:root { … }` und `@font-face`; stufenlose Größen mit `clamp()` |
+| Speichern und Cache | `src/Module/Design/DesignService.php` | Abweichungen in `design_tokens`, Datei `public/media/design/design-<prüfsumme>.css` |
+| Verwaltung | `src/Admin/DesignController.php`, `templates/admin/design/edit.twig` | fünf Reiter, Live-Vorschau, Speichern, Zurücksetzen, eigene Schriften |
+
+- **Standard und Gespeichertes sind getrennt:** Standardwerte stehen nur im Code. In der Datenbank liegen nur Werte, die davon abweichen.
+  „Alles auf Standard zurücksetzen“ löscht diese Zeilen.
+- **Cache:** Beim Speichern entsteht eine neue CSS-Datei, deren Name eine Prüfsumme des Inhalts enthält. Alle Seiten verweisen sofort
+  auf die neue Datei; Browser und Server dürfen jede Datei ein Jahr lang speichern. Welche Datei aktuell ist, steht in der Einstellung
+  `design_cache`, die ohnehin bei jedem Seitenaufruf geladen wird (keine zusätzliche Datenbankabfrage). Fehlt die Datei oder ändern
+  sich mit einem Update die Standardwerte, wird sie beim nächsten Aufruf neu erzeugt. Ist `public/media/design` nicht beschreibbar,
+  liefert die Anwendung dasselbe CSS unter `/designsystem.css` aus.
+- **Sicherheit:** Kein Eingabefeld nimmt CSS-Text an. Farben nur als HEX, Zahlen werden geprüft und neu formatiert, Schriften, Schatten
+  und Texttransformation nur aus festen Listen. Eigene Schriftnamen nur aus Buchstaben, Ziffern, Leerzeichen und Bindestrichen,
+  Schriftdateien werden am Inhalt erkannt. Recht „Designsystem“ (nur Administratoren), CSRF-Schutz, jede Änderung im Änderungsprotokoll.
+- **Responsive:** Schriftgrößen, Sektionsabstand und Seitenrand haben einen Handy- und einen Computerwert. Dazwischen (Tablet) rechnet
+  `clamp()` stufenlos um. Der Umrechnungsbereich (Standard 375 bis 1280 px Bildschirmbreite) ist einstellbar.
+- **Abgeleitete Werte** (nicht einzeln einstellbar, folgen automatisch): getönte Flächen wie `--color-primary-soft`
+  (`color-mix()` aus Primär- und Kartenfarbe), Abstandsskala `--space-1` … `--space-9` (× Abstandsfaktor), `--radius-shape`.
 
 ## Farben
 
-| Token | Wert | Rolle | Kontrast |
-| --- | --- | --- | --- |
-| `--c-brand` | `#3f8d7b` | Markengrün (Vorgabe): Flächen, Icons, große Schrift ≥ 24 px, Rahmen | 3,96:1 auf Weiß |
-| `--c-action` | `#317566` | Buttons mit weißer Schrift, Links im Fließtext | 5,43:1 auf Weiß |
-| `--c-action-hover` | `#285f53` | Hover/aktiv für Buttons und Links | 7,4:1 |
-| `--c-brand-soft` | `#e7f2ef` | getönte Flächen, Badges | – |
-| `--c-ink` | `#0e3042` | Dunkelblau (Vorgabe): Überschriften, Header-Topbar, Footer, Hero | 13,8:1 |
-| `--c-text` | `#22394a` | Fließtext | 12,0:1 |
-| `--c-muted` | `#4a5b66` | Nebentext, Metadaten | 7,0:1 |
-| `--c-surface` | `#ffffff` | Seitenhintergrund, Karten | – |
-| `--c-surface-alt` | `#f4f8f7` | Abschnittswechsel | – |
-| `--c-border` | `#dbe6e3` | Linien, Kartenrahmen | – |
-| `--c-accent` | `#e8a33d` | sparsam: „wenige Plätze“, Sterne, Hervorhebung auf Dunkel | 6,4:1 zu Ink |
-| `--c-brand-light` | `#8fd3c1` | Akzent auf dunklem Grund | 8,1:1 zu Ink |
-| `--c-success` / `--c-warning` / `--c-danger` | `#276b44` / `#9a5b00` / `#b42318` | Status, Formularfehler | ≥ 4,5:1 |
+| Variable | Standard | Rolle |
+| --- | --- | --- |
+| `--color-primary` | `#3f8d7b` | Markengrün: Flächen, Symbole, Rauten, Rahmen. Keine weiße Schrift darauf |
+| `--color-primary-strong` | `#317566` | Grün für kleine Schrift und Symbole auf hellem Grund (5,4:1) |
+| `--color-secondary` | `#0e3042` | Dunkelblau: Kopfzeile oben, Startbereich, Fußbereich, Infokästen |
+| `--color-accent` | `#e8a33d` | sparsam: Sterne, „wenige Plätze“, Hinweisleisten |
+| `--color-background` / `--color-surface` / `--color-surface-alt` | `#f6f9f8` / `#ffffff` / `#eaf1ef` | Seite / Karten und Inhaltsbereiche / getönte Abschnitte |
+| `--color-text` / `--color-text-muted` / `--color-heading` | `#22394a` / `#4a5b66` / `#0e3042` | Fließtext / Nebentext / Überschriften und Hervorhebungen |
+| `--color-link` / `--color-link-hover` | `#317566` / `#285f53` | Links |
+| `--color-button` / `-text` / `-hover` / `-active` | `#317566` / `#ffffff` / `#285f53` / `#1f4c42` | Hauptbuttons in allen Zuständen |
+| `--color-focus` | `#e8a33d` | Fokusrahmen für Tastaturbedienung |
+| `--color-on-dark` / `-muted` / `-accent` | `#ffffff` / `#c5d3d9` / `#8fd3c1` | Schrift auf dunklen Flächen |
+| `--color-border` / `-border-strong` / `-input-border` / `-input-background` | `#d3e0dc` / `#b9cdc7` / `#c6d5d1` / `#fbfdfc` | Linien, Kartenrahmen, Formularfelder |
+| `--color-success` / `--color-warning` / `--color-error` | `#276b44` / `#9a5b00` / `#b42318` | Meldungen, Formularfehler |
+| `--color-shadow` | `#0e3042` | Grundfarbe der Schatten |
 
-Regel: Weiße Schrift steht nie auf `--c-brand`, sondern auf `--c-action` oder `--c-ink`.
+Die Verwaltung zeigt einen Hinweis, wenn eine Farbkombination den Kontrast von 4,5:1 unterschreitet (Speichern bleibt möglich).
 
 ## Typografie
 
-Eine Familie: **Plus Jakarta Sans** (variabel, SIL OFL), lokal ausgeliefert, `font-display: swap`.
+Standard: **Plus Jakarta Sans** (variabel, SIL OFL) für Überschriften, Fließtext und Bedienelemente; lokal ausgeliefert, `font-display: swap`.
+Weitere Schriften ohne Upload: Inter, Open Sans, Source Sans 3, Nunito, Lora, Source Serif 4, Merriweather, Systemschriften.
+Die Schriften von Überschrift und Fließtext werden vorab geladen (`preload`).
 
-| Token | Größe | Zeilenhöhe | Einsatz |
-| --- | --- | --- | --- |
-| `--fs-display` | 40–60 px fließend | 1.08 | Hero-H1 |
-| `--fs-h1` | 34–48 px | 1.12 | Seiten-H1 |
-| `--fs-h2` | 28–38 px | 1.18 | Abschnittstitel |
-| `--fs-h3` | 20–22 px | 1.3 | Kartentitel |
-| `--fs-lead` | 19–21 px | 1.6 | Einleitungen |
-| `--fs-base` | 17 px | 1.65 | Fließtext |
-| `--fs-sm` | 15 px | 1.5 | Meta, Labels |
-| `--fs-xs` | 13 px | 1.4 | Badges, Eyebrows (Versalien, +0.08em) |
+| Variable | Handy → Computer | Einsatz |
+| --- | --- | --- |
+| `--font-size-display` | 40 → 60 px | große Überschrift im Startbereich |
+| `--font-size-h1` … `--font-size-h6` | 32→42, 26→34, 20→22, 18, 16→17, 15 px | Überschriften |
+| `--font-size-lead` | 19 → 21 px | Einleitungen |
+| `--font-size-body` | 17 px | Fließtext |
+| `--font-size-small` / `--font-size-caption` | 15 / 13 px | Meta, Labels / Badges, kleine Zeilen |
+| `--font-size-nav` / `--font-size-button` / `--font-size-input` | 15 / 17 / 17 px | Navigation, Buttons, Formularfelder |
+| `--font-size-price` | 24 px | Preise und Kennzahlen |
 
-Gewichte: 400 Text, 600 Labels/Buttons, 700 Überschriften, 800 Display. Zeilenlänge max. 68 Zeichen (`--measure`).
+Gewichte (`--font-weight-body/heading/display/ui/strong`): 400, 700, 800, 600, 700. Zeilenhöhen (`--line-height-body/compact/heading/heading-small/display/ui`):
+1.65, 1.5, 1.15, 1.3, 1.06, 1.2. Buchstabenabstand, Texttransformation und Schriftstil haben eigene Variablen (`--letter-spacing-*`,
+`--text-transform-*`, `--font-style-*`). Zeilenlänge im Fließtext max. 68 Zeichen (`--text-measure`).
 
 ## Abstände und Raster
 
-8-px-Skala: `--s-1` 4 · `--s-2` 8 · `--s-3` 12 · `--s-4` 16 · `--s-5` 24 · `--s-6` 32 · `--s-7` 48 · `--s-8` 64 · `--s-9` 96.
-Abschnitte: 96 px Desktop, 56 px Mobil (`--section`). Inhaltsbreite 1200 px, Seitenrand 16 px (Mobil) / 24 px.
+Skala `--space-1` … `--space-9`: 4 · 8 · 12 · 16 · 24 · 32 · 48 · 64 · 96 px, jeweils × `--space-scale` (Standard 1).
+`--section-spacing` 44 px (Handy) → 62 px (Computer), `--content-max-width` 1200 px, `--page-gutter` 16 → 24 px.
+`--space-heading` 16, `--space-paragraph` 16, `--space-element` 24 (Raster, Spalten), `--space-section-head` 32, `--card-padding` 24 px.
 
 ## Form und Tiefe
 
-Radien: `--r-sm` 8 (Inputs, Badges) · `--r-md` 14 (Karten) · `--r-lg` 24 (Bilder, große Flächen) · `--r-pill` (Buttons).
-Signatur-Ecke: `--r-shape: 24px 24px 24px 6px` für Bilder und Hero-Flächen.
-Schatten: `--sh-1` (Ruhe, kaum sichtbar) und `--sh-2` (Hover, Overlays). Keine Verläufe auf Text, kein Glassmorphism.
+Radien: `--radius-small` 8 (Menü, Badges) · `--radius-input` 12 · `--radius-card` 14 · `--radius-image` 24 (Bilder, große Flächen) ·
+`--radius-button` 999 (Pille). Signatur-Ecke: `--radius-shape` = drei große Radien und `--radius-corner` (6 px) unten links.
+Rahmen: `--border-width` 1, `--border-width-input` 1,5, `--border-width-button` 2, Fokus `--focus-ring-width` 3 px.
+Schatten in fünf Stufen (kein, kaum sichtbar, weich, mittel, kräftig): `--shadow-small`, `--shadow-card`, `--shadow-raised`.
+Keine Verläufe auf Text, kein Glassmorphism.
 
 ## Komponenten
 
-- **Buttons:** primär (`--c-action`, weiß), sekundär (Rahmen `--c-ink`), ruhig (Text mit Pfeil). Höhe ≥ 48 px, Fokusring 3 px `--c-accent` mit 2 px Abstand, deaktiviert mit 45 % Deckkraft und `aria-disabled`.
-- **Links:** `--c-action`, unterstrichen im Fließtext, Hover `--c-action-hover`.
-- **Formulare:** Label über dem Feld, Pflichtfelder markiert, Fehlertext unter dem Feld mit Icon, `aria-describedby`.
+- **Buttons:** primär (`--color-button`, Schrift `--color-button-text`, Hover/aktiv eigene Farben), sekundär (Rahmen `--color-secondary`), ruhig (Text mit Pfeil). Höhe `--button-height` (≥ 44 px empfohlen), Fokusring `--focus-ring-width` in `--color-focus` mit 2 px Abstand, deaktiviert mit 45 % Deckkraft und `aria-disabled`.
+- **Links:** `--color-link`, unterstrichen im Fließtext, Hover `--color-link-hover`.
+- **Formulare:** Höhe `--input-height`, Rahmen `--border-width-input` in `--color-input-border`, Radius `--radius-input`. Label über dem Feld, Pflichtfelder markiert, Fehlertext unter dem Feld mit Icon, `aria-describedby`.
 - **Karten:** Prüfungskarte (Bild 3:2, Niveau-Raute, Preis, nächster Termin, Plätze), Leistungskarte (Bild, Icon, Text, Pfeil-Link), Terminzeile.
 - **Status-Pillen:** verfügbar (grün), wenige Plätze (Akzent), ausgebucht/geschlossen (grau).
 - **Navigation:** Topbar (Telefon, WhatsApp, Standorte), Header weiß und sticky, Dropdown mit Kurzbeschreibung, mobiles Menü als Vollbild-Panel.
 - **Mobile Schnellzugriffsleiste:** Anrufen · WhatsApp · Prüfung buchen, fest unten, Seite erhält Abstand nach unten.
-- **Footer:** Dunkelblau, Spalten Leistungen, Prüfungen, Unternehmen, Standorte, Stimmen der Teilnehmenden, Rechtliches.
+- **Footer:** Sekundärfarbe, Spalten Leistungen, Prüfungen, Unternehmen, Standorte, Stimmen der Teilnehmenden, Rechtliches.
 
 ## Bilder und Icons
 

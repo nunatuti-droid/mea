@@ -74,6 +74,8 @@ abstract class IntegrationTestCase extends TestCase
             $db->pdo()->beginTransaction();
         }
         $this->app = new App(self::root(), self::$config, $db);
+        // Erzeugte Design-CSS-Dateien nicht ins Projekt schreiben
+        $this->app->useDesignDir(sys_get_temp_dir() . '/mea-test-design-' . getmypid() . '/design');
         $_SESSION = [];
     }
 

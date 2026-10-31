@@ -1,0 +1,137 @@
+{% extends 'admin/layout.twig' %}
+{% block main_class %} adm-content--wide{% endblock %}
+{% macro control(f, values, errors) %}
+  {% set id = 'd-' ~ f.key %}
+  {% set val = values[f.key] ?? '' %}
+  {% set err = errors[f.key] ?? null %}
+  {% set described = id ~ '-help' ~ (err ? ' ' ~ id ~ '-err' : '') %}
+  <div class="field ds-field{{ err ? ' has-error' : '' }}{{ f.changed ? ' is-changed' : '' }}" data-ds-field="{{ f.key }}" data-default="{{ f.default }}">
+    <label for="{{ id }}">{{ f.label }}</label>
+    {% set common = ' id="' ~ id ~ '" name="' ~ f.key ~ '" aria-describedby="' ~ described ~ '"' ~ (err ? ' aria-invalid="true"' : '') %}
+    {% if f.type == 'color' %}
+      <div class="ds-color">
+        <input type="color" value="{{ val matches '/^#[0-9a-fA-F]{6}$/' ? val : f.default }}" data-color-for="{{ id }}" aria-label="Farbwähler: {{ f.label }}" tabindex="-1">
+        <input type="text"{{ common|raw }} value="{{ val }}" maxlength="7" spellcheck="false" autocomplete="off" class="mono" pattern="#?[0-9a-fA-F]{3}([0-9a-fA-F]{3})?">
+      </div>
+    {% elseif f.type in ['px', 'number', 'em'] %}
+      <div class="ds-num">
+        <input type="number"{{ common|raw }} value="{{ val }}" min="{{ f.min }}" max="{{ f.max }}" step="{{ f.step ?? 1 }}" inputmode="decimal">
+        {% set unit = f.suffix ?? (f.type == 'number' ? '' : f.unit ?? '') %}
+        {% if unit %}<span aria-hidden="true">{{ unit }}</span>{% endif %}
+      </div>
+    {% else %}
+      <select{{ common|raw }}>
+        {% for k, label in f.options %}<option value="{{ k }}" {{ (k ~ '') == val ? 'selected' }}>{{ label }}</option>{% endfor %}
+      </select>
+    {% endif %}
+    <p class="field__help" id="{{ id }}-help">
+      {% if f.help is defined %}{{ f.help }} {% endif %}<span class="ds-default">Standard: {{ f.default_label }}</span>
+      <button type="button" class="link-quiet ds-reset" data-ds-reset="{{ id }}">{{ icon('rotate-ccw') }}Standard</button>
+    </p>
+    <p class="field__error" id="{{ id }}-err" data-ds-error{{ err ? '' : ' hidden' }}>{{ icon('circle-alert') }}<span>{{ err }}</span></p>
+  </div>
+{% endmacro %}
+{% import _self as ds %}
+{% block content %}
+  <div class="adm-head">
+    <div>
+      <h1>Designsystem</h1>
+      <p class="adm-head__intro">Schriften, Farben, Abstände und Formen der gesamten Website. Änderungen gelten nach dem Speichern sofort auf allen Seiten, ohne dass CSS-Dateien bearbeitet werden müssen. Die Vorschau zeigt sie schon vorher.</p>
+    </div>
+    <div class="adm-head__actions">
+      <span class="badge {{ changed_count ? 'badge--warning' : 'badge--neutral' }}">{{ changed_count }} von {{ field_count }} Werten geändert</span>
+    </div>
+  </div>
+
+  {% if errors is not empty %}
+    <div class="alert alert--error" role="alert" tabindex="-1" data-focus>{{ icon('circle-alert') }}<div><p><strong>Nicht gespeichert. Bitte prüfen Sie die markierten Felder.</strong></p>
+      <ul>{% for k, e in errors %}<li><a href="#d-{{ k }}" data-ds-goto="{{ k }}">{{ e }}</a></li>{% endfor %}</ul></div></div>
+  {% endif %}
+  <div class="alert alert--warning" role="status" data-ds-warnings{{ warnings is empty ? ' hidden' }}>{{ icon('info') }}<div><p><strong>Hinweise zur Lesbarkeit</strong> (kein Fehler, Speichern ist möglich):</p>
+    <ul>{% for w in warnings %}<li>{{ w }}</li>{% endfor %}</ul></div></div>
+
+  <div class="ds" data-ds>
+    <div class="ds__main">
+      <form method="post" action="/verwaltung/designsystem/" class="adm-form ds__form" id="ds-form" data-dirty-guard novalidate data-ds-form data-preview-url="/verwaltung/designsystem/vorschau/">
+        <input type="hidden" name="_csrf" value="{{ csrf }}">
+        <input type="hidden" name="_tab" value="typography" data-ds-tab-input>
+        <div class="ds-tabs" role="tablist" aria-label="Bereiche des Designsystems" data-ds-tabs hidden>
+          {% for id, tab in tabs %}
+            <button type="button" role="tab" id="tabbtn-{{ id }}" aria-controls="tab-{{ id }}" aria-selected="{{ loop.first ? 'true' : 'false' }}" data-ds-tab="{{ id }}"{{ loop.first ? '' : ' tabindex="-1"' }}>
+              {{ icon(tab.icon) }}<span>{{ tab.label }}</span>{% if tab.errors %}<span class="ds-tabs__err" aria-label="{{ tab.errors }} Fehler">{{ tab.errors }}</span>{% endif %}
+            </button>
+          {% endfor %}
+        </div>
+        {% for id, tab in tabs %}
+          <section class="ds-panel" id="tab-{{ id }}" role="tabpanel" aria-labelledby="tabbtn-{{ id }}" data-ds-panel="{{ id }}">
+            <h2 class="ds-panel__title">{{ loop.index }}. {{ tab.label }}</h2>
+            <p class="text-muted">{{ tab.intro }}</p>
+            {% for group, fields in tab.groups %}
+              <fieldset class="card"><legend>{{ group }}</legend>
+                <div class="form-grid ds-grid">{% for f in fields %}{{ ds.control(f, values, errors) }}{% endfor %}</div>
+              </fieldset>
+            {% endfor %}
+            {% if id == 'typography' %}
+              <p class="text-muted text-sm">Alle Schriften liegen auf diesem Server; es wird nichts von Google oder anderen Anbietern geladen. Eigene Schriften laden Sie unten unter „Eigene Schriften“ hoch.</p>
+            {% endif %}
+          </section>
+        {% endfor %}
+        <div class="ds-actions">
+          <button class="btn btn--primary" type="submit">{{ icon('check') }}Speichern</button>
+          <span class="text-muted text-sm" data-ds-status aria-live="polite">{% if published_at %}Zuletzt veröffentlicht: {{ published_at|utc|date('d.m.Y, H:i') }} Uhr{% endif %}</span>
+        </div>
+      </form>
+
+      <section class="card mt" id="schriften" data-ds-extra="typography">
+        <h2 class="card__title">Eigene Schriften</h2>
+        <p class="text-muted">Webfont im Format <strong>WOFF2</strong> (oder WOFF) hochladen, höchstens {{ max_font_mb }} MB. Bitte nur Schriften mit gültiger Lizenz für Websites verwenden. Für fett und normal gibt es meist eigene Dateien; eine variable Schrift deckt alle Gewichte ab.</p>
+        {% if custom_fonts is not empty %}
+          <div class="table-wrap"><table class="tbl tbl--compact">
+            <thead><tr><th scope="col">Name</th><th scope="col">Gewicht</th><th scope="col">Stil</th><th scope="col">Datei</th><th scope="col"><span class="visually-hidden">Aktion</span></th></tr></thead>
+            <tbody>{% for f in custom_fonts %}<tr>
+              <th scope="row">{{ f.family }}</th><td>{{ f.weight_min == f.weight_max ? f.weight_min : f.weight_min ~ '–' ~ f.weight_max }}</td><td>{{ f.style == 'italic' ? 'kursiv' : 'normal' }}</td><td class="mono">{{ f.original_name }}</td>
+              <td><form method="post" action="/verwaltung/designsystem/schriften/{{ f.id }}/loeschen/" data-confirm="Schrift „{{ f.family }}“ löschen?" class="inline"><input type="hidden" name="_csrf" value="{{ csrf }}"><button class="btn btn--ghost btn--sm btn--danger" type="submit">{{ icon('trash-2') }}Löschen</button></form></td>
+            </tr>{% endfor %}</tbody>
+          </table></div>
+        {% endif %}
+        <form method="post" action="/verwaltung/designsystem/schriften/" enctype="multipart/form-data" class="form-grid mt">
+          <input type="hidden" name="_csrf" value="{{ csrf }}">
+          <div class="field"><label for="font-family">Name der Schrift</label><input id="font-family" name="family" required maxlength="40" pattern="[A-Za-z][A-Za-z0-9 \-]{1,39}" aria-describedby="font-family-help"><p class="field__help" id="font-family-help">z. B. „Hausschrift“. Nur Buchstaben ohne Umlaute, Ziffern, Leerzeichen, Bindestriche.</p></div>
+          <div class="field"><label for="font-file">Datei (.woff2 / .woff)</label><input id="font-file" type="file" name="font" accept=".woff2,.woff,font/woff2,font/woff" required></div>
+          <div class="field"><label for="font-wmin">Schriftgewicht von</label><select id="font-wmin" name="weight_min">{% for w in [100, 200, 300, 400, 500, 600, 700, 800, 900] %}<option {{ w == 400 ? 'selected' }}>{{ w }}</option>{% endfor %}</select></div>
+          <div class="field"><label for="font-wmax">bis</label><select id="font-wmax" name="weight_max">{% for w in [100, 200, 300, 400, 500, 600, 700, 800, 900] %}<option {{ w == 400 ? 'selected' }}>{{ w }}</option>{% endfor %}</select></div>
+          <div class="field"><label for="font-style">Stil</label><select id="font-style" name="style"><option value="normal">normal</option><option value="italic">kursiv</option></select></div>
+          <div class="field"><label for="font-fallback">Ersatzschrift, solange die Datei lädt</label><select id="font-fallback" name="fallback"><option value="sans">ohne Serifen</option><option value="serif">mit Serifen</option></select></div>
+          <div class="form-actions field--wide"><button class="btn" type="submit">{{ icon('upload') }}Schrift hochladen</button></div>
+        </form>
+      </section>
+
+      <section class="card card--danger mt">
+        <h2 class="card__title">Auf Standardwerte zurücksetzen</h2>
+        <p>Löscht alle gespeicherten Änderungen. Die Website zeigt danach wieder das ursprüngliche MEA-Design. Eigene Schriften bleiben erhalten. Die Änderung steht im Änderungsprotokoll.</p>
+        <form method="post" action="/verwaltung/designsystem/zuruecksetzen/" data-confirm="Alle {{ changed_count }} geänderten Designwerte auf Standard zurücksetzen?">
+          <input type="hidden" name="_csrf" value="{{ csrf }}">
+          <button class="btn btn--danger" type="submit"{{ changed_count ? '' : ' disabled' }}>{{ icon('rotate-ccw') }}Alles auf Standard zurücksetzen</button>
+        </form>
+      </section>
+    </div>
+
+    <aside class="ds__preview" aria-label="Live-Vorschau">
+      <div class="ds-preview card">
+        <div class="ds-preview__bar">
+          <label for="ds-page" class="visually-hidden">Seite für die Vorschau</label>
+          <select id="ds-page" data-ds-page>{% for url, label in pages %}<option value="{{ url }}">{{ label }}</option>{% endfor %}</select>
+          <div class="seg" role="group" aria-label="Gerät">
+            <button type="button" class="btn btn--sm" data-ds-device="1280" aria-pressed="true">Computer</button>
+            <button type="button" class="btn btn--sm" data-ds-device="820" aria-pressed="false">Tablet</button>
+            <button type="button" class="btn btn--sm" data-ds-device="390" aria-pressed="false">Handy</button>
+          </div>
+        </div>
+        <div class="ds-preview__frame" data-ds-frame-wrap>
+          <iframe src="/?designvorschau=1" title="Live-Vorschau der Website" data-ds-frame></iframe>
+        </div>
+        <p class="text-muted text-sm ds-preview__note" data-ds-preview-note>Vorschau: gespeicherter Stand. Änderungen im Formular erscheinen hier sofort, gespeichert wird erst mit „Speichern“.</p>
+      </div>
+    </aside>
+  </div>
+{% endblock %}

@@ -16,7 +16,7 @@ final class FileGuard
     /** Ausgenommen: erzeugte Inhalte und Daten */
     public const EXCLUDE = ['public/media/'];
     /** Im Upload-Ordner erlaubte Dateiendungen */
-    public const MEDIA_EXT = ['webp', 'pdf'];
+    public const MEDIA_EXT = ['webp', 'pdf', 'css', 'woff2', 'woff']; // css und Schriften: Designsystem
 
     public function __construct(private string $root, private ?string $publicKeyB64) {}
 

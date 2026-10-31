@@ -45,6 +45,7 @@
         ]},
         {label: 'Einstellungen', items: [
           {url: '/verwaltung/einstellungen/', label: 'Firmendaten & SEO', icon: 'settings', perm: 'settings'},
+          {url: '/verwaltung/designsystem/', label: 'Designsystem', icon: 'palette', perm: 'design'},
           {url: '/verwaltung/email-vorlagen/', label: 'E-Mail-Vorlagen', icon: 'file-pen', perm: 'emails'},
           {url: '/verwaltung/email-protokoll/', label: 'E-Mail-Protokoll', icon: 'mail-check', perm: 'emails'},
           {url: '/verwaltung/benutzer/', label: 'Benutzer', icon: 'users', perm: 'users'},
@@ -99,7 +100,7 @@
           </form>
         </div>
       </header>
-      <main id="inhalt" class="adm-content" tabindex="-1">
+      <main id="inhalt" class="adm-content{% block main_class %}{% endblock %}" tabindex="-1">
         {% if not site_live.online %}
           <p class="site-banner site-banner--danger">{{ icon('circle-alert') }}<span>Die Website ist offline. Besucher sehen die Wartungsseite.{% if can.system %} <a href="/verwaltung/website-status/">Ändern</a>{% endif %}</span></p>
         {% elseif not site_live.indexing %}

@@ -23,7 +23,7 @@ Der Kern ist eine **dynamische Prüfungsverwaltung**: Jede Prüfung (z. B. telc 
 | [`docs/golive.md`](docs/golive.md) | Go-live-Checkliste und Rollbackplan |
 | [`docs/betrieb.md`](docs/betrieb.md) | Betrieb, Sicherungen, Updates, Notfälle |
 | [`docs/migration/alte-urls.txt`](docs/migration/alte-urls.txt) | alle Adressen der alten WordPress-Sitemap |
-| [`docs/adr/`](docs/adr/README.md), [`DESIGN.md`](DESIGN.md) | Architekturentscheidungen, Designregeln |
+| [`docs/adr/`](docs/adr/README.md), [`DESIGN.md`](DESIGN.md) | Architekturentscheidungen, Designsystem (Variablen, Rollen, Cache, Sicherheit) |
 
 ## Voraussetzungen
 
@@ -90,8 +90,8 @@ bin/console          Kommandozeile (migrate, seed, cron, backup:*, update:*, Not
 migrations/          Datenbankschema (Phinx, reines SQL, mit Rücknahme)
 public/              Document Root: index.php, CSS, JS, Schriften, erzeugte Bilder
 src/Core/            Router, Request/Response, Datenbank, Twig, Sitzung, CSRF
-src/Admin/           Verwaltung: Anmeldung, Rechte, Formular-Baukasten, Bereiche
-src/Module/          Content, Exams, Bookings, Payments, Mail, Auth, Audit, Locations, Inquiries, Media, Seo,
+src/Admin/           Verwaltung: Anmeldung, Rechte, Formular-Baukasten, Bereiche, Designsystem
+src/Module/          Design (Designsystem: Werte, Prüfung, CSS-Variablen), Content, Exams, Bookings, Payments, Mail, Auth, Audit, Locations, Inquiries, Media, Seo,
                      Security (Firewall, Dateiwächter), Ops (Sicherung, Update, Wartungsjobs)
 src/Install/         Startdaten (ContentSeeder) und Vorschaudaten (DemoSeeder)
 templates/           Twig-Templates; ein Template für alle Prüfungen
