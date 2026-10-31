@@ -1,0 +1,34 @@
+{% extends 'admin/layout.twig' %}
+{% block content %}
+  <div class="adm-head">
+    <div>
+      <h1>Kopf- und Fußbereich</h1>
+      <p class="adm-head__intro">Texte und Links, die auf <strong>allen Seiten</strong> erscheinen (global). Leere Felder zeigen den Standardtext. Menüpunkte bearbeiten Sie unter <a href="/verwaltung/menues/">Menüs</a>, Logo, Telefon und Adressen unter <a href="/verwaltung/einstellungen/">Firmendaten</a> bzw. <a href="/verwaltung/standorte/">Standorte</a>.</p>
+    </div>
+  </div>
+  {% if errors is not empty %}<div class="alert alert--error" role="alert">{{ icon('circle-alert') }}<p>Bitte die markierten Felder prüfen.</p></div>{% endif %}
+  <form method="post" action="/verwaltung/vorlagentexte/" novalidate>
+    <input type="hidden" name="_csrf" value="{{ csrf }}">
+    {% for group, fields in groups %}
+      <fieldset class="card">
+        <legend>{{ group }} <span class="badge badge--neutral">Global</span></legend>
+        <div class="grid-2">
+          {% for key, f in fields %}
+            {% set id = 'f-' ~ key|replace({'.': '-'}) %}
+            {% set err = errors[key] ?? null %}
+            <div class="field{{ err ? ' has-error' }}{{ f.type == 'textarea' ? ' field--wide' }}">
+              <label for="{{ id }}">{{ f.label }}</label>
+              {% if f.type == 'textarea' %}
+                <textarea id="{{ id }}" name="t[{{ key }}]" rows="2" maxlength="{{ f.max }}" placeholder="{{ f.default }}"{% if err %} aria-invalid="true" aria-describedby="{{ id }}-err"{% endif %}>{{ values[key] ?? '' }}</textarea>
+              {% else %}
+                <input type="text" id="{{ id }}" name="t[{{ key }}]" value="{{ values[key] ?? '' }}" maxlength="{{ f.max }}" placeholder="{{ f.default }}"{% if f.type == 'url' %} spellcheck="false" list="adm-links"{% endif %}{% if err %} aria-invalid="true" aria-describedby="{{ id }}-err"{% endif %}>
+              {% endif %}
+              {% if err %}<p class="field__error" id="{{ id }}-err">{{ err }}</p>{% else %}<p class="field__help">Standard: {{ f.default }}</p>{% endif %}
+            </div>
+          {% endfor %}
+        </div>
+      </fieldset>
+    {% endfor %}
+    <button class="btn btn--primary" type="submit">{{ icon('save') }}Speichern</button>
+  </form>
+{% endblock %}

@@ -1,0 +1,62 @@
+{% extends 'admin/layout.twig' %}
+{% import 'admin/partials/ui.twig' as ui %}
+{% block content %}
+  <div class="adm-head">
+    <div>
+      <h1>Seiten</h1>
+      <p class="adm-head__intro">Alle Inhaltsseiten der Website, auch die Startseite. „Visuell bearbeiten“ öffnet den Seitenbaukasten: Änderungen werden als Entwurf gespeichert und erst mit „Veröffentlichen“ für Besucher sichtbar.</p>
+    </div>
+    <div class="adm-head__actions"><a class="btn btn--primary" href="/verwaltung/seiten/neu/">{{ icon('plus') }}Seite anlegen</a></div>
+  </div>
+
+  <div class="table-wrap" tabindex="0">
+    <table class="tbl pages-tbl">
+      <caption class="visually-hidden">Seiten, {{ pages|length }} Einträge</caption>
+      <thead><tr><th scope="col">Seite</th><th scope="col">Adresse</th><th scope="col">Status</th><th scope="col">Geändert</th><th scope="col"><span class="visually-hidden">Aktionen</span></th></tr></thead>
+      <tbody>
+        {% for p in pages %}
+          {% set url = p.is_home ? '/' : '/' ~ p.slug ~ '/' %}
+          <tr{% if p.is_home %} class="is-home"{% endif %}>
+            <th scope="row">
+              <a href="/verwaltung/seiten/{{ p.id }}/editor/">{{ p.title }}</a>
+              {% if p.is_home %}<span class="badge badge--success">Startseite</span>{% elseif p.is_system %}<span class="badge badge--muted" title="Feste Seite der Website: Adresse und Status sind geschützt, löschen ist nicht möglich.">Systemseite</span>{% endif %}
+              {% if p.seo_title is empty and p.seo_description is empty %}<span class="pages-tbl__hint">SEO-Angaben fehlen</span>{% endif %}
+            </th>
+            <td><code>{{ url }}</code></td>
+            <td>
+              {{ ui.status(p.status, {published: {label: 'Veröffentlicht', tone: 'success'}, draft: {label: 'Entwurf', tone: 'warning'}}) }}
+              {% if p.has_draft %}<br><span class="text-sm text-muted">Unveröffentlichte Änderungen{% if p.draft_user %} von {{ p.draft_user }}{% endif %}</span>{% endif %}
+            </td>
+            <td class="nowrap">{{ (p.draft_updated_at ?? p.updated_at)|utc|date('d.m.Y H:i') }}</td>
+            <td class="nowrap pages-tbl__actions">
+              <a class="btn btn--primary btn--sm" href="/verwaltung/seiten/{{ p.id }}/editor/">{{ icon('pencil') }}Visuell bearbeiten<span class="visually-hidden">: {{ p.title }}</span></a>
+              <a class="btn btn--ghost btn--sm" href="/verwaltung/seiten/{{ p.id }}/">{{ icon('settings') }}Einstellungen<span class="visually-hidden">: {{ p.title }}</span></a>
+              {% if p.status == 'published' %}<a class="btn btn--ghost btn--sm" href="{{ url }}" target="_blank" rel="noopener">{{ icon('external-link') }}Ansehen<span class="visually-hidden">: {{ p.title }}</span></a>{% endif %}
+              {% if not p.is_home %}
+                <form method="post" action="/verwaltung/seiten/{{ p.id }}/duplizieren/" class="inline"><input type="hidden" name="_csrf" value="{{ csrf }}"><button class="btn btn--ghost btn--sm" type="submit">{{ icon('copy') }}Kopieren<span class="visually-hidden">: {{ p.title }}</span></button></form>
+              {% endif %}
+              {% if not p.is_system and not p.is_home %}
+                {{ ui.confirm_post('/verwaltung/seiten/' ~ p.id ~ '/loeschen/', 'Löschen', 'Seite „' ~ p.title ~ '“ endgültig löschen? Die Adresse ist danach nicht mehr erreichbar.', csrf, 'danger', 'trash-2') }}
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <h2 class="pages-sub">Seiten mit eigenen Formularen</h2>
+  <p class="text-muted">Diese Seiten entstehen aus Datensätzen. Ihre Übersichtsseiten (Leistungen, Prüfungszentrum, Standorte) stehen oben in der Liste und sind visuell bearbeitbar.</p>
+  <div class="grid-3">
+    {% for s in special %}
+      <a class="card pages-card" href="{{ s.url }}">{{ icon(s.icon) }}<span class="h3">{{ s.label }} <span class="text-muted">({{ s.count }})</span></span><span class="text-sm text-muted">{{ s.note }}</span></a>
+    {% endfor %}
+  </div>
+
+  <h2 class="pages-sub">Bereiche auf allen Seiten</h2>
+  <div class="grid-3">
+    {% for g in global|filter(g => can[g.perm]) %}
+      <a class="card pages-card" href="{{ g.url }}">{{ icon(g.icon) }}<span class="h3">{{ g.label }}</span><span class="badge badge--neutral">Global</span></a>
+    {% endfor %}
+  </div>
+{% endblock %}

@@ -35,19 +35,7 @@ final class SettingsController
             ['name' => 'company__instagram', 'label' => 'Instagram-Profil', 'type' => 'url', 'max' => 255, 'group' => 'Firmendaten'],
             ['name' => 'company__logo_media_id', 'label' => 'Logo', 'type' => 'media', 'group' => 'Firmendaten'],
 
-            ['name' => 'home__eyebrow', 'label' => 'Kleine Zeile über der Überschrift', 'max' => 100, 'group' => 'Startseite'],
-            ['name' => 'home__title', 'label' => 'Überschrift', 'required' => true, 'max' => 120, 'group' => 'Startseite'],
-            ['name' => 'home__lead', 'label' => 'Einleitung', 'type' => 'textarea', 'max' => 400, 'rows' => 3, 'group' => 'Startseite'],
-            ['name' => 'home__hero_media_id', 'label' => 'Großes Bild', 'type' => 'media', 'group' => 'Startseite'],
-            ['name' => 'home__benefits', 'label' => 'Vorteile unter dem Bild (Symbol | Titel | Text)', 'type' => 'lines', 'group' => 'Startseite'],
-            ['name' => 'home__about_title', 'label' => 'Abschnitt „Über uns“: Überschrift', 'max' => 150, 'group' => 'Startseite'],
-            ['name' => 'home__about_text', 'label' => 'Abschnitt „Über uns“: Text', 'type' => 'textarea', 'max' => 800, 'group' => 'Startseite'],
-            ['name' => 'home__about_media_id', 'label' => 'Abschnitt „Über uns“: Bild', 'type' => 'media', 'group' => 'Startseite'],
-            ['name' => 'home__why', 'label' => 'Warum MEA (Symbol | Titel | Text)', 'type' => 'lines', 'group' => 'Startseite'],
-            ['name' => 'home__partners', 'label' => 'Partnerlogos (Medien-Nr. | Bezeichnung)', 'type' => 'lines', 'group' => 'Startseite', 'help' => 'Logos nur mit Erlaubnis der jeweiligen Organisation zeigen.'],
 
-            ['name' => 'seo_home__title', 'label' => 'SEO-Titel der Startseite', 'max' => 70, 'counter' => 60, 'group' => 'Suchmaschinen'],
-            ['name' => 'seo_home__description', 'label' => 'Meta-Beschreibung der Startseite', 'type' => 'textarea', 'max' => 170, 'counter' => 160, 'rows' => 2, 'group' => 'Suchmaschinen'],
 
             ['name' => 'consent__ga_id', 'label' => 'Google Analytics: Mess-ID', 'max' => 20, 'group' => 'Cookies und Dienste',
                 'help' => 'Format G-XXXXXXX. Leer = Google Analytics wird nicht verwendet. Geladen wird es nur nach Einwilligung „Statistik“. Datenschutzerklärung anpassen!'],

@@ -30,6 +30,7 @@ final class MediaController
         $k->post('/verwaltung/medien/{id:\d+}/', 'media', $this->update(...));
         $k->post('/verwaltung/medien/{id:\d+}/loeschen/', 'media', $this->delete(...));
         $k->get('/verwaltung/medien/auswahl.json', 'dashboard', $this->pickerJson(...));
+        $k->post('/verwaltung/medien/{id:\d+}/alt.json', 'media', $this->altJson(...));
         $k->get('/verwaltung/links.json', 'dashboard', $this->linksJson(...));
     }
 
@@ -59,11 +60,15 @@ final class MediaController
         $files = $_FILES['files'] ?? null;
         $alt = trim(mb_substr($req->input('alt_text'), 0, 300));
         if (!is_array($files) || !is_array($files['name'] ?? null)) {
+            if ($req->input('json') === '1') {
+                return Response::json(['ok' => false, 'ids' => [], 'errors' => ['Bitte mindestens eine Datei wählen.']], 422);
+            }
             AdminKernel::flash('Bitte mindestens eine Datei wählen.', 'error');
             return Response::redirect('/verwaltung/medien/', 303);
         }
         $ok = 0;
         $errors = [];
+        $ids = [];
         foreach ($files['name'] as $i => $name) {
             $tmp = (string) $files['tmp_name'][$i];
             $name = basename((string) $name);
@@ -89,6 +94,7 @@ final class MediaController
                     $id = $this->generator()->import($tmp, $alt, '', '', $name);
                 }
                 $this->app->audit->record('media.uploaded', 'Datei hochgeladen: ' . $name, 'media', $id);
+                $ids[] = $id;
                 $ok++;
             } catch (\InvalidArgumentException $e) {
                 $errors[] = "$name: " . $e->getMessage();
@@ -96,6 +102,9 @@ final class MediaController
                 $this->app->log->error('Upload', ['error' => $e->getMessage()]);
                 $errors[] = "$name: konnte nicht verarbeitet werden.";
             }
+        }
+        if ($req->input('json') === '1') {
+            return Response::json(['ok' => $ok > 0, 'ids' => $ids, 'errors' => $errors], $ok > 0 ? 200 : 422);
         }
         AdminKernel::flash(trim(($ok ? "$ok Datei(en) hochgeladen. " : '') . implode(' ', $errors)), $errors ? 'error' : 'success');
         return Response::redirect('/verwaltung/medien/', 303);
@@ -184,6 +193,17 @@ final class MediaController
         foreach ($db->all("SELECT id, title FROM services WHERE download_url LIKE ?", [$docPattern]) as $r) {
             $out[] = ['label' => 'Leistung (Download): ' . $r['title'], 'url' => '/verwaltung/leistungen/' . $r['id'] . '/'];
         }
+        // Seitenbaukasten: veröffentlichter Stand und Entwurf aller Seiten und globalen Bausteine
+        foreach ([['pages', 'title', '/verwaltung/seiten/%d/editor/', 'Seite'], ['builder_components', 'name', '/verwaltung/bausteine/%d/editor/', 'Globaler Baustein']] as [$table, $label, $url, $type]) {
+            $cols = $table === 'pages' ? ['blocks_json', 'draft_json'] : ['tree_json', 'draft_json'];
+            foreach ($db->all("SELECT id, $label AS l, " . implode(', ', $cols) . " FROM $table") as $r) {
+                foreach ($cols as $c) {
+                    if ($r[$c] !== null && \Mea\Module\Builder\TreeValidator::usesMedia((string) $r[$c], $id)) {
+                        $out[] = ['label' => "$type: {$r['l']}" . ($c === 'draft_json' ? ' (Entwurf)' : ''), 'url' => sprintf($url, $r['id'])];
+                    }
+                }
+            }
+        }
         foreach ($db->all('SELECT setting_key, value_json FROM settings') as $s) {
             if (self::jsonReferences((array) json_decode((string) $s['value_json'], true), $id)) {
                 $out[] = ['label' => 'Einstellung: ' . $s['setting_key'], 'url' => '/verwaltung/einstellungen/'];
@@ -212,16 +232,40 @@ final class MediaController
         return false;
     }
 
+    /** Auswahl für Formulare und Seitenbaukasten: Bilder (Standard) oder Dokumente (?art=dokument), optional mit Suche (?q=). */
     public function pickerJson(Request $req, AdminContext $ctx): Response
     {
-        $rows = $this->app->db->all("SELECT m.id, m.alt_text, m.width, m.height FROM media m WHERE m.kind = 'image' ORDER BY m.id DESC LIMIT 300");
+        $docs = ($req->query['art'] ?? '') === 'dokument';
+        $q = is_string($req->query['q'] ?? null) ? mb_substr(trim($req->query['q']), 0, 80) : '';
+        $where = $docs ? "m.kind = 'document'" : "m.kind = 'image'";
+        $params = [];
+        if ($q !== '') {
+            $where .= ' AND (m.alt_text LIKE ? OR m.title LIKE ? OR m.original_name LIKE ?)';
+            $like = '%' . addcslashes($q, '%_\\') . '%';
+            $params = [$like, $like, $like];
+        }
+        $rows = $this->app->db->all("SELECT m.id, m.alt_text, m.title, m.original_name, m.public_path, m.width, m.height FROM media m WHERE $where ORDER BY m.id DESC LIMIT 300", $params);
         $out = [];
         foreach ($rows as $r) {
-            $out[] = ['id' => (int) $r['id'], 'alt' => (string) $r['alt_text'], 'thumb' => $this->app->media->url((int) $r['id'], 480),
+            if ($docs) {
+                $out[] = ['id' => (int) $r['id'], 'title' => (string) ($r['title'] ?: $r['original_name']), 'url' => '/media/' . $r['public_path']];
+                continue;
+            }
+            $out[] = ['id' => (int) $r['id'], 'alt' => (string) $r['alt_text'], 'name' => (string) $r['original_name'], 'thumb' => $this->app->media->url((int) $r['id'], 480),
                 'src' => $this->app->media->url((int) $r['id'], 960), 'width' => min(960, (int) $r['width']),
                 'height' => (int) round(min(960, (int) $r['width']) * (int) $r['height'] / max(1, (int) $r['width']))];
         }
         return Response::json($out);
+    }
+
+    /** Alternativtext direkt aus der Bildauswahl ändern. */
+    public function altJson(Request $req, AdminContext $ctx, string $id): Response
+    {
+        $m = $this->item($id);
+        $alt = trim(mb_substr(strip_tags($req->input('alt_text')), 0, 300));
+        $this->app->db->run('UPDATE media SET alt_text = ? WHERE id = ?', [$alt, (int) $id]);
+        $this->app->audit->record('media.updated', 'Alternativtext geändert: ' . $m['original_name'], 'media', (int) $id, ['alt_text' => [$m['alt_text'], $alt]]);
+        return Response::json(['ok' => true, 'alt' => $alt]);
     }
 
     public function linksJson(Request $req, AdminContext $ctx): Response

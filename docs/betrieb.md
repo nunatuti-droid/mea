@@ -140,3 +140,13 @@ Beides ist in den Sicherungen enthalten und wird bei Updates nicht verändert. F
 Wiederherstellung), entsteht sie beim nächsten Seitenaufruf neu. Notfall bei verunglücktem Design: in der Verwaltung
 „Alles auf Standard zurücksetzen“ oder per SQL `DELETE FROM design_tokens;` und danach eine beliebige Seite aufrufen
 (bei SQL zusätzlich `DELETE FROM settings WHERE setting_key = 'design_cache';`).
+
+## Seitenbaukasten
+
+Inhaltsseiten (auch die Startseite) stehen als geprüfter Aufbau in `pages.blocks_json` (veröffentlicht) und `pages.draft_json`
+(Entwurf); globale Bausteine in `builder_components`, Versionen in `content_revisions`. Die Stile je Seite liegen als
+`public/media/design/seite-<id>-<prüfsumme>.css`. Fehlt eine Datei (z. B. nach einer Wiederherstellung), liefert
+`/seitenstil/<id>-<prüfsumme>.css` sie aus und schreibt sie neu. Alle Seiten-CSS neu erzeugen:
+`php -r 'require "vendor/autoload.php"; (new Mea\Core\App(getcwd()))->pages()->rebuildAllCss();'`.
+Notfall „Seite kaputt veröffentlicht“: im Editor unter „Versionen“ einen älteren Stand laden und veröffentlichen.
+Kopf- und Fußbereich: Einstellung `texts` (leer = Standardtexte). Ausführlich: `docs/pagebuilder.md`.

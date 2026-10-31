@@ -107,6 +107,7 @@ final class App
         $this->view->addFunction('battr', fn(array $b, string $class = '', array $attr = []): \Twig\Markup => $this->pageRenderer()->attr($b, $class, $attr));
         $this->view->addFunction('bedit', fn(string $field, string $kind = 'text'): \Twig\Markup => $this->pageRenderer()->editAttr($field, $kind));
         $this->view->addFunction('media_alt', fn(mixed $id): string => (string) ($this->media->find((int) $id)['alt_text'] ?? ''));
+        $this->view->addFunction('txt', fn(string $key, array $vars = []): string => \Mea\Module\Content\TemplateTexts::get((array) $this->settings->get(\Mea\Module\Content\TemplateTexts::SETTING, []), $key, $vars));
         $this->view->addFunction('video_embed', fn(?string $url): ?array => \Mea\Module\Builder\Video::embed((string) $url));
 
         $pageView = fn(string $slug, array $ctx = [], int $status = 200): ?Response => $this->pageView()->respond($slug, $ctx, $status);
@@ -465,7 +466,9 @@ final class App
             . "frame-src 'self' https://www.google.com https://www.youtube-nocookie.com https://player.vimeo.com" . $add($x['frame']) . "; connect-src 'self'" . $add($x['connect']) . "; form-action 'self'; "
             . "base-uri 'self'; frame-ancestors 'none'; object-src 'none'";
         // Live-Vorschau des Designsystems: die Verwaltung zeigt öffentliche Seiten in einem Rahmen derselben Website
-        $framable = isset($req->query['designvorschau']) && !str_starts_with($req->path, '/verwaltung/');
+        $framable = (isset($req->query['designvorschau']) && !str_starts_with($req->path, '/verwaltung/'))
+            // Arbeitsbereich des Seitenbaukastens: nur im Editor derselben Website
+            || preg_match('~^/verwaltung/(seiten|bausteine)/\d+/leinwand/$~', $req->path) === 1;
         if ($framable) {
             $csp = str_replace("frame-ancestors 'none'", "frame-ancestors 'self'", $csp);
         }

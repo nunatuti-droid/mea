@@ -282,4 +282,47 @@ final class TreeValidator
             $this->errors[] = ['id' => $id, 'msg' => $msg];
         }
     }
+
+    /** Verwendet ein gespeicherter Seitenaufbau (JSON) dieses Medium? Prüft alle Bild-, Bildlisten- und Link-Felder. */
+    public static function usesMedia(string $json, int $mediaId): bool
+    {
+        $tree = json_decode($json, true);
+        if (!is_array($tree)) {
+            return false;
+        }
+        $hit = false;
+        $walk = function (array $nodes) use (&$walk, &$hit, $mediaId): void {
+            foreach ($nodes as $n) {
+                if ($hit || !is_array($n)) {
+                    return;
+                }
+                $type = BlockTypes::get((string) ($n['type'] ?? ''));
+                $f = is_array($n['f'] ?? null) ? $n['f'] : [];
+                foreach ($type['fields'] ?? [] as $fd) {
+                    if (self::fieldUses($fd, $f[$fd['name']] ?? null, $mediaId)) {
+                        $hit = true;
+                        return;
+                    }
+                }
+                if (!empty($n['c']) && is_array($n['c'])) {
+                    $walk($n['c']);
+                }
+            }
+        };
+        $walk($tree);
+        return $hit;
+    }
+
+    /** @param array<string,mixed> $fd */
+    private static function fieldUses(array $fd, mixed $v, int $mediaId): bool
+    {
+        return match ($fd['type']) {
+            'media' => (int) $v === $mediaId,
+            'media_list' => is_array($v) && in_array($mediaId, array_map('intval', $v), true),
+            'url' => is_string($v) && (str_contains($v, '/media/dokumente/' . $mediaId . '-') || str_contains($v, '/media/' . $mediaId . '-')),
+            'rich' => is_string($v) && (str_contains($v, '/media/' . $mediaId . '-') || str_contains($v, '/media/dokumente/' . $mediaId . '-')),
+            'items' => is_array($v) && array_reduce($v, fn($c, $item) => $c || (is_array($item) && array_reduce($fd['fields'], fn($c2, $sub) => $c2 || self::fieldUses($sub, $item[$sub['name']] ?? null, $mediaId), false)), false),
+            default => false,
+        };
+    }
 }

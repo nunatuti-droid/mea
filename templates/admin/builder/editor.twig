@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>{{ config.title }} · Seitenbaukasten · MEA Verwaltung</title>
+  <link rel="stylesheet" href="{{ asset('css/admin.css') }}">
+  <link rel="stylesheet" href="{{ asset('css/builder.css') }}">
+  <script src="{{ asset('js/builder.js') }}" defer></script>
+</head>
+<body class="bld">
+  {{ source('admin/_icons.svg') }}
+  <script type="application/json" id="bld-config">{{ config|json_encode(constant('JSON_HEX_TAG') b-or constant('JSON_HEX_AMP') b-or constant('JSON_UNESCAPED_UNICODE'))|raw }}</script>
+
+  <header class="bld-top" aria-label="Werkzeugleiste">
+    <a class="bld-btn bld-btn--icon" href="{{ config.kind == 'page' ? '/verwaltung/seiten/' : '/verwaltung/bausteine/' }}" title="Zurück zur Übersicht" data-back>{{ icon('arrow-left') }}<span class="visually-hidden">Zurück zur Übersicht</span></a>
+    <div class="bld-top__page">
+      {% if config.kind == 'page' %}
+        <label class="visually-hidden" for="bld-page">Seite wechseln</label>
+        <select id="bld-page" data-page-select>
+          {% for p in config.pages %}<option value="{{ p.id }}"{{ p.id == config.id ? ' selected' }}>{{ p.home ? '⌂ ' }}{{ p.title }}</option>{% endfor %}
+        </select>
+        {% if config.is_home %}<span class="badge badge--success">Startseite</span>{% endif %}
+      {% else %}
+        <span class="bld-top__title">{{ icon('layers') }} Globaler Baustein: <strong>{{ config.title }}</strong></span>
+      {% endif %}
+      <span class="bld-state" data-state aria-live="polite"></span>
+    </div>
+    <div class="bld-top__group" role="group" aria-label="Gerät">
+      <button class="bld-btn bld-btn--icon" type="button" data-device="d" aria-pressed="true" title="Computer">{{ icon('monitor') }}<span class="visually-hidden">Computer</span></button>
+      <button class="bld-btn bld-btn--icon" type="button" data-device="t" aria-pressed="false" title="Tablet">{{ icon('tablet') }}<span class="visually-hidden">Tablet</span></button>
+      <button class="bld-btn bld-btn--icon" type="button" data-device="m" aria-pressed="false" title="Handy">{{ icon('smartphone') }}<span class="visually-hidden">Handy</span></button>
+    </div>
+    <div class="bld-top__group" role="group" aria-label="Verlauf">
+      <button class="bld-btn bld-btn--icon" type="button" data-undo disabled title="Rückgängig (Strg+Z)">{{ icon('undo-2') }}<span class="visually-hidden">Rückgängig</span></button>
+      <button class="bld-btn bld-btn--icon" type="button" data-redo disabled title="Wiederholen (Strg+Umschalt+Z)">{{ icon('redo-2') }}<span class="visually-hidden">Wiederholen</span></button>
+    </div>
+    <div class="bld-top__group bld-top__actions">
+      <button class="bld-btn" type="button" data-versions>{{ icon('history') }}<span>Versionen</span></button>
+      {% if config.kind == 'page' %}<button class="bld-btn" type="button" data-settings>{{ icon('settings') }}<span>Seite &amp; SEO</span></button>{% endif %}
+      <button class="bld-btn" type="button" data-preview>{{ icon('eye') }}<span>Vorschau</span></button>
+      <button class="bld-btn" type="button" data-save>{{ icon('save') }}<span>Speichern</span></button>
+      {% if config.can_publish %}<button class="bld-btn bld-btn--primary" type="button" data-publish>{{ icon('upload') }}<span>Veröffentlichen</span></button>{% endif %}
+    </div>
+  </header>
+
+  <div class="bld-body">
+    <aside class="bld-side" aria-label="Seitenleiste">
+      <div class="bld-tabs" role="tablist" aria-label="Seitenleiste">
+        <button type="button" role="tab" id="t-lib" aria-controls="p-lib" aria-selected="true">{{ icon('plus') }}Elemente</button>
+        <button type="button" role="tab" id="t-tree" aria-controls="p-tree" aria-selected="false" tabindex="-1">{{ icon('layers') }}Struktur</button>
+        <button type="button" role="tab" id="t-props" aria-controls="p-props" aria-selected="false" tabindex="-1">{{ icon('settings') }}Einstellungen</button>
+        <button type="button" role="tab" id="t-design" aria-controls="p-design" aria-selected="false" tabindex="-1">{{ icon('palette') }}Design</button>
+      </div>
+      <div class="bld-panel" role="tabpanel" id="p-lib" aria-labelledby="t-lib">
+        <label class="visually-hidden" for="bld-lib-q">Elemente suchen</label>
+        <input class="bld-search" type="search" id="bld-lib-q" placeholder="Element suchen …" data-lib-search>
+        <p class="bld-hint">In die Seite ziehen oder anklicken (fügt nach dem ausgewählten Element ein).</p>
+        <div data-library></div>
+      </div>
+      <div class="bld-panel" role="tabpanel" id="p-tree" aria-labelledby="t-tree" hidden>
+        <p class="bld-hint">Ziehen zum Verschieben. Pfeiltasten im Element-Menü verschieben ebenfalls.</p>
+        <div data-tree></div>
+      </div>
+      <div class="bld-panel" role="tabpanel" id="p-props" aria-labelledby="t-props" hidden>
+        <div data-inspector><p class="bld-empty">Bitte ein Element in der Seite oder in der Struktur auswählen.</p></div>
+      </div>
+      <div class="bld-panel" role="tabpanel" id="p-design" aria-labelledby="t-design" hidden>
+        <div data-design></div>
+      </div>
+    </aside>
+
+    <main class="bld-stage" data-stage tabindex="0" aria-label="Arbeitsbereich">
+      <div class="bld-errors" data-errors hidden role="alert"></div>
+      <div class="bld-frame" data-frame-wrap data-dev="d">
+        <iframe src="{{ config.base }}leinwand/" title="Arbeitsbereich: {{ config.title }}" data-frame></iframe>
+      </div>
+    </main>
+  </div>
+
+  <dialog class="bld-dialog" data-dialog>
+    <form method="dialog" class="bld-dialog__box">
+      <header class="bld-dialog__head"><h2 data-dialog-title></h2><button class="bld-btn bld-btn--icon" value="cancel" type="submit" title="Schließen">{{ icon('x') }}<span class="visually-hidden">Schließen</span></button></header>
+      <div class="bld-dialog__body" data-dialog-body></div>
+      <footer class="bld-dialog__foot" data-dialog-foot></footer>
+    </form>
+  </dialog>
+  <div class="bld-toast" data-toast role="status" aria-live="polite" hidden></div>
+</body>
+</html>

@@ -20,6 +20,7 @@ final class AdminModule
         $k->get('/verwaltung/', 'dashboard', $dash->index(...));
 
         foreach ([
+            new PagesController($app), new TemplateTextsController($app),
             new ExamAdminController($app), new SessionAdminController($app), new MediaController($app),
             new SettingsController($app), new DesignController($app), new BookingAdminController($app), new UserController($app),
             new EmailLogController($app), new AuditController($app), new ConsentAdminController($app), new SystemController($app),
@@ -38,7 +39,13 @@ final class AdminModule
             new Resources\ProviderResource($db),
             new Resources\BookingRuleResource($db),
             new Resources\SessionResource($db, fn(int $sessionId, string $template, string $message) => $app->bookings()->notifySession($sessionId, $template, $message)),
-            new Resources\PageResource($db, fn(array $row) => $app->publicPages->pageHtml($row)),
+            new Resources\PageResource($db, function (array $row) use ($app, $db): string {
+                // Vorschau aus dem Formular: gespeicherter Entwurf mit den Angaben aus dem Formular (Titel, SEO)
+                $stored = isset($row['id']) ? ($db->one('SELECT * FROM pages WHERE id = ?', [(int) $row['id']]) ?? []) : [];
+                $page = $row + $stored + ['id' => 0, 'blocks_json' => '[]', 'draft_json' => null, 'is_home' => null, 'css_hash' => ''];
+                $css = !empty($page['id']) ? '/verwaltung/seiten/' . (int) $page['id'] . '/entwurf.css' : null;
+                return $app->pageView()->html($page, ['query' => []], ['draft' => true, 'css_url' => $css]);
+            }),
             new Resources\ServiceResource($db, fn(array $row) => $app->publicPages->serviceHtml($row)),
             new Resources\FaqResource($db),
             new Resources\ReviewResource($db),

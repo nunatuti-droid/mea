@@ -24,7 +24,7 @@ final class SeoController
     {
         $urls = [['/', null], ['/leistungen/', null], ['/telc-pruefungszentrum/', null], ['/preise/', null],
             ['/standorte/', null], ['/kontakt/', null], ['/faq/', null]];
-        $fixed = ['leistungen', 'telc-pruefungszentrum', 'preise', 'standorte', 'kontakt', 'faq'];
+        $fixed = ['leistungen', 'telc-pruefungszentrum', 'preise', 'standorte', 'kontakt', 'faq', 'startseite'];
         foreach ($this->content->publishedPages() as $p) {
             if (!in_array($p['slug'], $fixed, true)) {
                 $urls[] = ['/' . $p['slug'] . '/', $p['updated_at']];

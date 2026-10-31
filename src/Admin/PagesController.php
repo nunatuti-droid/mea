@@ -10,6 +10,7 @@ use Mea\Core\Response;
 use Mea\Module\Builder\BlockStyle;
 use Mea\Module\Builder\BlockTypes;
 use Mea\Module\Builder\PageService;
+use Mea\Module\Design\DesignSchema;
 
 /**
  * Seitenverwaltung und visueller Seitenbaukasten.
@@ -127,8 +128,9 @@ final class PagesController
         $design = $this->app->design();
         $values = $design->values();
         $tokens = [];
+        $byVar = array_column(array_filter(DesignSchema::fields(), fn($f) => !empty($f['var'])), 'key', 'var');
         foreach (BlockStyle::tokens() as $key => [$label, $var]) {
-            $tokens[] = ['key' => $key, 'label' => $label, 'value' => $values[array_search($var, array_column(\Mea\Module\Design\DesignSchema::fields(), 'var', 'key'), true)] ?? ''];
+            $tokens[] = ['key' => $key, 'label' => $label, 'value' => (string) ($values[$byVar[$var] ?? ''] ?? '')];
         }
         $fonts = [['id' => 'heading', 'label' => 'Wie Überschriften (Designsystem)'], ['id' => 'body', 'label' => 'Wie Fließtext (Designsystem)'], ['id' => 'ui', 'label' => 'Wie Buttons (Designsystem)']];
         foreach ($design->fonts()->options() as $fid => $label) {

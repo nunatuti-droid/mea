@@ -86,6 +86,49 @@
   document.addEventListener('mea:consent', (e) => {
     if (Array.isArray(e.detail) && e.detail.includes('media')) document.querySelectorAll('.map[data-map-src]').forEach(loadMap);
   });
+
+  // Reiter (Seitenbaukasten): Klick und Pfeiltasten, über Ereignisdelegation, damit es auch nach dem Neuzeichnen im Editor funktioniert
+  const selectTab = (tab, focus) => {
+    const box = tab.closest('[data-tabs]');
+    if (!box) return;
+    box.querySelectorAll(':scope > .tabs__list > [role=tab]').forEach((t) => {
+      const on = t === tab;
+      t.setAttribute('aria-selected', String(on));
+      t.tabIndex = on ? 0 : -1;
+      const panel = document.getElementById(t.getAttribute('aria-controls'));
+      if (panel) panel.hidden = !on;
+    });
+    if (focus) tab.focus();
+  };
+  document.addEventListener('click', (e) => {
+    const tab = e.target.closest('[data-tabs] [role=tab]');
+    if (tab) selectTab(tab, false);
+    const play = e.target.closest('[data-video-load]');
+    if (play) loadVideo(play.closest('[data-video-src]'));
+  });
+  document.addEventListener('keydown', (e) => {
+    const tab = e.target.closest?.('[data-tabs] [role=tab]');
+    if (!tab || !['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) return;
+    const tabs = Array.from(tab.parentElement.querySelectorAll('[role=tab]'));
+    let i = tabs.indexOf(tab);
+    i = e.key === 'Home' ? 0 : e.key === 'End' ? tabs.length - 1 : (i + (e.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
+    e.preventDefault();
+    selectTab(tabs[i], true);
+  });
+
+  // Video erst nach Klick laden (Datenschutz); nur YouTube (ohne Cookies) und Vimeo
+  const loadVideo = (box) => {
+    const src = box?.dataset.videoSrc;
+    if (!src || box.querySelector('iframe')) return;
+    if (!/^https:\/\/(www\.youtube-nocookie\.com\/embed\/|player\.vimeo\.com\/video\/)/.test(src)) return;
+    const frame = document.createElement('iframe');
+    frame.src = src + (src.includes('?') ? '&' : '?') + 'autoplay=1';
+    frame.title = box.dataset.videoTitle || 'Video';
+    frame.allow = 'autoplay; fullscreen; picture-in-picture';
+    frame.allowFullscreen = true;
+    frame.referrerPolicy = 'strict-origin-when-cross-origin';
+    box.replaceChildren(frame);
+  };
   // Bewerbungsformular: gewählte Dateien anzeigen
   document.querySelectorAll('.upload__input').forEach((input) => {
     const out = input.parentElement.querySelector('[data-upload-names]');

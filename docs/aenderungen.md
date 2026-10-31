@@ -320,3 +320,24 @@ Das Aussehen der ganzen Website lässt sich jetzt in der Verwaltung einstellen: 
 **Dateien:** `src/Module/Design/*` (neu), `src/Admin/DesignController.php` (neu), `templates/admin/design/edit.twig` (neu), `templates/partials/design_head.twig` (neu), `migrations/20261105100022_create_design_system.php` (neu), `public/assets/css/app.css` (neu aufgebaut), `public/assets/fonts/*` (7 Schriften neu), `public/assets/css/admin.css`, `public/assets/js/admin.js`, `templates/admin/layout.twig`, `templates/admin/_icons.svg`, `templates/layout/base.twig`, `templates/public/offline.twig`, `src/Core/App.php`, `src/Core/View.php`, `src/Admin/AdminModule.php`, `src/Module/Auth/Roles.php`, `src/Module/Security/FileGuard.php`, `DESIGN.md`, `docs/betrieb.md`, `docs/adr/README.md`, Tests `DesignSystemTest`, `DesignSystemUnitTest`, `DesignCssUsageTest` (neu).
 
 **Nach dem Einspielen:** nichts weiter nötig. Das Update führt die Datenbankschritte selbst aus; die CSS-Datei entsteht beim ersten Seitenaufruf.
+
+# Update 0.9.0 – Seitenbaukasten
+
+Ausführlich mit Ursache, Bestandsaufnahme, Tests und Einschränkungen: `docs/pagebuilder.md`.
+
+## Startseite in der Seitenverwaltung
+Die Startseite war kein Eintrag in der Seitentabelle, sondern ein festes Template mit Werten aus den Einstellungen. Sie ist jetzt eine geschützte Seite „Startseite“ (Adresse `/`, nicht löschbar), steht oben in der Seitenverwaltung und ist komplett bearbeitbar. Die alten Startseiten-Felder unter Einstellungen entfallen.
+
+## „Warum MEA“
+Foto oben ausgerichtet, die vier Punkte als Karten in einer Reihe unter Text und Foto.
+
+## Seitenbaukasten
+Visueller Editor für alle Inhaltsseiten: 40 Elemente, Ziehen und Ablegen, direktes Schreiben in der Seite, Stil je Element für Computer, Tablet und Handy, Struktur-Baum, Rückgängig/Wiederholen, Entwurf, Vorschau, Veröffentlichen, Versionen, Konflikterkennung, globale Bausteine, Bildauswahl mit Suche und Hochladen. Alle 12 Seiten wurden übernommen; Adressen und SEO bleiben gleich.
+
+## Kopf- und Fußbereich
+Neue Seite in der Verwaltung für Button-Texte, Überschriften und Links in Kopf, Fuß und Schnellleiste.
+
+## Rechte
+Neue Rolle „Autor/in“ (Entwürfe, keine Veröffentlichung). Neues Recht „Veröffentlichen“ für Administrator und Redaktion.
+
+**Nach dem Hochladen:** nichts weiter nötig; die Updatefunktion führt die Migration aus und übernimmt die Seiten.

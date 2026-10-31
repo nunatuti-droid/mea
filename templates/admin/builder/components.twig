@@ -1,0 +1,46 @@
+{% extends 'admin/layout.twig' %}
+{% import 'admin/partials/ui.twig' as ui %}
+{% block content %}
+  <div class="adm-head">
+    <div>
+      <h1>Globale Bausteine</h1>
+      <p class="adm-head__intro">Wiederverwendbare Abschnitte, z. B. ein Kontakt-Aufruf. Eine Änderung an einem globalen Baustein erscheint nach dem Veröffentlichen auf allen Seiten, die ihn verwenden. Neue globale Bausteine entstehen im Seitenbaukasten über „Als globalen Baustein speichern“.</p>
+    </div>
+  </div>
+  {% if components is empty %}
+    <div class="empty">{{ icon('layers') }}<p>Noch keine globalen Bausteine.</p></div>
+  {% else %}
+    <div class="table-wrap" tabindex="0">
+      <table class="tbl">
+        <caption class="visually-hidden">Globale Bausteine</caption>
+        <thead><tr><th scope="col">Name</th><th scope="col">Verwendet auf</th><th scope="col">Status</th><th scope="col"><span class="visually-hidden">Aktionen</span></th></tr></thead>
+        <tbody>
+          {% for c in components %}
+            <tr>
+              <th scope="row">{% if can.publish %}<a href="/verwaltung/bausteine/{{ c.id }}/editor/">{{ c.name }}</a>{% else %}{{ c.name }}{% endif %}
+                {% if c.is_locked %}<span class="badge badge--muted" title="Geschützt: kann nicht gelöscht werden.">Geschützt</span>{% endif %}
+                {% if c.description %}<br><span class="text-sm text-muted">{{ c.description }}</span>{% endif %}</th>
+              <td>{% for u in c.usage %}<a href="/verwaltung/seiten/{{ u.id }}/editor/">{{ u.title }}</a>{% if not loop.last %}, {% endif %}{% else %}<span class="text-muted">nirgends</span>{% endfor %}</td>
+              <td>{{ c.draft_json ? 'Unveröffentlichte Änderungen' : 'Veröffentlicht' }}</td>
+              <td class="nowrap">
+                {% if can.publish %}
+                  <a class="btn btn--primary btn--sm" href="/verwaltung/bausteine/{{ c.id }}/editor/">{{ icon('pencil') }}Bearbeiten</a>
+                  <details class="inline-details"><summary class="btn btn--ghost btn--sm">{{ icon('settings') }}Name und Schutz</summary>
+                    <form method="post" action="/verwaltung/bausteine/{{ c.id }}/umbenennen/" class="stack">
+                      <input type="hidden" name="_csrf" value="{{ csrf }}">
+                      <label>Name <input type="text" name="name" value="{{ c.name }}" maxlength="80" required></label>
+                      <label>Beschreibung <input type="text" name="description" value="{{ c.description }}" maxlength="255"></label>
+                      <label class="check"><input type="checkbox" name="locked" value="1"{{ c.is_locked ? ' checked' }}> Vor dem Löschen schützen</label>
+                      <button class="btn btn--primary btn--sm" type="submit">Speichern</button>
+                    </form>
+                  </details>
+                  {% if not c.is_locked and c.usage is empty %}{{ ui.confirm_post('/verwaltung/bausteine/' ~ c.id ~ '/loeschen/', 'Löschen', 'Globalen Baustein „' ~ c.name ~ '“ löschen?', csrf, 'danger', 'trash-2') }}{% endif %}
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+{% endblock %}

@@ -360,3 +360,18 @@ h1.mono { font-size: 1.6rem; letter-spacing: .02em; }
 @media (max-width: 1279px) { .ds-preview__frame { height: 460px; min-height: 0; } }
 .ds-field .field__error[hidden] { display: none; }
 .alert[hidden] { display: none; }
+
+/* Seitenübersicht */
+.pages-tbl tr.is-home th, .pages-tbl tr.is-home td { background: var(--c-brand-soft); }
+.pages-tbl th .badge { margin-left: 8px; }
+.pages-tbl__hint { display: block; font-size: .78rem; font-weight: 600; color: var(--c-warning); }
+.pages-tbl__actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.pages-sub { margin-top: 32px; }
+.pages-card { display: flex; flex-direction: column; gap: 6px; text-decoration: none; color: var(--c-text); }
+.pages-card:hover { border-color: var(--c-action); }
+.pages-card > .icon { color: var(--c-action); width: 22px; height: 22px; }
+.pages-card .badge { align-self: flex-start; }
+.inline-details { display: inline-block; vertical-align: top; }
+.inline-details > summary { list-style: none; }
+.inline-details > summary::-webkit-details-marker { display: none; }
+.inline-details[open] > form { margin-top: 8px; padding: 12px; border: 1px solid var(--c-border); border-radius: var(--r-md); background: var(--c-surface); min-width: 260px; }

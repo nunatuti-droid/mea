@@ -36,11 +36,11 @@
         {% endfor %}
       </ul>
       <div class="nav__mobile-cta">
-        <a class="btn" href="/telc-pruefungszentrum/">{{ icon('calendar') }}Prüfung buchen</a>
+        <a class="btn" href="{{ txt('header.cta_url') }}">{{ icon('calendar') }}{{ txt('header.cta_label') }}</a>
         <a class="btn btn--secondary" href="tel:{{ company.phone|tel }}">{{ icon('phone') }}{{ company.phone_display }}</a>
       </div>
     </nav>
-    <a class="btn btn--sm header-cta" href="/telc-pruefungszentrum/">Prüfung buchen</a>
+    <a class="btn btn--sm header-cta" href="{{ txt('header.cta_url') }}">{{ txt('header.cta_label') }}</a>
     <button class="menu-button" type="button" data-nav-open aria-controls="site-nav" aria-expanded="false" aria-label="Menü öffnen">{{ icon('menu') }}</button>
   </div>
 </header>

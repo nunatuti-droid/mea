@@ -81,6 +81,9 @@ final class DesignController
         }
         $changes = $this->app->design()->save($values, $ctx->id());
         if ($changes !== []) {
+            $this->app->pages()->rebuildAllCss();
+        }
+        if ($changes !== []) {
             $this->app->audit->record('design.updated', 'Designsystem geändert (' . count($changes) . ' ' . (count($changes) === 1 ? 'Wert' : 'Werte') . ')', 'settings', null, ['changes' => $changes]);
             AdminKernel::flash('Designsystem gespeichert: ' . count($changes) . ' ' . (count($changes) === 1 ? 'Wert' : 'Werte') . ' geändert. Die Website zeigt die Änderungen ab sofort.');
         } else {
@@ -110,6 +113,7 @@ final class DesignController
     {
         $before = $this->app->design()->overrides();
         $n = $this->app->design()->reset();
+        $this->app->pages()->rebuildAllCss();
         $this->app->audit->record('design.reset', 'Designsystem auf Standardwerte zurückgesetzt', 'settings', null, ['vorher' => $before]);
         AdminKernel::flash($n > 0 ? "Alle $n geänderten Werte sind wieder auf Standard. Die Website nutzt die Standardwerte." : 'Es waren bereits alle Werte auf Standard.');
         return Response::redirect(self::BASE, 303);
