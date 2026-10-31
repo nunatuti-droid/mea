@@ -61,18 +61,20 @@
   </div>
 </section>
 
-<section class="section section--alt">
-  <div class="container split">
-    <div class="split__media reveal">{{ img(home.about_media_id, '(max-width: 900px) 100vw, 560px') }}</div>
-    <div>
-      <span class="eyebrow">Warum MEA</span>
-      <h2>{{ home.about_title }}</h2>
-      <p class="lead">{{ home.about_text }}</p>
-      <div class="grid grid--features mt-6">
-        {% for w in home.why %}
-          <div class="feature"><span class="card__icon">{{ icon(w.icon) }}</span><h3>{{ w.title }}</h3><p>{{ w.text }}</p></div>
-        {% endfor %}
+<section class="section section--alt" aria-labelledby="why-title">
+  <div class="container">
+    <div class="split split--top">
+      <div class="split__media reveal">{{ img(home.about_media_id, '(max-width: 900px) 100vw, 560px') }}</div>
+      <div>
+        <span class="eyebrow">Warum MEA</span>
+        <h2 id="why-title">{{ home.about_title }}</h2>
+        <p class="lead">{{ home.about_text }}</p>
       </div>
+    </div>
+    <div class="grid grid--why mt-7">
+      {% for w in home.why %}
+        <div class="feature feature--card reveal"><span class="card__icon">{{ icon(w.icon) }}</span><h3>{{ w.title }}</h3><p>{{ w.text }}</p></div>
+      {% endfor %}
     </div>
   </div>
 </section>
