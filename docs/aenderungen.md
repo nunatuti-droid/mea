@@ -278,3 +278,13 @@ Grundlage: Firmendaten von der bisherigen Datenschutzseite (meabildungszentrum.d
 - Google-Karte im Fußbereich: halb durchsichtig statt weiß, passend zu den Bewertungskarten daneben.
 
 **Dateien:** `templates/partials/google_rating.twig`, `public/assets/css/app.css`.
+
+# Update 0.7.5
+
+## Updates direkt in der Verwaltung
+- **Hochladen ohne Größenproblem:** Das Paket wird im Browser in kleine Teile zerlegt und Stück für Stück hochgeladen. Die Upload-Grenzen des Servers spielen keine Rolle mehr.
+- **Installation ohne Abbruch:** Nach „Update jetzt installieren“ öffnet sich eine Fortschrittsseite. Die Installation läuft getrennt davon im Hintergrund, entweder im minütlichen Cron oder direkt nach dem Klick. Die 60-Sekunden-Grenze des Webservers stört nicht mehr. Die Seite zeigt Schritt für Schritt, was passiert, und am Ende „installiert“ oder den Fehler (dann ist automatisch der alte Stand wieder da).
+- Fehlt die Identitätsbestätigung, wird das Paket nicht mehr gelöscht: nach der Bestätigung geht es direkt beim geprüften Paket weiter.
+- Die Kommandozeile `update:install` funktioniert weiterhin.
+
+**Dateien:** `src/Admin/UpdateController.php`, `src/Module/Ops/UpdateJobs.php` (neu), `src/Module/Ops/UpdateService.php`, `src/Module/Ops/Scheduler.php`, `src/Core/Response.php`, `templates/admin/updates/index.twig`, `templates/admin/updates/progress.twig` (neu), `public/assets/js/admin.js`, `public/assets/css/admin.css`, Tests `UpdateAdminTest` (neu), `OpsTest`.

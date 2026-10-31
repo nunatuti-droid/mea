@@ -1,0 +1,15 @@
+{% extends 'admin/layout.twig' %}
+{% block content %}
+  <div class="adm-head"><div><h1>Update auf Version {{ job.version }}</h1><p class="adm-head__intro">Bitte lassen Sie diese Seite geöffnet. Das Update dauert meist ein bis drei Minuten. Die Website zeigt währenddessen eine Wartungsseite.</p></div></div>
+  <section class="card update-progress" data-update-progress data-status-url="/verwaltung/updates/status/{{ token }}/" data-run-url="/verwaltung/updates/ausfuehren/" data-token="{{ token }}" data-csrf="{{ csrf }}" data-cron="{{ cron ? '1' : '0' }}" data-status="{{ job.status }}">
+    <p class="update-progress__state" role="status" aria-live="polite" data-state>
+      {% if job.status == 'done' %}{{ icon('check') }}{{ job.message }}
+      {% elseif job.status == 'failed' %}{{ icon('circle-alert') }}Das Update hat nicht geklappt. Die Website läuft weiter mit dem vorherigen Stand.
+      {% else %}<span class="spinner" aria-hidden="true"></span>Update läuft …{% endif %}
+    </p>
+    {% if job.status == 'failed' %}<p class="text-sm" data-message>{{ job.message }}</p>{% else %}<p class="text-sm" data-message hidden></p>{% endif %}
+    <ol class="update-progress__log text-sm" data-log>{% for l in job.log %}<li>{{ l }}</li>{% endfor %}</ol>
+    <noscript><p class="text-sm">Ohne JavaScript bitte die Seite nach einer Minute neu laden.</p></noscript>
+    <p data-done {{ job.status in ['done', 'failed'] ? '' : 'hidden' }}><a class="btn btn--primary" href="/verwaltung/updates/">{{ icon('arrow-left') }}Zurück zu den Updates</a></p>
+  </section>
+{% endblock %}

@@ -78,9 +78,14 @@ final class UpdateService
      * Installation mit Sicherung, Wartungsmodus, Migrationen, Selbsttest und automatischem Rückfall.
      * @return array{id:int, status:string, log:list<string>}
      */
-    public function install(string $package, ?int $userId): array
+    public function install(string $package, ?int $userId, ?\Closure $progress = null): array
     {
         self::keepRunning();
+        $report = static function (array $log, string $next = '') use ($progress): void {
+            if ($progress !== null) {
+                $progress($next === '' ? $log : array_merge($log, [$next]));
+            }
+        };
         $lock = $this->backups->lock();
         $log = [];
         $flag = App::maintenanceFlag($this->root);
@@ -95,19 +100,24 @@ final class UpdateService
         $rollbackDir = $this->root . '/storage/updates/rollback-' . $id;
         $backupId = null;
         try {
+            $report($log, 'Paket wird geprüft …');
             [$meta, $zip] = $this->open($package);
+            $report($log, 'Sicherung wird erstellt …');
             $backupId = $this->backups->create('pre_update', $userId, 'Vor Update auf ' . $info['version']);
             $this->db->run('UPDATE app_updates SET backup_id = ? WHERE id = ?', [$backupId, $id]);
             $log[] = "Sicherung #$backupId erstellt.";
             file_put_contents($flag, 'update');
             $log[] = 'Wartungsmodus aktiv.';
+            $report($log, 'Dateien werden installiert …');
             $this->installFiles($zip, $meta, $rollbackDir, $log);
             $zip->close();
             if (function_exists('opcache_reset')) {
                 @opcache_reset();
             }
+            $report($log, 'Datenbank wird aktualisiert …');
             $out = (new Migrator($this->db->pdo(), $this->root . '/migrations'))->migrate();
             $log[] = 'Datenbank aktualisiert.' . (str_contains($out, '== ') ? '' : ' (keine Änderungen)');
+            $report($log, 'Selbsttest läuft …');
             $errors = $this->runSelfTest();
             if ($errors !== []) {
                 throw new UpdateException('Selbsttest fehlgeschlagen: ' . implode('; ', $errors));
@@ -117,6 +127,7 @@ final class UpdateService
             return ['id' => $id, 'status' => 'installed', 'log' => $log];
         } catch (\Throwable $e) {
             $log[] = 'Fehler: ' . $e->getMessage();
+            $report($log, 'Vorheriger Stand wird wiederhergestellt …');
             $this->log->error('Update fehlgeschlagen', ['version' => $info['version'], 'error' => $e->getMessage()]);
             $this->rollback($rollbackDir, $backupId, $log);
             $this->finish($id, 'rolled_back', $log);

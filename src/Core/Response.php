@@ -16,6 +16,16 @@ final class Response
         public ?string $file = null,
     ) {}
 
+    /** Arbeit, die nach dem Absenden der Antwort weiterläuft (z. B. Update-Installation). */
+    public ?\Closure $after = null;
+
+    public function then(\Closure $after): self
+    {
+        $c = clone $this;
+        $c->after = $after;
+        return $c;
+    }
+
     /** Datei als Download (wird beim Senden in Blöcken gelesen). */
     public static function download(string $path, string $name, string $type = 'application/octet-stream'): self
     {
@@ -89,6 +99,27 @@ final class Response
             readfile($this->file);
             return;
         }
+        if ($this->after === null) {
+            echo $this->body;
+            return;
+        }
+        // Antwort vollständig abschicken, Sitzung freigeben, dann weiterarbeiten
+        header('Content-Length: ' . strlen($this->body));
+        header('Connection: close');
         echo $this->body;
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            session_write_close();
+        }
+        @ignore_user_abort(true);
+        @set_time_limit(0);
+        if (function_exists('fastcgi_finish_request')) {
+            fastcgi_finish_request();
+        } else {
+            while (ob_get_level() > 0) {
+                @ob_end_flush();
+            }
+            @flush();
+        }
+        ($this->after)();
     }
 }

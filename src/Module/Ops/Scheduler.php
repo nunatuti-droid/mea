@@ -18,6 +18,7 @@ final class Scheduler
     public const NIGHT_HOUR = 2; // Ortszeit Deutschland
     /** Job => [Takt, Beschreibung] */
     public const JOBS = [
+        'updates' => ['minute', 'Updates aus der Verwaltung installieren'],
         'reservations' => ['minute', 'Abgelaufene Reservierungen freigeben'],
         'mail' => ['minute', 'E-Mails versenden'],
         'cleanup' => ['hourly', 'Abgelaufene Tokens, Sitzungen, Sperren und temporäre Dateien entfernen'],
@@ -115,6 +116,19 @@ final class Scheduler
         return ($r['rating'] === null ? 'ohne Gesamtwert' : number_format($r['rating'], 1, ',', '') . ' Sterne, ' . $r['count'] . ' Bewertungen') . ', ' . $r['reviews'] . ' Texte';
     }
 
+    private function jobUpdates(): string
+    {
+        $jobs = new UpdateJobs($this->app);
+        $done = [];
+        foreach ($jobs->queued() as $token) {
+            $j = $jobs->run($token);
+            if ($j !== null) {
+                $done[] = $j['version'] . ': ' . ($j['status'] === 'done' ? 'installiert' : 'fehlgeschlagen');
+            }
+        }
+        return $done === [] ? 'nichts zu tun' : implode(', ', $done);
+    }
+
     private function jobReservations(): string
     {
         return $this->app->bookings()->expireReservations() . ' freigegeben';
@@ -140,7 +154,7 @@ final class Scheduler
         $n += $db->run('DELETE FROM ip_rules WHERE expires_at IS NOT NULL AND expires_at < ? - INTERVAL 30 DAY', [$t]);
         $n += $db->run('DELETE FROM security_events WHERE created_at < ? - INTERVAL 90 DAY', [$t]);
         $n += $db->run('DELETE FROM not_found_log WHERE last_seen_at < ? - INTERVAL 180 DAY', [$t]);
-        $files = 0;
+        $files = (new UpdateJobs($this->app))->cleanup();
         foreach (['storage/tmp' => 86400, 'storage/mail' => 7 * 86400] as $dir => $age) {
             foreach (glob($this->app->root . '/' . $dir . '/*') ?: [] as $f) {
                 if (filemtime($f) < $now->getTimestamp() - $age) {

@@ -30,12 +30,13 @@
 
   <section class="card mt">
     <h2 class="h3">Updatepaket hochladen</h2>
-    <p class="text-sm text-muted">Für die Installation bestätigen Sie vorher Ihre Identität (Passwort und Code). Höchstgröße: {{ max_upload }}. Größere Pakete per SSH: <span class="mono">bin/console update:install paket.zip --ja</span></p>
-    <form method="post" action="/verwaltung/updates/hochladen/" enctype="multipart/form-data" class="row">
+    <p class="text-sm text-muted">So geht’s: ZIP-Datei vom Entwickler auswählen und auf „Hochladen und prüfen“ klicken. Danach zeigt die Seite, was sich ändert, und Sie starten das Update mit einem Klick. Die Website sichert sich vorher automatisch.</p>
+    <form method="post" action="/verwaltung/updates/hochladen/" enctype="multipart/form-data" class="row" data-chunk-upload="/verwaltung/updates/hochladen-teil/" data-chunk-size="{{ chunk_size }}">
       <input type="hidden" name="_csrf" value="{{ csrf }}">
       <label class="visually-hidden" for="package">Updatepaket</label>
       <input type="file" id="package" name="package" accept=".zip" required>
-      <button class="btn btn--ghost" type="submit">{{ icon('upload') }}Hochladen und prüfen</button>
+      <button class="btn btn--primary" type="submit">{{ icon('upload') }}Hochladen und prüfen</button>
+      <div class="upload-progress" data-chunk-progress hidden><progress max="100" value="0"></progress> <span role="status" aria-live="polite"></span></div>
     </form>
   </section>
 

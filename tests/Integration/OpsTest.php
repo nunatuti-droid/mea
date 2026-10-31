@@ -7,6 +7,7 @@ use Mea\Module\Ops\BackupCrypto;
 use Mea\Module\Ops\BackupException;
 use Mea\Module\Ops\BackupService;
 use Mea\Module\Ops\UpdateException;
+use Mea\Module\Ops\UpdateJobs;
 use Mea\Module\Ops\UpdateService;
 use Mea\Module\Security\FileGuard;
 use Psr\Log\NullLogger;
@@ -238,5 +239,41 @@ final class OpsTest extends IntegrationTestCase
         self::assertNotSame([], $this->updates($keys['public'])->inspect($old)['problems']);
         $this->expectException(UpdateException::class);
         $this->updates($keys['public'])->install($old, null);
+    }
+    public function testUpdateJobFromAdminRunsOnceInBackgroundAndReportsProgress(): void
+    {
+        [$pkg, $pk] = $this->buildPackage('1.4.0');
+        $jobs = new UpdateJobs($this->app, $this->updates($pk), $this->tmp . '/storage/updates');
+        $token = str_repeat('ab', 16);
+        @mkdir($jobs->dir(), 0700, true);
+        copy($pkg, $jobs->packagePath($token));
+        $jobs->create($token, '1.4.0', null);
+        self::assertSame([$token], $jobs->queued());
+        self::assertSame('queued', $jobs->get($token)['status']);
+
+        $job = $jobs->run($token);
+        self::assertSame('done', $job['status']);
+        self::assertStringContainsString('1.4.0', $job['message']);
+        self::assertContains('Selbsttest bestanden.', $job['log']);
+        self::assertSame("<?php // v2\n", file_get_contents($this->tmp . '/src/Foo.php'));
+        self::assertFileDoesNotExist($jobs->packagePath($token), 'Paket wird danach gelöscht');
+        self::assertSame([], $jobs->queued());
+        // zweiter Aufruf (z. B. Cron und Browser gleichzeitig) installiert nicht erneut
+        self::assertSame('done', $jobs->run($token)['status']);
+        self::assertSame(1, (int) self::db()->value("SELECT COUNT(*) FROM app_updates WHERE version = '1.4.0'"));
+    }
+
+    public function testFailedUpdateJobIsReportedAndRolledBack(): void
+    {
+        [$pkg, $pk] = $this->buildPackage('1.5.0');
+        $jobs = new UpdateJobs($this->app, $this->updates($pk, fn() => ['Startseite antwortet nicht']), $this->tmp . '/storage/updates');
+        $token = str_repeat('cd', 16);
+        @mkdir($jobs->dir(), 0700, true);
+        copy($pkg, $jobs->packagePath($token));
+        $jobs->create($token, '1.5.0', null);
+        $job = $jobs->run($token);
+        self::assertSame('failed', $job['status']);
+        self::assertStringContainsString('zurückgenommen', $job['message']);
+        self::assertSame("<?php // v1\n", file_get_contents($this->tmp . '/src/Foo.php'));
     }
 }

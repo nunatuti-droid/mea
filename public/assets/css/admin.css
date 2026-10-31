@@ -306,3 +306,15 @@ h1.mono { font-size: 1.6rem; letter-spacing: .02em; }
 .g-admin__details { margin-top: 14px; border-top: 1px solid var(--c-border); padding-top: 12px; }
 .g-admin__details > summary { cursor: pointer; font-weight: 650; color: var(--c-ink); margin-bottom: 12px; }
 .g-admin .form-actions { position: static; background: none; padding-bottom: 0; margin-bottom: 0; }
+
+/* Updates: Upload in Teilen und Fortschritt */
+.upload-progress { display: flex; align-items: center; gap: 10px; flex-basis: 100%; font-size: .9rem; }
+.upload-progress progress { width: min(320px, 100%); height: 10px; accent-color: var(--c-action); }
+.update-progress__state { display: flex; align-items: center; gap: 10px; font-weight: 650; font-size: 1.05rem; margin: 0 0 8px; }
+.update-progress__state.is-ok { color: #1d4f33; }
+.update-progress__state.is-error { color: var(--c-danger); }
+.update-progress__log { margin: 12px 0 16px; padding-left: 20px; color: var(--c-muted); }
+.update-progress__log li:last-child { color: var(--c-ink); font-weight: 600; }
+.spinner { width: 18px; height: 18px; border: 3px solid var(--c-border); border-top-color: var(--c-action); border-radius: 50%; animation: spin .8s linear infinite; flex: none; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 3s; } }

@@ -24,6 +24,92 @@
     if (g.open) groups.forEach(o => { if (o !== g) o.open = false; });
   }));
 
+  // Updatepaket in Teilen hochladen (umgeht die Upload-Grenzen des Servers)
+  $$('form[data-chunk-upload]').forEach(form => {
+    form.addEventListener('submit', async e => {
+      const input = $('input[type=file]', form);
+      const file = input && input.files && input.files[0];
+      if (!file || !window.fetch || !window.crypto || !file.slice) return; // klassischer Upload
+      e.preventDefault();
+      const btn = $('button[type=submit]', form);
+      const box = $('[data-chunk-progress]', form);
+      const bar = $('progress', box);
+      const msg = $('span', box);
+      const size = Math.max(262144, parseInt(form.dataset.chunkSize, 10) || 1048576);
+      const total = Math.max(1, Math.ceil(file.size / size));
+      const id = Array.from(crypto.getRandomValues(new Uint8Array(16)), b => b.toString(16).padStart(2, '0')).join('');
+      const csrf = $('input[name=_csrf]', form).value;
+      btn.disabled = true; box.hidden = false;
+      try {
+        let next = null;
+        for (let i = 0; i < total; i++) {
+          const fd = new FormData();
+          fd.append('_csrf', csrf); fd.append('upload_id', id); fd.append('index', String(i)); fd.append('total', String(total));
+          fd.append('chunk', file.slice(i * size, (i + 1) * size), 'teil');
+          let res = null, data = null;
+          for (let attempt = 0; attempt < 3; attempt++) {
+            try {
+              res = await fetch(form.dataset.chunkUpload, { method: 'POST', body: fd, credentials: 'same-origin', headers: { 'Accept': 'application/json' } });
+              data = await res.json();
+              if (res.ok || res.status < 500) break;
+            } catch (err) { data = null; }
+            await new Promise(r => setTimeout(r, 1500 * (attempt + 1)));
+          }
+          if (!data || !data.ok) throw new Error((data && data.error) || 'Der Upload wurde unterbrochen. Bitte erneut versuchen.');
+          bar.value = Math.round(((i + 1) / total) * 100);
+          msg.textContent = 'Hochgeladen: ' + bar.value + ' %';
+          next = data.next || null;
+        }
+        msg.textContent = 'Paket wird geprüft …';
+        window.location.href = next || '/verwaltung/updates/';
+      } catch (err) {
+        msg.textContent = err.message;
+        btn.disabled = false;
+      }
+    });
+  });
+
+  // Fortschritt eines laufenden Updates
+  const up = $('[data-update-progress]');
+  if (up && ['queued', 'running'].includes(up.dataset.status)) {
+    const state = $('[data-state]', up), log = $('[data-log]', up), message = $('[data-message]', up), done = $('[data-done]', up);
+    const startedAt = Date.now();
+    let triggered = false, finished = false;
+    const trigger = () => {
+      if (triggered) return;
+      triggered = true;
+      const fd = new FormData(); fd.append('_csrf', up.dataset.csrf); fd.append('token', up.dataset.token);
+      fetch(up.dataset.runUrl, { method: 'POST', body: fd, credentials: 'same-origin' }).catch(() => {});
+    };
+    const render = d => {
+      log.replaceChildren(...(d.log || []).map(t => { const li = document.createElement('li'); li.textContent = t; return li; }));
+      if (d.status === 'done' || d.status === 'failed') {
+        finished = true;
+        state.textContent = d.status === 'done' ? '✓ ' + d.message : 'Das Update hat nicht geklappt. Die Website läuft weiter mit dem vorherigen Stand.';
+        state.classList.add(d.status === 'done' ? 'is-ok' : 'is-error');
+        if (d.status === 'failed') { message.textContent = d.message; message.hidden = false; }
+        done.hidden = false;
+      } else if (d.stale) {
+        message.textContent = 'Seit über 15 Minuten keine Rückmeldung. Bitte den Entwickler informieren.';
+        message.hidden = false;
+      }
+    };
+    const poll = async () => {
+      if (finished) return;
+      try {
+        const res = await fetch(up.dataset.statusUrl, { credentials: 'same-origin', cache: 'no-store', headers: { 'Accept': 'application/json' } });
+        if (res.ok) {
+          const d = await res.json();
+          // Ohne Cron sofort im Hintergrund starten; mit Cron nur, falls er nach 75 Sekunden nicht angesprungen ist
+          if (d.status === 'queued' && (up.dataset.cron !== '1' || Date.now() - startedAt > 75000)) trigger();
+          render(d);
+        }
+      } catch (err) { /* während des Austauschs der Dateien kurz nicht erreichbar: weiter versuchen */ }
+      if (!finished) setTimeout(poll, 2000);
+    };
+    poll();
+  }
+
   // Fehlerübersicht fokussieren
   $('[data-focus]')?.focus();
 
