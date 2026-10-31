@@ -321,6 +321,16 @@ Das Aussehen der ganzen Website lässt sich jetzt in der Verwaltung einstellen: 
 
 **Nach dem Einspielen:** nichts weiter nötig. Das Update führt die Datenbankschritte selbst aus; die CSS-Datei entsteht beim ersten Seitenaufruf.
 
+# Update 0.9.4 – Partnerlogos (31.10.2026)
+
+- Partnerlogos ohne sichtbare Bezeichnung: nur das Logo, groß und mittig in einer hellen Karte mit festem Seitenverhältnis 3:2 (Computer 6 nebeneinander, Tablet 3, Handy 2).
+- Der Name bleibt als Alternativtext des Bildes (für Screenreader und Suchmaschinen). Im Seitenbaukasten heißt das Feld jetzt „Name (nur für Screenreader und Suchmaschinen)“.
+- Weiße Logo-Hintergründe gehen in der Kartenfarbe auf (`mix-blend-mode: multiply`).
+
+**Dateien:** `templates/blocks/partners.twig`, `public/assets/css/app.css`, `src/Module/Builder/BlockTypes.php`.
+
+**Geprüft:** Ansicht bei 1920 und 375 px, Barrierefreiheitsprüfung der Seiten (smoke.js) ohne Befund, 178 Tests bestanden.
+
 # Update 0.9.3 – Vollständige Sicherung (31.10.2026)
 
 **Anlass:** Die Sicherung enthielt nur die Datenbank, die Originalbilder (`storage/uploads`) und die Medien (`public/media`). Programmdateien, `.env` und sogar die Bewerbungsunterlagen (`storage/applications`) fehlten.

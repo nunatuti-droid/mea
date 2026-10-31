@@ -211,7 +211,7 @@ final class BlockTypes
                 $text('parent_label', 'Übergeordnete Seite (Brotkrumen)', '', 80), $url('parent_url', 'Übergeordnete Seite Adresse'),
                 $text('btn1_label', 'Button 1', '', 60), $url('btn1_url', 'Button 1 Ziel'), $text('btn2_label', 'Button 2', '', 60), $url('btn2_url', 'Button 2 Ziel')]];
         $t['partners'] = ['label' => 'Partnerlogos', 'icon' => 'badge-check', 'cat' => 'site',
-            'fields' => [$text('label', 'Überschrift', 'Zulassungen und Partner', 80), $items('items', 'Logos', [$media(), $text('label', 'Bezeichnung', '', 120, ['required' => true])], [], 18, 'label')]];
+            'fields' => [$text('label', 'Überschrift', 'Zulassungen und Partner', 80), $items('items', 'Logos', [$media(), $text('label', 'Name (nur für Screenreader und Suchmaschinen)', '', 120, ['required' => true])], [], 18, 'label')]];
         $t['services_grid'] = ['label' => 'Leistungen (Karten)', 'icon' => 'briefcase', 'cat' => 'site', 'desc' => 'Alle veröffentlichten Leistungen aus der Verwaltung',
             'fields' => [$num('limit', 'Höchstens (0 = alle)', 0, 0, 24), $text('more', 'Link-Text auf den Karten', 'Mehr erfahren', 40)]];
         $t['exam_cards'] = ['label' => 'Prüfungen (Karten)', 'icon' => 'award', 'cat' => 'site', 'desc' => 'Prüfungskarten mit Preis und nächstem Termin',
