@@ -288,3 +288,9 @@ Grundlage: Firmendaten von der bisherigen Datenschutzseite (meabildungszentrum.d
 - Die Kommandozeile `update:install` funktioniert weiterhin.
 
 **Dateien:** `src/Admin/UpdateController.php`, `src/Module/Ops/UpdateJobs.php` (neu), `src/Module/Ops/UpdateService.php`, `src/Module/Ops/Scheduler.php`, `src/Core/Response.php`, `templates/admin/updates/index.twig`, `templates/admin/updates/progress.twig` (neu), `public/assets/js/admin.js`, `public/assets/css/admin.css`, Tests `UpdateAdminTest` (neu), `OpsTest`.
+
+# Update 0.7.6
+
+- Startseite, „Zulassungen und Partner“: mehr Kontrast. Der Bereich hat einen leicht getönten Hintergrund, die weißen Kästen einen kräftigeren Rand und Schatten, die Namen sind dunkler.
+
+**Dateien:** `public/assets/css/app.css`.
