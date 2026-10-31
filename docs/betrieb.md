@@ -40,6 +40,7 @@ Die `.env` ist **nicht** in den Sicherungen enthalten. Bewahren Sie eine Kopie d
 - Format: ZIP mit Inhaltsverzeichnis und SHA-256 je Datei, verschlüsselt mit libsodium (XChaCha20-Poly1305). Ablage in `storage/backups` (Rechte 0600, außerhalb des Webroots).
 - Aufbewahrung (Verwaltung → Einstellungen): nächtliche Sicherungen 14 Tage, manuelle 90 Tage. Die drei neuesten erfolgreichen Sicherungen bleiben immer.
 - **Externe Kopie:** Eine Sicherung auf demselben Server hilft nicht bei einem Serverausfall. Laden Sie regelmäßig die neueste Sicherung herunter (Verwaltung → Sicherungen) und bewahren Sie sie getrennt auf. Die Systemprüfung warnt, wenn das länger als 35 Tage her ist; zusätzlich kommt monatlich eine Erinnerungs-E-Mail.
+- **Download-Formate:** „Als ZIP“ erzeugt eine ZIP-Datei, in der jede Datei mit einem selbst gewählten Passwort (mind. 12 Zeichen) per AES-256 verschlüsselt ist. Sie lässt sich mit 7-Zip, WinZip oder Keka öffnen (nicht mit dem in Windows eingebauten Entpacken) und unter „Sicherung hochladen“ mit demselben Passwort wieder einspielen. Das Passwort wird nirgends gespeichert. „.meabak“ ist die Datei, wie sie auf dem Server liegt: verschlüsselt mit dem Serverschlüssel, nur hier wieder einspielbar. Die ZIP entsteht beim Download in `storage/tmp` und wird direkt nach dem Senden gelöscht.
 
 ### Wiederherstellen
 

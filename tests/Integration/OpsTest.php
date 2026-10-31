@@ -94,6 +94,47 @@ final class OpsTest extends IntegrationTestCase
         self::assertSame('pre_restore', self::db()->value('SELECT kind FROM backups WHERE id = ?', [$r['pre_backup']]));
     }
 
+    public function testBackupZipWithOwnPasswordRoundTrip(): void
+    {
+        $id = $this->backups->create('manual');
+        try {
+            $this->backups->exportZip($id, 'kurz');
+            self::fail('kurzes Passwort muss abgelehnt werden');
+        } catch (BackupException $e) {
+            self::assertStringContainsString('mindestens', $e->getMessage());
+        }
+        $zipPath = $this->backups->exportZip($id, 'Langes Zip Passwort 1');
+        self::assertStringEndsWith('.zip', $zipPath);
+        $zip = new \ZipArchive();
+        self::assertTrue($zip->open($zipPath) === true);
+        for ($i = 0; $i < $zip->numFiles; $i++) {
+            self::assertSame(\ZipArchive::EM_AES_256, $zip->statIndex($i)['encryption_method'], 'jede Datei mit AES-256');
+        }
+        self::assertFalse(@$zip->getFromName('manifest.json'), 'ohne Passwort nicht lesbar');
+        $zip->setPassword('Langes Zip Passwort 1');
+        self::assertSame('WEBP-A', $zip->getFromName('files/public/media/2026/a-800.webp'));
+        $zip->close();
+        self::assertStringNotContainsString('ops_test_marker', (string) file_get_contents($zipPath));
+
+        // Wieder hochladen: falsches Passwort wird abgelehnt, richtiges ergibt eine geprüfte Sicherung
+        try {
+            $this->backups->import($zipPath, null, 'Falsches Passwort 123');
+            self::fail('falsches Passwort muss abgelehnt werden');
+        } catch (BackupException $e) {
+            self::assertStringContainsString('Passwort', $e->getMessage());
+        }
+        $new = $this->backups->import($zipPath, null, 'Langes Zip Passwort 1');
+        self::assertSame('uploaded', $this->backups->get($new)['kind']);
+        self::assertArrayHasKey('files/public/media/2026/a-800.webp', $this->backups->verify($new)['files']);
+        $this->backups->removeExport($zipPath);
+        self::assertDirectoryDoesNotExist(dirname($zipPath));
+
+        // ZIP ohne Passwort hochgeladen: klare Meldung
+        file_put_contents($this->tmp . '/x.zip', "PK\x03\x04 kein echtes Archiv");
+        $this->expectExceptionMessageMatches('/Passwort/');
+        $this->backups->import($this->tmp . '/x.zip', null);
+    }
+
     public function testTamperedBackupIsRejected(): void
     {
         $id = $this->backups->create('manual');

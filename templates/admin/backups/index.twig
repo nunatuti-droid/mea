@@ -2,7 +2,7 @@
 {% import 'admin/partials/ui.twig' as ui %}
 {% block content %}
   <div class="adm-head">
-    <div><h1>Sicherungen</h1><p class="adm-head__intro">Gesichert werden Datenbank, Originalbilder und Medien. Die Dateien sind verschlüsselt und liegen außerhalb des öffentlichen Bereichs. Jede Nacht entsteht automatisch eine Sicherung.</p></div>
+    <div><h1>Sicherungen</h1><p class="adm-head__intro">Gesichert werden Datenbank, Originalbilder und Medien. Die Dateien sind verschlüsselt und liegen außerhalb des öffentlichen Bereichs. Zum externen Aufbewahren laden Sie am besten „Als ZIP“ herunter: Sie vergeben ein eigenes Passwort und können die Datei mit 7-Zip öffnen. Jede Nacht entsteht automatisch eine Sicherung.</p></div>
     <form method="post" action="/verwaltung/sicherungen/erstellen/" class="inline"><input type="hidden" name="_csrf" value="{{ csrf }}"><button class="btn btn--primary" type="submit">{{ icon('database') }}Jetzt sichern</button></form>
   </div>
 
@@ -34,7 +34,8 @@
           <td class="mono text-sm">{{ b.app_version }}</td>
           <td><div class="row">
             {% if b.status == 'ok' %}
-              <a class="btn btn--ghost btn--sm" href="/verwaltung/sicherungen/{{ b.id }}/herunterladen/">{{ icon('download') }}Herunterladen</a>
+              <a class="btn btn--ghost btn--sm" href="/verwaltung/sicherungen/{{ b.id }}/zip/">{{ icon('download') }}Als ZIP</a>
+              <a class="btn btn--ghost btn--sm" href="/verwaltung/sicherungen/{{ b.id }}/herunterladen/" title="Verschlüsselt mit dem Schlüssel des Servers, nur hier wieder einspielbar">{{ icon('download') }}.meabak</a>
               <form method="post" action="/verwaltung/sicherungen/{{ b.id }}/pruefen/" class="inline"><input type="hidden" name="_csrf" value="{{ csrf }}"><button class="btn btn--ghost btn--sm" type="submit">{{ icon('shield-check') }}Prüfen</button></form>
               <a class="btn btn--ghost btn--sm" href="/verwaltung/sicherungen/{{ b.id }}/wiederherstellen/">{{ icon('history') }}Wiederherstellen</a>
             {% endif %}
@@ -47,11 +48,13 @@
 
   <section class="card">
     <h2 class="h3">Sicherung hochladen</h2>
-    <p class="text-sm text-muted">Nur Sicherungen dieser Website (Endung .meabak) werden angenommen. Die Datei wird vor der Übernahme vollständig geprüft. Höchstgröße: {{ max_upload }}; größere Dateien bitte per SSH nach <span class="mono">storage/backups</span> kopieren.</p>
+    <p class="text-sm text-muted">Angenommen werden Sicherungen dieser Website: .meabak oder die ZIP-Datei mit Passwort (dann das Passwort mit eingeben). Die Datei wird vor der Übernahme vollständig geprüft. Höchstgröße: {{ max_upload }}; größere Dateien bitte per SSH nach <span class="mono">storage/backups</span> kopieren.</p>
     <form method="post" action="/verwaltung/sicherungen/hochladen/" enctype="multipart/form-data" class="row">
       <input type="hidden" name="_csrf" value="{{ csrf }}">
       <label class="visually-hidden" for="backup">Sicherungsdatei</label>
-      <input type="file" id="backup" name="backup" accept=".meabak" required>
+      <input type="file" id="backup" name="backup" accept=".meabak,.zip" required>
+      <label class="visually-hidden" for="zip_password">Passwort der ZIP-Datei</label>
+      <input type="password" id="zip_password" name="zip_password" autocomplete="off" placeholder="Passwort (nur bei ZIP)">
       <button class="btn btn--ghost" type="submit">{{ icon('upload') }}Hochladen und prüfen</button>
     </form>
   </section>

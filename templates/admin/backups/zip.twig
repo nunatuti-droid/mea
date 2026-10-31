@@ -1,0 +1,21 @@
+{% extends 'admin/layout.twig' %}
+{% block content %}
+  <p class="crumb"><a href="/verwaltung/sicherungen/">{{ icon('arrow-left') }}Sicherungen</a></p>
+  <div class="adm-head"><div><h1>Sicherung als ZIP herunterladen</h1></div></div>
+  <section class="card card--narrow">
+    <p><strong>Stand vom {{ b.created_at|utc|date('d.m.Y H:i') }}</strong> ({{ kinds[b.kind] }}, Version {{ b.app_version }})</p>
+    <p>Sie erhalten eine ZIP-Datei mit Datenbank, Originalbildern und Medien. Jede Datei darin ist mit Ihrem Passwort verschlüsselt (AES-256).</p>
+    <ul>
+      <li>Öffnen mit 7-Zip, WinZip oder unter macOS mit Keka. Das in Windows eingebaute Entpacken kann diese Verschlüsselung nicht öffnen.</li>
+      <li>Zum Wiederherstellen laden Sie die ZIP-Datei unter „Sicherung hochladen“ hoch und geben dasselbe Passwort ein.</li>
+      <li><strong>Das Passwort wird nicht gespeichert.</strong> Ohne Passwort lässt sich die Datei nicht mehr öffnen. Bitte getrennt von der Datei aufbewahren, zum Beispiel in einem Passwortmanager.</li>
+    </ul>
+    {% if error %}<div class="alert alert--error" role="alert">{{ icon('circle-alert') }}<p>{{ error }}</p></div>{% endif %}
+    <form method="post" action="/verwaltung/sicherungen/{{ b.id }}/zip/" class="stack" novalidate>
+      <input type="hidden" name="_csrf" value="{{ csrf }}">
+      <div class="field"><label for="password">Passwort für die ZIP-Datei</label><input id="password" name="password" type="password" autocomplete="new-password" minlength="{{ min }}" required aria-describedby="pw-hint"><p class="field__help" id="pw-hint">Mindestens {{ min }} Zeichen.</p></div>
+      <div class="field"><label for="password2">Passwort wiederholen</label><input id="password2" name="password2" type="password" autocomplete="new-password" minlength="{{ min }}" required></div>
+      <button class="btn btn--primary" type="submit">{{ icon('download') }}ZIP herunterladen</button>
+    </form>
+  </section>
+{% endblock %}

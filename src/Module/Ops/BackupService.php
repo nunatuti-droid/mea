@@ -148,8 +148,113 @@ final class BackupService
         return $m;
     }
 
-    /** Hochgeladene Sicherung übernehmen (nur wenn sie sich mit dem eigenen Schlüssel prüfen lässt). */
-    public function import(string $uploadedFile, ?int $userId): int
+    /** Mindestlänge für das Passwort einer ZIP-Ausgabe. */
+    public const ZIP_PASSWORD_MIN = 12;
+
+    /**
+     * Sicherung als ZIP mit eigenem Passwort (AES-256 je Datei) für die Ablage außerhalb des Servers.
+     * Lässt sich mit 7-Zip, WinZip oder macOS-Programmen wie Keka öffnen und hier wieder hochladen.
+     * Gibt den Pfad einer temporären Datei zurück; der Aufrufer löscht sie nach dem Senden (removeExport()).
+     */
+    public function exportZip(int $id, string $password): string
+    {
+        if (mb_strlen($password) < self::ZIP_PASSWORD_MIN) {
+            throw new BackupException('Das Passwort muss mindestens ' . self::ZIP_PASSWORD_MIN . ' Zeichen lang sein.');
+        }
+        $b = $this->get($id);
+        $this->verifyFile($this->path($b));
+        $tmp = $this->tmpDir();
+        $zipFile = $tmp . '/' . preg_replace('/\.meabak$/', '.zip', basename((string) $b['file_name']));
+        $this->crypto->decryptFile($this->path($b), $zipFile);
+        try {
+            $this->setZipEncryption($zipFile, \ZipArchive::EM_AES_256, $password);
+        } catch (\Throwable $e) {
+            $this->removeDir($tmp);
+            throw $e instanceof BackupException ? $e : new BackupException($e->getMessage(), 0, $e);
+        }
+        chmod($zipFile, 0600);
+        return $zipFile;
+    }
+
+    /** Temporären Ordner einer ZIP-Ausgabe entfernen. */
+    public function removeExport(string $zipFile): void
+    {
+        $dir = dirname($zipFile);
+        if (str_starts_with(basename($dir), 'op-') && dirname($dir) === $this->root . '/storage/tmp') {
+            $this->removeDir($dir);
+        }
+    }
+
+    /** Verschlüsselung aller Einträge setzen oder (mit Passwort zum Lesen) entfernen. */
+    private function setZipEncryption(string $zipFile, int $method, string $password): void
+    {
+        $zip = new \ZipArchive();
+        if ($zip->open($zipFile) !== true) {
+            throw new BackupException('Das Archiv ist beschädigt.');
+        }
+        if ($method === \ZipArchive::EM_NONE) {
+            $zip->setPassword($password);
+        }
+        for ($i = 0; $i < $zip->numFiles; $i++) {
+            if (!$zip->setEncryptionIndex($i, $method, $method === \ZipArchive::EM_NONE ? null : $password)) {
+                $zip->close();
+                throw new BackupException('Verschlüsselung konnte nicht gesetzt werden.');
+            }
+        }
+        if (!@$zip->close()) {
+            throw new BackupException($method === \ZipArchive::EM_NONE ? 'Das Passwort ist falsch oder die ZIP-Datei ist beschädigt.' : 'Archiv konnte nicht geschrieben werden.');
+        }
+    }
+
+    /** Mit Passwort geschützte ZIP-Ausgabe in eine normale Sicherung (.meabak) umwandeln. */
+    private function zipToMeabak(string $uploadedFile, string $password, string $tmp): string
+    {
+        $plain = $tmp . '/upload.zip';
+        if (!copy($uploadedFile, $plain)) {
+            throw new BackupException('Datei konnte nicht gelesen werden.');
+        }
+        $zip = new \ZipArchive();
+        if ($zip->open($plain) !== true) {
+            throw new BackupException('Die ZIP-Datei ist beschädigt.');
+        }
+        $zip->setPassword($password);
+        $probe = $zip->getFromName('manifest.json');
+        $zip->close();
+        if ($probe === false) {
+            throw new BackupException('Das Passwort ist falsch oder die ZIP-Datei ist keine Sicherung dieser Website.');
+        }
+        $this->setZipEncryption($plain, \ZipArchive::EM_NONE, $password);
+        $out = $tmp . '/upload.meabak';
+        $this->crypto->encryptFile($plain, $out);
+        return $out;
+    }
+
+    /** Hochgeladene Sicherung übernehmen: .meabak (mit dem eigenen Schlüssel prüfbar) oder ZIP-Ausgabe mit Passwort. */
+    public function import(string $uploadedFile, ?int $userId, string $zipPassword = ''): int
+    {
+        $tmp = null;
+        if (file_get_contents($uploadedFile, false, null, 0, 4) === "PK\x03\x04") {
+            if ($zipPassword === '') {
+                throw new BackupException('Für eine ZIP-Datei bitte das Passwort eingeben, das beim Herunterladen vergeben wurde.');
+            }
+            $tmp = $this->tmpDir();
+            try {
+                $uploadedFile = $this->zipToMeabak($uploadedFile, $zipPassword, $tmp);
+            } catch (\Throwable $e) {
+                $this->removeDir($tmp);
+                throw $e instanceof BackupException ? $e : new BackupException($e->getMessage(), 0, $e);
+            }
+        }
+        try {
+            return $this->importMeabak($uploadedFile, $userId);
+        } finally {
+            if ($tmp !== null) {
+                $this->removeDir($tmp);
+            }
+        }
+    }
+
+    private function importMeabak(string $uploadedFile, ?int $userId): int
     {
         $m = $this->verifyFile($uploadedFile);
         $file = sprintf('mea-%s-uploaded-%s.meabak', gmdate('Ymd-His'), bin2hex(random_bytes(3)));

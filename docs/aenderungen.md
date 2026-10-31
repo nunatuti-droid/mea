@@ -321,6 +321,23 @@ Das Aussehen der ganzen Website lässt sich jetzt in der Verwaltung einstellen: 
 
 **Nach dem Einspielen:** nichts weiter nötig. Das Update führt die Datenbankschritte selbst aus; die CSS-Datei entsteht beim ersten Seitenaufruf.
 
+# Update 0.9.2 – Sicherung als ZIP mit Passwort (31.10.2026)
+
+**Anlass:** Sicherungen wurden nur als verschlüsselte `.meabak`-Datei heruntergeladen, die sich nicht mit einem Entpackprogramm öffnen lässt.
+
+**Was neu ist**
+- Verwaltung → Sicherungen: Knopf „Als ZIP“ je Sicherung. Nach der Identitätsbestätigung vergeben Sie ein Passwort (mind. 12 Zeichen, zweimal eingeben). Jede Datei in der ZIP ist damit per AES-256 verschlüsselt.
+- Öffnen mit 7-Zip, WinZip oder Keka. Das in Windows eingebaute Entpacken unterstützt AES nicht.
+- „Sicherung hochladen“ nimmt jetzt auch diese ZIP an (mit Passwort). Sie wird geprüft und als normale Sicherung übernommen.
+- Das Passwort wird nicht gespeichert. Die ZIP wird nur für den Download erzeugt und danach gelöscht. Der Download steht im Änderungsprotokoll und zählt als „extern gespeichert“.
+- Der bisherige Download heißt jetzt „.meabak“ und bleibt unverändert.
+
+**Dateien:** `src/Module/Ops/BackupService.php`, `src/Admin/BackupController.php`, `src/Core/Response.php` (Aufräumen nach einem Datei-Download), `templates/admin/backups/zip.twig` (neu), `templates/admin/backups/index.twig`, `docs/betrieb.md`, `tests/Integration/OpsTest.php`.
+
+**Geprüft:** Test `OpsTest::testBackupZipWithOwnPasswordRoundTrip` (AES-256 je Datei, falsches oder fehlendes Passwort abgelehnt, Wiedereinspielen). Im Browser heruntergeladen und mit 7-Zip geöffnet: 104 Dateien, Methode AES-256, falsches Passwort wird abgelehnt. Barrierefreiheitsprüfung (axe) der neuen Seite ohne Befund.
+
+**Einschränkung:** Sehr große Sicherungen brauchen beim Download kurz den doppelten Speicherplatz in `storage/tmp`.
+
 # Update 0.9.1 – Neues Startbild (31.10.2026)
 
 **Was neu ist**

@@ -23,6 +23,8 @@ final class BackupController
         $k->post('/verwaltung/sicherungen/hochladen/', 'system', $this->upload(...));
         $k->post('/verwaltung/sicherungen/{id:\d+}/pruefen/', 'system', $this->verify(...));
         $k->get('/verwaltung/sicherungen/{id:\d+}/herunterladen/', 'system', $this->download(...));
+        $k->get('/verwaltung/sicherungen/{id:\d+}/zip/', 'system', $this->zipForm(...));
+        $k->post('/verwaltung/sicherungen/{id:\d+}/zip/', 'system', $this->zipDownload(...));
         $k->get('/verwaltung/sicherungen/{id:\d+}/wiederherstellen/', 'system', $this->restoreForm(...));
         $k->post('/verwaltung/sicherungen/{id:\d+}/wiederherstellen/', 'system', $this->restore(...));
         $k->post('/verwaltung/sicherungen/{id:\d+}/loeschen/', 'system', $this->delete(...));
@@ -85,6 +87,42 @@ final class BackupController
         return Response::download($this->app->backups()->path($b), (string) $b['file_name']);
     }
 
+    public function zipForm(Request $req, AdminContext $ctx, string $id, ?string $error = null): Response
+    {
+        if (($r = $this->needsReauth($ctx, '/verwaltung/sicherungen/' . (int) $id . '/zip/')) !== null) {
+            return $r;
+        }
+        try {
+            $b = $this->app->backups()->get((int) $id);
+        } catch (BackupException) {
+            throw HttpException::notFound();
+        }
+        return Response::html($this->app->view->render('admin/backups/zip.twig', ['title' => 'Sicherung als ZIP herunterladen', 'b' => $b, 'kinds' => self::KINDS,
+            'error' => $error, 'min' => \Mea\Module\Ops\BackupService::ZIP_PASSWORD_MIN]), $error ? 422 : 200);
+    }
+
+    /** Sicherung als ZIP mit eigenem Passwort (AES-256). Die temporäre Datei wird nach dem Senden gelöscht. */
+    public function zipDownload(Request $req, AdminContext $ctx, string $id): Response
+    {
+        if (($r = $this->needsReauth($ctx, '/verwaltung/sicherungen/' . (int) $id . '/zip/')) !== null) {
+            return $r;
+        }
+        $pw = (string) $req->input('password', '');
+        if ($pw !== (string) $req->input('password2', '')) {
+            return $this->zipForm($req, $ctx, $id, 'Die beiden Passwörter stimmen nicht überein.');
+        }
+        try {
+            $b = $this->app->backups()->get((int) $id);
+            $zip = $this->app->backups()->exportZip((int) $id, $pw);
+        } catch (BackupException $e) {
+            return $this->zipForm($req, $ctx, $id, $e->getMessage());
+        }
+        $this->app->db->run('UPDATE backups SET downloaded_at = UTC_TIMESTAMP() WHERE id = ?', [(int) $id]);
+        $this->app->audit->record('backup.downloaded', 'Sicherung als ZIP mit Passwort heruntergeladen: ' . $b['file_name'], 'backup', (int) $id);
+        $backups = $this->app->backups();
+        return Response::download($zip, basename($zip), 'application/zip')->then(fn() => $backups->removeExport($zip));
+    }
+
     public function upload(Request $req, AdminContext $ctx): Response
     {
         if (($r = $this->needsReauth($ctx, '/verwaltung/sicherungen/')) !== null) {
@@ -96,7 +134,7 @@ final class BackupController
             return Response::redirect('/verwaltung/sicherungen/', 303);
         }
         try {
-            $id = $this->app->backups()->import((string) $f['tmp_name'], $ctx->id());
+            $id = $this->app->backups()->import((string) $f['tmp_name'], $ctx->id(), (string) $req->input('zip_password', ''));
             $this->app->audit->record('backup.uploaded', 'Sicherung hochgeladen', 'backup', $id);
             AdminKernel::flash('Sicherung hochgeladen und geprüft. Sie kann jetzt wiederhergestellt werden.');
         } catch (BackupException $e) {

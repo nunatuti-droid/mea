@@ -97,6 +97,9 @@ final class Response
                 ob_end_clean();
             }
             readfile($this->file);
+            if ($this->after !== null) {
+                ($this->after)();
+            }
             return;
         }
         if ($this->after === null) {
