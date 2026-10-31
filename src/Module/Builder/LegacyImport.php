@@ -16,6 +16,29 @@ final class LegacyImport
 
     public function __construct(private Database $db) {}
 
+    /** Übernimmt nur, wenn es noch keine Startseite oder Seiten ohne Aufbau gibt. @return list<string> Protokoll */
+    public static function ensure(Database $db): array
+    {
+        try {
+            $todo = $db->value('SELECT 1 FROM pages WHERE blocks_json IS NULL LIMIT 1') !== null
+                || $db->value('SELECT 1 FROM pages WHERE is_home = 1 LIMIT 1') === null;
+        } catch (\PDOException) {
+            return []; // Tabellen noch nicht migriert
+        }
+        if (!$todo) {
+            return [];
+        }
+        try {
+            return (new self($db))->run();
+        } catch (\PDOException $e) {
+            // Zwei gleichzeitige erste Aufrufe: die Startseite ist eindeutig, der zweite Lauf bricht hier ab
+            if ((string) $e->getCode() === '23000') {
+                return [];
+            }
+            throw $e;
+        }
+    }
+
     /** @return list<string> Protokoll */
     public function run(): array
     {

@@ -5,7 +5,8 @@ use Phinx\Migration\AbstractMigration;
 
 /**
  * Seitenbaukasten: Seitenaufbau als geprüfter Baum (veröffentlicht und Entwurf), Startseite als eigene Seite,
- * globale Bausteine. Danach werden alle bisherigen Seiten und die Startseite übernommen (Mea\Module\Builder\LegacyImport).
+ * globale Bausteine. Nur Tabellen: Die Übernahme der bisherigen Seiten (Mea\Module\Builder\LegacyImport) läuft beim ersten
+ * Aufruf mit dem neuen Programmstand (App::pages()), weil ein Update die Migration im noch laufenden alten Prozess ausführt.
  */
 final class CreatePageBuilder extends AbstractMigration
 {
@@ -46,7 +47,6 @@ CREATE TABLE builder_components (
 
 ALTER TABLE users MODIFY role ENUM('admin','editor','booking','author') NOT NULL;
 SQL);
-        (new \Mea\Module\Builder\LegacyImport(\Mea\Core\Database::wrap($this->getAdapter()->getConnection())))->run();
     }
 
     public function down(): void

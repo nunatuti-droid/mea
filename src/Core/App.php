@@ -183,7 +183,12 @@ final class App
 
     public function pages(): \Mea\Module\Builder\PageService
     {
-        return $this->pageService ??= new \Mea\Module\Builder\PageService($this->db, fn() => $this->treeValidator(), $this->pageRenderer(), $this->designDir(), $this->log);
+        if ($this->pageService === null) {
+            $this->pageService = new \Mea\Module\Builder\PageService($this->db, fn() => $this->treeValidator(), $this->pageRenderer(), $this->designDir(), $this->log);
+            // Nach einem Update: bisherige Seiten einmalig in den Seitenbaukasten übernehmen (schnelle Prüfung, danach nichts mehr zu tun)
+            \Mea\Module\Builder\LegacyImport::ensure($this->db);
+        }
+        return $this->pageService;
     }
 
     public function treeValidator(): \Mea\Module\Builder\TreeValidator

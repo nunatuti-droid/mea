@@ -9,7 +9,7 @@ Stand: 31.10.2026. Dieses Dokument beschreibt Ursache, Umsetzung, Prüfung und G
 - Sie war **nie ein Datensatz in der Tabelle `pages`**. Die Seitenverwaltung ist eine Liste über genau diese Tabelle, deshalb fehlte die Startseite dort.
 - Die übrigen Seiten standen zwar in `pages`, aber nur Titel, Einleitung und ein Textfeld waren bearbeitbar. Alles andere (Listen, Formulare, Schritte, Aufrufe) stand fest in eigenen Templates.
 
-**Behebung:** Die Migration `20261106100023_create_page_builder` legt die Startseite als normale Seite an (`slug = startseite`, `is_home = 1`, Systemseite). Die Spalte `is_home` ist eindeutig (nur eine Startseite möglich). SEO-Titel und -Beschreibung wurden aus `seo_home` übernommen. Die Übernahme (`LegacyImport`) prüft vorher, ob es schon eine Startseite gibt; ein zweiter Lauf legt nichts doppelt an (getestet). `/startseite/` leitet dauerhaft (301) auf `/` um, die Sitemap enthält `/` nur einmal.
+**Behebung:** Nach der Migration `20261106100023_create_page_builder` legt die Übernahme beim ersten Aufruf mit dem neuen Programmstand die Startseite als normale Seite an (`slug = startseite`, `is_home = 1`, Systemseite). Die Spalte `is_home` ist eindeutig (nur eine Startseite möglich). SEO-Titel und -Beschreibung wurden aus `seo_home` übernommen. Die Übernahme (`LegacyImport`) prüft vorher, ob es schon eine Startseite gibt; ein zweiter Lauf legt nichts doppelt an (getestet). `/startseite/` leitet dauerhaft (301) auf `/` um, die Sitemap enthält `/` nur einmal.
 
 ## 2. Bestandsaufnahme
 
@@ -84,7 +84,8 @@ Vergleich alt/neu mit Bildschirmfotos aller 10 Hauptseiten bei 1366 px und 375 p
 
 ## 7. Tests
 
-- 175 automatische Tests grün, davon 12 neu in `tests/Integration/PageBuilderTest.php`: Startseite einmalig, oben gelistet und geschützt; alle Seiten übernommen, Adressen gleich, genau eine H1, keine Editor-Markierungen; Entwurf unsichtbar bis Veröffentlichung, Vorschau nur angemeldet; Versionen; Konflikt (409) und bewusstes Überschreiben; XSS und unsichere Links/Stile werden entfernt; Rechte (Autor/in, Buchung) und CSRF; Einbettung nur des Arbeitsbereichs; globale Bausteine; Kopf- und Fußbereich mit Prüfung der Links; Mediennutzung; neue Seite und Kopie; Stile je Gerät.
+- 176 automatische Tests grün, davon 13 neu in `tests/Integration/PageBuilderTest.php`: Startseite einmalig, oben gelistet und geschützt; alle Seiten übernommen, Adressen gleich, genau eine H1, keine Editor-Markierungen; Entwurf unsichtbar bis Veröffentlichung, Vorschau nur angemeldet; Versionen; Konflikt (409) und bewusstes Überschreiben; XSS und unsichere Links/Stile werden entfernt; Rechte (Autor/in, Buchung) und CSRF; Einbettung nur des Arbeitsbereichs; globale Bausteine; Kopf- und Fußbereich mit Prüfung der Links; Mediennutzung; neue Seite und Kopie; Stile je Gerät; Übernahme beim ersten Aufruf nach einem Update.
+- Update-Paket auf einer sauberen Kopie von 0.8.0 eingespielt: Migration, Übernahme aller 12 Seiten, Selbsttest und Dateiwächter bestanden, alle Seiten liefern 200. Ein erster Probelauf hatte einen Fehler gefunden (die Übernahme lief im alten Programmprozess); das Update brach ab und nahm sich vollständig zurück. Behoben, indem die Übernahme beim ersten Aufruf läuft.
 - Browser (Playwright): Auswählen, Stil ändern, Direkt-Schreiben, Ziehen aus der Elementliste, Rückgängig/Wiederholen, Tablet-Ansicht, Speichern, Konflikt in zwei Tabs, Seite & SEO, Bildauswahl, globalen Baustein anlegen, Veröffentlichen, Ergebnis auf der Website.
 - Barrierefreiheit (axe-core, WCAG 2.2 AA): alle öffentlichen Seiten und alle Verwaltungsseiten inkl. Editor bei 1366 px und 375 px ohne Befund.
 

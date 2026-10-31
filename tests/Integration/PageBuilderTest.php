@@ -64,7 +64,7 @@ final class PageBuilderTest extends IntegrationTestCase
         self::assertStringContainsString('<title>Neuer SEO-Titel</title>', $this->get('/')->body);
 
         // Die Übernahme läuft kein zweites Mal und legt keine zweite Startseite an
-        (new \Mea\Module\Builder\LegacyImport(self::db(), $this->app->settings))->run();
+        (new \Mea\Module\Builder\LegacyImport(self::db()))->run();
         self::assertSame(1, (int) self::db()->value('SELECT COUNT(*) FROM pages WHERE is_home = 1'));
     }
 
@@ -306,5 +306,18 @@ final class PageBuilderTest extends IntegrationTestCase
         self::assertMatchesRegularExpression('#@media \(max-width: 900px\) \{ \.b-stl00001\.b-stl00001 \{[^}]*padding-top: 24px#', $css);
         self::assertMatchesRegularExpression('#@media \(max-width: 600px\) \{ \.b-stl00001\.b-stl00001 \{[^}]*padding-top: 8px#', $css);
         self::assertStringContainsString('display: none !important', $css);
+    }
+
+    public function testPagesAreTakenOverOnFirstUseAfterAnUpdate(): void
+    {
+        // Zustand direkt nach der Migration eines Updates: Tabellen da, Seiten noch ohne Aufbau, keine Startseite
+        self::db()->run('DELETE FROM pages WHERE is_home = 1');
+        self::db()->run('UPDATE pages SET blocks_json = NULL, draft_json = NULL');
+        $app = new \Mea\Core\App(self::root(), self::config(), self::db());
+        $app->useDesignDir(sys_get_temp_dir() . '/mea-test-design-' . getmypid() . '/design');
+        $app->pages();
+        self::assertSame(1, (int) self::db()->value('SELECT COUNT(*) FROM pages WHERE is_home = 1'));
+        self::assertSame(0, (int) self::db()->value('SELECT COUNT(*) FROM pages WHERE blocks_json IS NULL'));
+        self::assertSame([], \Mea\Module\Builder\LegacyImport::ensure(self::db()), 'zweiter Aufruf tut nichts');
     }
 }
