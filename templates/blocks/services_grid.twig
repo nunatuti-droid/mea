@@ -1,0 +1,2 @@
+{% import 'partials/macros.twig' as ui %}
+<div{{ battr(b, 'grid grid--3') }}>{% for s in d.services %}{{ ui.service_card(s, null, f.more) }}{% endfor %}</div>

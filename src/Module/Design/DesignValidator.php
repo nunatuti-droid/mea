@@ -41,6 +41,9 @@ final class DesignValidator
         if (!isset($errors['color_focus']) && !isset($errors['color_background']) && $values['color_focus'] === $values['color_background']) {
             $errors['color_focus'] = 'Der Fokusrahmen darf nicht dieselbe Farbe wie der Hintergrund haben.';
         }
+        if (!isset($errors['bp_mobile']) && !isset($errors['bp_tablet']) && $values['bp_mobile'] >= $values['bp_tablet']) {
+            $errors['bp_mobile'] = 'Der Handy-Umbruchpunkt muss kleiner sein als der Tablet-Umbruchpunkt.';
+        }
         return [$values, $errors];
     }
 

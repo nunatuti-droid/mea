@@ -1,0 +1,46 @@
+{% import 'partials/macros.twig' as ui %}
+{%- set exams = d.exams -%}{%- set categories = d.categories -%}{%- set filter = d.filter -%}{%- set options = d.options -%}{%- set is_filtered = d.is_filtered -%}
+<div{{ battr(b, 'exam-list') }}>
+  {% if f.venue %}{% include 'partials/exam_venue.twig' %}{% endif %}
+  {% if categories|length > 1 %}
+    <nav class="filters" aria-label="Prüfungen nach Kategorie filtern">
+      <span class="filters__label">Kategorie:</span>
+      <a class="chip" href="?#pruefungen"{% if not is_filtered %} aria-current="true"{% endif %}>Alle</a>
+      {% for c in categories %}<a class="chip" href="?kategorie={{ c.slug|url_encode }}#pruefungen"{% if filter.category == c.slug %} aria-current="true"{% endif %}>{{ c.short_name }}</a>{% endfor %}
+    </nav>
+  {% elseif options.levels|length > 1 or options.providers|length > 1 %}
+    <nav class="filters" aria-label="Prüfungen filtern">
+      <span class="filters__label">Niveau:</span>
+      <a class="chip" href="?#pruefungen"{% if not is_filtered %} aria-current="true"{% endif %}>Alle</a>
+      {% for l in options.levels %}<a class="chip" href="?niveau={{ l|url_encode }}#pruefungen"{% if filter.level == l %} aria-current="true"{% endif %}>{{ l }}</a>{% endfor %}
+      {% if options.providers|length > 1 %}
+        <span class="filters__label">Anbieter:</span>
+        {% for p in options.providers %}<a class="chip" href="?anbieter={{ p|url_encode }}#pruefungen"{% if filter.provider == p %} aria-current="true"{% endif %}>{{ p }}</a>{% endfor %}
+      {% endif %}
+    </nav>
+  {% endif %}
+  {% if exams is not empty %}
+    {% if categories is not empty %}
+      {% for c in categories %}
+        {% set in_cat = exams|filter(e => e.category_slug == c.slug) %}
+        {% if in_cat is not empty %}
+          <div class="exam-group">
+            <div class="exam-group__head"><h3>{{ c.name }}</h3>{% if c.description %}<p>{{ c.description }}</p>{% endif %}</div>
+            <div class="grid grid--3">{% for e in in_cat %}{{ ui.exam_card(e, 'h4') }}{% endfor %}</div>
+          </div>
+        {% endif %}
+      {% endfor %}
+      {% set rest = exams|filter(e => e.category_slug is empty) %}
+      {% if rest is not empty %}
+        <div class="exam-group">
+          <div class="exam-group__head"><h3>{{ f.other }}</h3></div>
+          <div class="grid grid--3">{% for e in rest %}{{ ui.exam_card(e, 'h4') }}{% endfor %}</div>
+        </div>
+      {% endif %}
+    {% else %}
+      <div class="grid grid--3">{% for e in exams %}{{ ui.exam_card(e) }}{% endfor %}</div>
+    {% endif %}
+  {% else %}
+    <div class="notice">{{ icon('info') }}<div>{{ (is_filtered ? f.empty_filtered : f.empty)|raw }}</div></div>
+  {% endif %}
+</div>

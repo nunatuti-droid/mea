@@ -9,12 +9,14 @@ final class Roles
     public const LABELS = [
         'admin' => 'Administrator',
         'editor' => 'Redaktion',
+        'author' => 'Autorin/Autor (Entwürfe ohne Veröffentlichen)',
         'booking' => 'Buchungsverwaltung',
     ];
 
     public const PERMISSIONS = [
         'dashboard' => 'Übersicht',
-        'content' => 'Seiten, Leistungen, FAQ, Bewertungen, Menüs',
+        'content' => 'Seiten, Leistungen, FAQ, Bewertungen, Menüs bearbeiten',
+        'publish' => 'Seiten veröffentlichen, globale Bausteine, Kopf- und Fußbereich',
         'media' => 'Mediathek',
         'locations' => 'Standorte',
         'exams' => 'Prüfungsarten, Anbieter, Buchungsregeln',
@@ -33,7 +35,8 @@ final class Roles
 
     private const GRANTS = [
         'admin' => ['*'],
-        'editor' => ['dashboard', 'content', 'media', 'locations', 'exams', 'inquiries'],
+        'editor' => ['dashboard', 'content', 'publish', 'media', 'locations', 'exams', 'inquiries'],
+        'author' => ['dashboard', 'content', 'media'],
         'booking' => ['dashboard', 'sessions', 'bookings', 'refunds', 'inquiries', 'emails'],
     ];
 

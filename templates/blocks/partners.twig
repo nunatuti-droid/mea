@@ -1,0 +1,6 @@
+<section{{ battr(b, 'partners', {'aria-label': f.label ?: 'Partner'}) }}>
+  <div class="container">
+    {% if f.label %}<p class="partners__label">{{ f.label }}</p>{% endif %}
+    <ul class="partners__list">{% for p in f.items %}<li>{{ img(p.media, '180px', {alt: ''}) }}<span class="partners__name">{{ p.label }}</span></li>{% endfor %}</ul>
+  </div>
+</section>

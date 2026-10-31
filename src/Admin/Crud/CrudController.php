@@ -28,7 +28,9 @@ final class CrudController
     public function register(AdminKernel $k, Resource $r): void
     {
         $base = '/verwaltung/' . $r->key . '/';
-        $k->get($base, $r->permission, fn(Request $q, AdminContext $c) => $this->index($r, $q, $c));
+        if (!$r->customIndex) {
+            $k->get($base, $r->permission, fn(Request $q, AdminContext $c) => $this->index($r, $q, $c));
+        }
         if ($r->creatable) {
             $k->get($base . 'neu/', $r->permission, fn(Request $q, AdminContext $c) => $this->form($r, $q, $c, null));
             $k->post($base . 'neu/', $r->permission, fn(Request $q, AdminContext $c) => $this->save($r, $q, $c, null));

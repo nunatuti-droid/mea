@@ -1,0 +1,1 @@
+<div{{ battr(b, 'grp grp--' ~ f.direction ~ ' grp--gap-' ~ f.gap ~ ' grp--a-' ~ f.align ~ ' grp--j-' ~ f.justify ~ (f.wrap ? ' grp--wrap') ~ (f.card ? ' box')) }}>{{ blocks(b.c) }}{% if ctx.editing and b.c is empty %}<div class="b-empty">Element hierher ziehen</div>{% endif %}</div>

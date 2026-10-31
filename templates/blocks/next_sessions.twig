@@ -1,0 +1,21 @@
+{% import 'partials/macros.twig' as ui %}
+{% if d.sessions is not empty %}
+<div{{ battr(b, 'sessions') }}>
+  {% for s in d.sessions %}
+    <div class="session reveal">
+      <div class="session__date"><span class="session__day">{{ s.starts_local|date('d') }}</span><span class="session__month">{{ s.starts_local|format_date(pattern='MMM yy', locale='de') }}</span></div>
+      <div class="session__info">
+        <span class="session__title">{{ s.public_name }}</span>
+        <span class="meta-row">{{ icon('clock') }}{{ s.starts_local|format_date(pattern="EEEE, HH:mm 'Uhr'", locale='de') }} · {{ icon('map-pin') }}{{ s.location_short }}</span>
+        <span>{{ ui.availability(s) }}</span>
+      </div>
+      <div class="session__price">{{ ui.price(s.price) }}</div>
+      <div class="session__action"><a class="btn btn--sm" href="/pruefungen/{{ s.exam_slug }}/#termine">{{ f.btn }}<span class="visually-hidden">: {{ s.public_name }} am {{ s.starts_local|format_date('long', locale='de') }}</span></a></div>
+    </div>
+  {% endfor %}
+</div>
+{% elseif ctx.editing %}
+<p{{ battr(b, 'b-placeholder') }}>Zurzeit keine freien Termine. {{ f.hide_empty ? 'Der Abschnitt mit diesem Baustein wird auf der Website ausgeblendet.' }}</p>
+{% elseif not f.hide_empty %}
+<p{{ battr(b, 'text-muted') }}>Zurzeit sind keine Termine buchbar.</p>
+{% endif %}

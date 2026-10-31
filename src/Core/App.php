@@ -102,10 +102,17 @@ final class App
         $this->view->addFunction('design_css', fn(): string => $this->design()->stylesheetUrl());
         $this->view->addFunction('design_preloads', fn(): array => $this->design()->preloads());
         $this->view->addFunction('design_theme_color', fn(): string => $this->design()->themeColor());
+        // Seitenbaukasten: Bausteine ausgeben (Website, Vorschau und Editor teilen sich diese Funktionen)
+        $this->view->addFunction('blocks', fn(?array $nodes): \Twig\Markup => $this->pageRenderer()->children($nodes));
+        $this->view->addFunction('battr', fn(array $b, string $class = '', array $attr = []): \Twig\Markup => $this->pageRenderer()->attr($b, $class, $attr));
+        $this->view->addFunction('bedit', fn(string $field, string $kind = 'text'): \Twig\Markup => $this->pageRenderer()->editAttr($field, $kind));
+        $this->view->addFunction('media_alt', fn(mixed $id): string => (string) ($this->media->find((int) $id)['alt_text'] ?? ''));
+        $this->view->addFunction('video_embed', fn(?string $url): ?array => \Mea\Module\Builder\Video::embed((string) $url));
 
-        $pages = $this->publicPages = new PublicController($this->view, $this->content, $exams, $locations, $settings);
-        $examCtl = new ExamController($this->view, $exams, $this->content);
-        $locCtl = new LocationController($this->view, $locations, $this->content);
+        $pageView = fn(string $slug, array $ctx = [], int $status = 200): ?Response => $this->pageView()->respond($slug, $ctx, $status);
+        $pages = $this->publicPages = new PublicController($this->view, $this->content, fn() => $this->pages(), fn() => $this->pageView());
+        $examCtl = new ExamController($this->view, $exams, $this->content, $pageView);
+        $locCtl = new LocationController($this->view, $locations, $this->content, $pageView);
         $contact = new ContactController(
             $this->view,
             new InquiryService($this->db),
@@ -113,6 +120,7 @@ final class App
             $locations,
             $this->content,
             $this->mailer,
+            $pageView,
         );
         $seo = new SeoController($this->content, $exams, $locations, $baseUrl, fn(): bool => !$this->siteStatus->indexingAllowed());
 
@@ -144,6 +152,7 @@ final class App
         $r->post('/kontakt/', $contact->submit(...));
         $r->post('/einwilligung/', (new \Mea\Module\Consent\ConsentController($this->db, $this->consent, $limiter))->record(...));
         $r->get(\Mea\Module\Design\DesignService::FALLBACK_URL, $this->designFallback(...));
+        $r->get(\Mea\Module\Builder\PageService::CSS_ROUTE . '{id:\d+}-{hash:[a-f0-9]{16}}.css', $this->pageCssFallback(...));
         $r->get('/sitemap.xml', $seo->sitemap(...));
         $r->get('/robots.txt', $seo->robots(...));
         $r->get('/{parent:[a-z0-9-]+}/{slug:[a-z0-9-]+}/', $pages->childService(...));
@@ -156,6 +165,52 @@ final class App
     private ?\Mea\Module\Content\GoogleReviewSync $googleSync = null;
     private ?\Mea\Module\Design\DesignService $designService = null;
     private ?string $designDir = null;
+
+    private ?\Mea\Module\Builder\PageRenderer $pageRenderer = null;
+    private ?\Mea\Module\Builder\PageService $pageService = null;
+    private ?\Mea\Module\Builder\PageView $pageViewService = null;
+
+    public function pageRenderer(): \Mea\Module\Builder\PageRenderer
+    {
+        return $this->pageRenderer ??= new \Mea\Module\Builder\PageRenderer($this->view, $this->content, $this->exams, $this->locations, $this->design()->fonts(),
+            fn(int $id, bool $draft): ?array => $this->pages()->component($id, $draft),
+            function (): array {
+                $v = $this->design()->values();
+                return ['tablet' => (int) $v['bp_tablet'], 'mobile' => (int) $v['bp_mobile']];
+            });
+    }
+
+    public function pages(): \Mea\Module\Builder\PageService
+    {
+        return $this->pageService ??= new \Mea\Module\Builder\PageService($this->db, fn() => $this->treeValidator(), $this->pageRenderer(), $this->designDir(), $this->log);
+    }
+
+    public function treeValidator(): \Mea\Module\Builder\TreeValidator
+    {
+        return new \Mea\Module\Builder\TreeValidator($this->html, $this->design()->fonts(),
+            function (array $ids): array {
+                if ($ids === []) {
+                    return [];
+                }
+                return array_map('intval', array_column($this->db->all('SELECT id FROM media WHERE id IN (' . implode(',', array_fill(0, count($ids), '?')) . ')', $ids), 'id'));
+            },
+            fn(int $id): bool => $this->db->value('SELECT 1 FROM builder_components WHERE id = ?', [$id]) !== null);
+    }
+
+    public function pageView(): \Mea\Module\Builder\PageView
+    {
+        return $this->pageViewService ??= new \Mea\Module\Builder\PageView($this->view, $this->pageRenderer(), $this->pages(), '/media/design');
+    }
+
+    /** Seitenstile, falls der Ordner nicht beschreibbar ist. */
+    private function pageCssFallback(Request $req, string $id, string $hash): Response
+    {
+        $css = $this->pages()->cssByHash((int) $id, $hash);
+        if ($css === null) {
+            throw HttpException::notFound();
+        }
+        return (new Response($css, 200, ['Content-Type' => 'text/css; charset=utf-8', 'Cache-Control' => 'public, max-age=31536000, immutable']));
+    }
 
     public function design(): \Mea\Module\Design\DesignService
     {
@@ -407,7 +462,7 @@ final class App
         $x = $this->consent->cspSources();
         $add = fn(array $l): string => $l !== [] ? ' ' . implode(' ', $l) : '';
         $csp = "default-src 'self'; script-src 'self'" . $add($x['script']) . "; style-src 'self'; img-src 'self' data:" . $add($x['img']) . "; font-src 'self'; "
-            . "frame-src 'self' https://www.google.com" . $add($x['frame']) . "; connect-src 'self'" . $add($x['connect']) . "; form-action 'self'; "
+            . "frame-src 'self' https://www.google.com https://www.youtube-nocookie.com https://player.vimeo.com" . $add($x['frame']) . "; connect-src 'self'" . $add($x['connect']) . "; form-action 'self'; "
             . "base-uri 'self'; frame-ancestors 'none'; object-src 'none'";
         // Live-Vorschau des Designsystems: die Verwaltung zeigt öffentliche Seiten in einem Rahmen derselben Website
         $framable = isset($req->query['designvorschau']) && !str_starts_with($req->path, '/verwaltung/');

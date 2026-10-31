@@ -1,0 +1,2 @@
+{%- set tag = f.look == 'number' ? 'ol' : 'ul' -%}
+<{{ tag }}{{ battr(b, 'b-list b-list--' ~ f.look) }}{{ bedit('items', 'lines') }}>{% for line in f.items|split("\n") %}<li>{% if f.look == 'check' %}{{ icon('circle-check') }}{% endif %}{{ line }}</li>{% endfor %}</{{ tag }}>

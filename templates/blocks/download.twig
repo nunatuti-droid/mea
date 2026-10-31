@@ -1,0 +1,1 @@
+<ul{{ battr(b, 'downloads') }}>{% for i in f.items %}<li><a href="{{ i.url ?: '#' }}" download>{{ icon('download') }}<span>{{ i.label }}{% if i.desc %}<small>{{ i.desc }}</small>{% endif %}</span></a></li>{% else %}{% if ctx.editing %}<li class="b-placeholder">Dateien hinzufügen</li>{% endif %}{% endfor %}</ul>

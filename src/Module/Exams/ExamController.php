@@ -16,20 +16,13 @@ final class ExamController
         private View $view,
         private ExamRepository $exams,
         private ContentRepository $content,
+        /** @var \Closure(string, array<string,mixed>, int):?Response Seite aus dem Seitenbaukasten */
+        private \Closure $page,
     ) {}
 
     public function index(Request $req): Response
     {
-        $filter = ['provider' => $req->input('anbieter'), 'level' => $req->input('niveau'), 'category' => $req->input('kategorie')];
-        return Response::html($this->view->render('public/exams_index.twig', [
-            'page' => $this->content->publishedPage('telc-pruefungszentrum'),
-            'exams' => $this->exams->listed($filter),
-            'filter' => $filter,
-            'options' => $this->exams->filterOptions(),
-            'categories' => $this->exams->categories(),
-            'faqs' => $this->content->faqsFor('faq_page'),
-            'is_filtered' => $filter['provider'] !== '' || $filter['level'] !== '' || $filter['category'] !== '',
-        ]));
+        return ($this->page)('telc-pruefungszentrum', ['query' => $req->query], 200) ?? throw HttpException::notFound();
     }
 
     public function show(Request $req, string $slug): Response
@@ -61,9 +54,6 @@ final class ExamController
 
     public function prices(Request $req): Response
     {
-        return Response::html($this->view->render('public/prices.twig', [
-            'page' => $this->content->publishedPage('preise'),
-            'exams' => $this->exams->listed(),
-        ]));
+        return ($this->page)('preise', ['query' => $req->query], 200) ?? throw HttpException::notFound();
     }
 }

@@ -1,0 +1,23 @@
+<div{{ battr(b, 'grid b-grid--' ~ f.cols) }}>
+{% for i in f.items %}
+  {% if f.look == 'media' %}
+    <article class="card reveal">
+      {% if i.media %}<div class="card__media">{{ img(i.media, '(max-width: 700px) 100vw, 380px', {alt: ''}) }}</div>{% endif %}
+      <div class="card__body">
+        {% if i.icon %}<span class="card__icon">{{ icon(i.icon) }}</span>{% endif %}
+        <{{ f.level }}>{% if i.url %}<a href="{{ i.url }}">{{ i.title }}</a>{% else %}{{ i.title }}{% endif %}</{{ f.level }}>
+        {% if i.text %}<p>{{ i.text }}</p>{% endif %}
+        {% if i.url %}<span class="link-arrow" aria-hidden="true">{{ i.link_label ?: 'Mehr erfahren' }}{{ icon('arrow-right') }}</span>{% endif %}
+      </div>
+    </article>
+  {% else %}
+    <div class="feature{{ f.look == 'card' ? ' feature--card' }} reveal">
+      {% if i.media %}{{ img(i.media, '(max-width: 700px) 100vw, 380px', {alt: ''}) }}{% endif %}
+      {% if i.icon %}<span class="card__icon">{{ icon(i.icon) }}</span>{% endif %}
+      <{{ f.level }}{{ bedit('items.' ~ loop.index0 ~ '.title') }}>{{ i.title }}</{{ f.level }}>
+      {% if i.text %}<p>{{ i.text }}</p>{% endif %}
+      {% if i.url %}<a class="link-arrow" href="{{ i.url }}">{{ i.link_label ?: 'Mehr erfahren' }}{{ icon('arrow-right') }}</a>{% endif %}
+    </div>
+  {% endif %}
+{% endfor %}
+</div>

@@ -1,0 +1,8 @@
+<div{{ battr(b, 'section-head' ~ (f.layout == 'split' ? ' section-head--split') ~ (f.layout == 'center' ? ' section-head--center')) }}>
+  {% if f.layout == 'split' %}<div>{% endif %}
+  {% if f.eyebrow %}<span class="eyebrow"{{ bedit('eyebrow') }}>{{ f.eyebrow }}</span>{% endif %}
+  <{{ f.level }}{{ bedit('title') }}>{{ f.title }}</{{ f.level }}>
+  {% if f.text %}<p>{{ f.text }}</p>{% endif %}
+  {% if f.layout == 'split' %}</div>{% endif %}
+  {% if f.link_label and f.link_url %}<a class="link-arrow" href="{{ f.link_url }}">{{ f.link_label }}{{ icon('arrow-right') }}</a>{% endif %}
+</div>

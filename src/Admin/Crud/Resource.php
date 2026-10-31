@@ -29,6 +29,8 @@ abstract class Resource
     public ?string $revisionEntity = null;
     /** Zusätzliches Template oberhalb der Liste */
     public ?string $indexPanel = null;
+    /** Eigene Übersicht statt der Standardliste (z. B. Seitenverwaltung) */
+    public bool $customIndex = false;
 
     public function __construct(protected Database $db) {}
 

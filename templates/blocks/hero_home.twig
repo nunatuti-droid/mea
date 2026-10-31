@@ -1,0 +1,19 @@
+<section{{ battr(b, 'hero', {'aria-labelledby': 'h-' ~ b.id}) }}>
+  <div class="hero__bg">{% if f.media %}{{ img(f.media, '100vw', {loading: 'eager', fetchpriority: 'high', alt: ''}) }}{% endif %}</div>
+  <div class="container hero__inner">
+    <div class="hero__content">
+      {% if f.badge %}<span class="hero__badge"><span class="hero__badge-icon">{{ icon('map-pin') }}</span><span{{ bedit('badge') }}>{{ f.badge }}</span></span>{% endif %}
+      {% set parts = f.title|split(':', 2) %}
+      <h1 id="h-{{ b.id }}">{% if parts|length == 2 %}{{ parts[0] }}:<br><em>{{ parts[1]|trim }}</em>{% else %}{{ f.title }}{% endif %}</h1>
+      {% if f.lead %}<p class="hero__lead">{{ f.lead }}</p>{% endif %}
+      {% if f.btn1_label or f.btn2_label %}
+      <div class="btn-row">
+        {% if f.btn1_label %}<a class="btn" href="{{ f.btn1_url ?: '#' }}">{{ f.btn1_label }}{{ icon('arrow-right') }}</a>{% endif %}
+        {% if f.btn2_label %}<a class="btn btn--ghost-light" href="{{ f.btn2_url ?: '#' }}">{{ icon('calendar') }}{{ f.btn2_label }}</a>{% endif %}
+      </div>
+      {% endif %}
+      {% if f.rating %}{% include 'partials/google_rating.twig' with {variant: 'hero'} %}{% endif %}
+      {% if f.benefits is not empty %}<ul class="hero__benefits">{% for x in f.benefits %}<li><strong>{{ icon(x.icon ?: 'check') }}{{ x.title }}</strong></li>{% endfor %}</ul>{% endif %}
+    </div>
+  </div>
+</section>

@@ -196,6 +196,9 @@ final class DesignSchema
         $g = 'Umrechnungsbereich';
         $add($r, $g, 'viewport_min', 'px', 375, 'Bildschirmbreite Handy', $px('', 320, 640, 1) + ['help' => 'Bis zu dieser Breite gelten die Handy-Werte.']);
         $add($r, $g, 'viewport_max', 'px', 1280, 'Bildschirmbreite Computer', $px('', 960, 1920, 1) + ['help' => 'Ab dieser Breite gelten die Computer-Werte. Dazwischen (Tablet) wird stufenlos umgerechnet.']);
+        $g = 'Umbruchpunkte des Seitenbaukastens';
+        $add($r, $g, 'bp_tablet', 'px', 900, 'Tablet bis', ['var' => null, 'min' => 700, 'max' => 1400, 'step' => 1, 'unit' => 'px', 'help' => 'Bis zu dieser Breite gelten im Seitenbaukasten die Tablet-Einstellungen eines Elements.']);
+        $add($r, $g, 'bp_mobile', 'px', 600, 'Handy bis', ['var' => null, 'min' => 360, 'max' => 900, 'step' => 1, 'unit' => 'px', 'help' => 'Bis zu dieser Breite gelten die Handy-Einstellungen eines Elements.']);
         $g = 'Schriftgrößen auf dem Handy';
         foreach ([['size_display_mobile', 40, 'Große Überschrift im Startbereich', 24, 72], ['size_h1_mobile', 32, 'Überschrift H1', 20, 64], ['size_h2_mobile', 26, 'Überschrift H2', 18, 48],
             ['size_h3_mobile', 20, 'Überschrift H3', 14, 32], ['size_h4_mobile', 18, 'Überschrift H4', 13, 28], ['size_h5_mobile', 16, 'Überschrift H5', 12, 24], ['size_h6_mobile', 15, 'Überschrift H6', 12, 22],

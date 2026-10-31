@@ -1,0 +1,11 @@
+{%- set media -%}<div class="split__media b-ratio--{{ f.ratio }} reveal">{% if f.media %}{{ img(f.media, '(max-width: 900px) 100vw, 560px', f.alt ? {alt: f.alt} : {}) }}{% elseif ctx.editing %}<span class="b-placeholder">Bild wählen</span>{% endif %}</div>{%- endset -%}
+<div{{ battr(b, 'split' ~ (f.valign == 'start' ? ' split--top')) }}>
+  {% if f.side == 'left' %}{{ media }}{% endif %}
+  <div>
+    {% if f.eyebrow %}<span class="eyebrow">{{ f.eyebrow }}</span>{% endif %}
+    {% if f.title %}<{{ f.level }}{{ bedit('title') }}>{{ f.title }}</{{ f.level }}>{% endif %}
+    <div class="prose"{{ bedit('html', 'rich') }}>{{ f.html|raw }}</div>
+    {% if f.btn_label and f.btn_url %}<p class="mt-6"><a class="btn" href="{{ f.btn_url }}">{{ f.btn_label }}{{ icon('arrow-right') }}</a></p>{% endif %}
+  </div>
+  {% if f.side == 'right' %}{{ media }}{% endif %}
+</div>

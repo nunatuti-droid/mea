@@ -15,14 +15,13 @@ final class LocationController
         private View $view,
         private LocationRepository $locations,
         private ContentRepository $content,
+        /** @var \Closure(string, array<string,mixed>, int):?\Mea\Core\Response */
+        private \Closure $page,
     ) {}
 
     public function index(Request $req): Response
     {
-        return Response::html($this->view->render('public/locations.twig', [
-            'page' => $this->content->publishedPage('standorte'),
-            'locations' => $this->locations->active(),
-        ]));
+        return ($this->page)('standorte', ['query' => $req->query], 200) ?? throw HttpException::notFound();
     }
 
     public function show(Request $req, string $slug): Response

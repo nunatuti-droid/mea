@@ -89,6 +89,12 @@ final class ContentRepository
         );
     }
 
+    /** @return list<array<string,mixed>> alle aktiven Fragen, nach Kategorie und Reihenfolge */
+    public function allFaqs(): array
+    {
+        return $this->db->all('SELECT * FROM faqs WHERE is_active = 1 ORDER BY category IS NULL, category, sort_order, id');
+    }
+
     /** @return list<array<string,mixed>> */
     public function reviews(bool $heroOnly = false): array
     {

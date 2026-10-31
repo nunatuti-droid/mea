@@ -10,7 +10,7 @@ namespace Mea\Module\Design;
 final class DesignCss
 {
     /** Bei Änderungen am Aufbau erhöhen, damit vorhandene CSS-Dateien neu erzeugt werden. */
-    public const GENERATOR = 'design-css-1';
+    public const GENERATOR = 'design-css-3';
 
     /** Abstandsskala in px (wird mit --space-scale multipliziert) */
     private const SPACE = [1 => 4, 2 => 8, 3 => 12, 4 => 16, 5 => 24, 6 => 32, 7 => 48, 8 => 64, 9 => 96];
@@ -69,7 +69,23 @@ final class DesignCss
         foreach ($this->tokens($v) as $name => $value) {
             $css .= "  $name: $value;\n";
         }
-        return $css . "}\n";
+        return $css . "}\n" . self::breakpointRules((int) $v['bp_tablet'], (int) $v['bp_mobile']);
+    }
+
+    /** Spalten und Raster des Seitenbaukastens brechen an den Umbruchpunkten aus dem Designsystem um (Media Queries kennen keine Variablen). */
+    public static function breakpointRules(int $tablet, int $mobile): string
+    {
+        return "@media (max-width: {$tablet}px) {\n"
+            . "  .cols.cols--stack-tablet { grid-template-columns: minmax(0, 1fr); }\n"
+            . "  .cols.cols--stack-tablet.cols--reverse > :first-child { order: 2; }\n"
+            . "  .b-grid--3.b-grid--3, .b-grid--4.b-grid--4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }\n"
+            . "}\n"
+            . "@media (max-width: {$mobile}px) {\n"
+            . "  .cols.cols--stack-mobile { grid-template-columns: minmax(0, 1fr); }\n"
+            . "  .cols.cols--stack-mobile.cols--reverse > :first-child { order: 2; }\n"
+            . "  .b-grid--2.b-grid--2, .b-grid--3.b-grid--3, .b-grid--4.b-grid--4 { grid-template-columns: minmax(0, 1fr); }\n"
+            . "  .gallery.b-grid--3.b-grid--3, .gallery.b-grid--4.b-grid--4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }\n"
+            . "}\n";
     }
 
     /**

@@ -1,0 +1,1 @@
+<ul{{ battr(b, 'link-list link-list--' ~ f.look) }}>{% for i in f.items %}<li>{% if f.look == 'chips' %}<a class="chip" href="{{ i.url ?: '#' }}">{{ i.label }}</a>{% else %}<a href="{{ i.url ?: '#' }}">{{ i.label }}{% if f.look == 'arrows' %}{{ icon('arrow-right') }}{% endif %}</a>{% if i.desc %}<span>{{ i.desc }}</span>{% endif %}{% endif %}</li>{% endfor %}</ul>

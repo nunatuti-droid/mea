@@ -21,6 +21,16 @@ final class Database
         $this->pdo->exec("SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci, time_zone = '+00:00'");
     }
 
+    /** Vorhandene Verbindung verwenden (Migrationen). */
+    public static function wrap(PDO $pdo): self
+    {
+        $db = (new \ReflectionClass(self::class))->newInstanceWithoutConstructor();
+        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+        $db->pdo = $pdo;
+        return $db;
+    }
+
     public static function fromConfig(Config $c, ?string $name = null): self
     {
         $dsn = sprintf(

@@ -1,0 +1,1 @@
+<div{{ battr(b, 'gallery b-grid--' ~ f.cols ~ ' b-ratio--' ~ f.ratio) }}>{% for m in f.images %}<figure>{{ img(m, '(max-width: 600px) 100vw, ' ~ (1200 // f.cols) ~ 'px') }}{% if f.captions and media_alt(m) %}<figcaption>{{ media_alt(m) }}</figcaption>{% endif %}</figure>{% else %}{% if ctx.editing %}<span class="b-placeholder">Bilder wählen</span>{% endif %}{% endfor %}</div>

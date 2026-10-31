@@ -1,0 +1,12 @@
+{%- set v = video_embed(f.url) -%}
+<div{{ battr(b, 'video b-ratio--' ~ f.ratio) }}{% if v %} data-video-src="{{ v.src }}" data-video-title="{{ f.title }}"{% endif %}>
+  {% if f.poster %}{{ img(f.poster, '(max-width: 900px) 100vw, 900px', {alt: ''}) }}{% endif %}
+  <div class="video__consent">
+    {% if v %}
+      <button class="video__play" type="button" data-video-load aria-label="Video abspielen: {{ f.title }}">{{ icon('play') }}</button>
+      <p>{{ f.title }}<br><small>Beim Abspielen lädt {{ v.provider }} das Video. Dabei werden Daten an {{ v.provider }} übertragen. <a href="/datenschutz/">Datenschutz</a></small></p>
+    {% else %}
+      <p>{{ ctx.editing ? 'Bitte die Adresse eines YouTube- oder Vimeo-Videos eintragen.' : f.title }}</p>
+    {% endif %}
+  </div>
+</div>

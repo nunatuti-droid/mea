@@ -1,0 +1,3 @@
+{%- set inner = icon(f.icon ?: 'star') -%}
+{%- set cls = 'b-icon b-icon--' ~ f.size ~ (f.look == 'badge' ? ' card__icon') -%}
+{% if f.url %}<a{{ battr(b, cls, {href: f.url, 'aria-label': f.label ?: null}) }}>{{ inner }}</a>{% else %}<span{{ battr(b, cls, f.label ? {role: 'img', 'aria-label': f.label} : {}) }}>{{ inner }}</span>{% endif %}

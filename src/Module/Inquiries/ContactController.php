@@ -20,6 +20,8 @@ final class ContactController
         private LocationRepository $locations,
         private ContentRepository $content,
         private ?\Mea\Module\Mail\Mailer $mailer = null,
+        /** @var (\Closure(string, array<string,mixed>, int):?Response)|null Seite aus dem Seitenbaukasten */
+        private ?\Closure $page = null,
     ) {}
 
     public function show(Request $req): Response
@@ -88,15 +90,11 @@ final class ContactController
     /** @param array<string,mixed> $data */
     private function render(Request $req, array $data, int $status = 200): Response
     {
-        return Response::html($this->view->render('public/contact.twig', $data + [
-            'page' => $this->content->publishedPage('kontakt'),
-            'locations' => $this->locations->active(),
-            'topics' => InquiryService::TOPICS,
-            'csrf' => Csrf::token(),
-            'form_started' => time(),
-            'errors' => [],
-            'form_error' => null,
-            'sent' => false,
-        ]), $status)->withHeader('Cache-Control', 'no-store');
+        $form = $data + ['values' => [], 'errors' => [], 'form_error' => null, 'sent' => false, 'csrf' => Csrf::token(), 'form_started' => time()];
+        $resp = $this->page !== null ? ($this->page)('kontakt', ['query' => $req->query, 'form' => $form], $status) : null;
+        if ($resp === null) {
+            throw \Mea\Core\HttpException::notFound();
+        }
+        return $resp->withHeader('Cache-Control', 'no-store');
     }
 }

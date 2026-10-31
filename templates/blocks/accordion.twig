@@ -1,0 +1,1 @@
+<div{{ battr(b, 'faq') }}>{% for i in f.items %}<details{% if f.open and loop.first %} open{% endif %}><summary>{{ i.title }}{{ icon('chevron-down') }}</summary><div class="faq__answer">{{ i.html|raw }}</div></details>{% endfor %}</div>

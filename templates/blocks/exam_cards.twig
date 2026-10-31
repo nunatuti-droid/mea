@@ -1,0 +1,6 @@
+{% import 'partials/macros.twig' as ui %}
+{% if d.exams is not empty %}
+  <div{{ battr(b, 'grid grid--3') }}>{% for e in d.exams %}{{ ui.exam_card(e) }}{% endfor %}</div>
+{% else %}
+  <div{{ battr(b, 'notice') }}>{{ icon('info') }}<div>{{ f.empty|raw }}</div></div>
+{% endif %}

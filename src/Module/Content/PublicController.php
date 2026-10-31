@@ -7,72 +7,62 @@ use Mea\Core\HttpException;
 use Mea\Core\Request;
 use Mea\Core\Response;
 use Mea\Core\View;
-use Mea\Module\Exams\ExamRepository;
-use Mea\Module\Locations\LocationRepository;
+use Mea\Module\Builder\PageService;
+use Mea\Module\Builder\PageView;
 
+/**
+ * Startseite und freie Seiten. Alle Seiten kommen aus dem Seitenbaukasten (Tabelle pages, Aufbau in blocks_json);
+ * Leistungen haben ihr eigenes Template mit Feldern aus der Verwaltung.
+ */
 final class PublicController
 {
+    /** @param \Closure():PageService $pages @param \Closure():PageView $pageView */
     public function __construct(
         private View $view,
         private ContentRepository $content,
-        private ExamRepository $exams,
-        private LocationRepository $locations,
-        private SettingsRepository $settings,
+        private \Closure $pages,
+        private \Closure $pageView,
     ) {}
 
     public function home(Request $req): Response
     {
-        return Response::html($this->view->render('public/home.twig', [
-            'services' => $this->content->topServices(),
-            'exams' => $this->exams->listed(),
-            'next_sessions' => $this->exams->nextBookableSessions(6),
-            'reviews' => $this->content->reviews(),
-            'rating' => $this->content->ratingSummary(),
-            'faqs' => $this->content->faqsFor('home'),
-            'home' => $this->settings->get('home', []),
-            'seo' => $this->settings->get('seo_home', []),
-        ]));
+        $home = ($this->pages)()->home();
+        if ($home === null) {
+            // Datenbank noch ohne Startseite (z. B. direkt nach den Startdaten): übernehmen und erneut laden
+            (new \Mea\Module\Builder\LegacyImport(($this->pages)()->db()))->run();
+            $home = ($this->pages)()->home() ?? throw HttpException::notFound();
+        }
+        return Response::html(($this->pageView)()->html($home, ['query' => $req->query]));
     }
 
     public function servicesIndex(Request $req): Response
     {
-        $page = $this->content->publishedPage('leistungen');
-        return Response::html($this->view->render('public/services_index.twig', [
-            'page' => $page,
-            'services' => $this->content->topServices(),
-        ]));
+        return ($this->pageView)()->respond('leistungen', ['query' => $req->query]) ?? throw HttpException::notFound();
     }
 
-    /** /{slug}/ – zuerst Leistung, dann freie Seite. */
+    public function faq(Request $req): Response
+    {
+        return ($this->pageView)()->respond('faq', ['query' => $req->query]) ?? throw HttpException::notFound();
+    }
+
+    /** /{slug}/ – zuerst Leistung, dann Seite. */
     public function slug(Request $req, string $slug): Response
     {
         $service = $this->content->publishedService($slug);
         if ($service !== null) {
             return $this->renderService($service, null);
         }
-        $page = $this->content->publishedPage($slug);
-        if ($page !== null && !in_array($slug, ['leistungen', 'faq', 'preise', 'kontakt', 'standorte'], true)) {
-            return Response::html($this->pageHtml($page));
+        $page = ($this->pages)()->published($slug);
+        if ($page === null) {
+            throw HttpException::notFound();
         }
-        throw HttpException::notFound();
+        if ((int) $page['is_home'] === 1) {
+            return Response::redirect('/', 301);
+        }
+        return Response::html(($this->pageView)()->html($page, ['query' => $req->query]));
     }
 
-    /** @param array<string,mixed> $page */
-    public function pageHtml(array $page): string
-    {
-        $tpl = match ($page['template']) {
-            'legal' => 'public/page_legal.twig',
-            'about' => 'public/page_about.twig',
-            default => 'public/page.twig',
-        };
-        return $this->view->render($tpl, [
-            'page' => $page,
-            'reviews' => $page['template'] === 'about' ? $this->content->reviews() : [],
-            'locations' => $page['template'] === 'about' ? $this->locations->active() : [],
-        ]);
-    }
-
-    /** Vorschau für die Verwaltung. @param array<string,mixed> $row */
+    /** Vorschau einer Leistung für die Verwaltung. @param array<string,mixed> $row */
     public function serviceHtml(array $row): string
     {
         $service = $this->content->decodeService($row);
@@ -106,14 +96,6 @@ final class PublicController
                 $this->content->topServices(),
                 fn($s) => (int) $s['id'] !== (int) ($parent['id'] ?? $service['id']),
             )),
-        ]));
-    }
-
-    public function faq(Request $req): Response
-    {
-        return Response::html($this->view->render('public/faq.twig', [
-            'page' => $this->content->publishedPage('faq'),
-            'faqs' => $this->content->faqsFor('faq_page'),
         ]));
     }
 }

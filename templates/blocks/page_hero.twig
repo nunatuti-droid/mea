@@ -1,0 +1,20 @@
+{% import 'partials/macros.twig' as ui %}
+{%- set title = f.title ?: (ctx.page.title ?? '') -%}
+{%- set crumbs = f.parent_label ? [{label: f.parent_label, url: f.parent_url ?: null}, {label: f.crumb ?: title}] : [{label: f.crumb ?: title}] -%}
+<section{{ battr(b, 'page-hero') }}>
+  <div class="container page-hero__grid{{ f.media ? '' : ' page-hero__grid--single' }}">
+    <div>
+      {% if f.crumbs %}{{ ui.breadcrumbs(crumbs) }}{% endif %}
+      {% if f.eyebrow %}<span class="eyebrow"{{ bedit('eyebrow') }}>{{ f.eyebrow }}</span>{% endif %}
+      <h1{{ bedit('title') }}>{{ title }}</h1>
+      {% if f.intro %}<p class="lead">{{ f.intro }}</p>{% endif %}
+      {% if f.btn1_label and f.btn1_url %}
+        <div class="btn-row">
+          <a class="btn" href="{{ f.btn1_url }}">{{ f.btn1_label }}{{ icon('arrow-right') }}</a>
+          {% if f.btn2_label and f.btn2_url %}<a class="btn btn--secondary" href="{{ f.btn2_url }}">{{ f.btn2_label }}</a>{% endif %}
+        </div>
+      {% endif %}
+    </div>
+    {% if f.media %}<div class="page-hero__media">{{ img(f.media, '(max-width: 860px) 100vw, 520px', {loading: 'eager', fetchpriority: 'high'}) }}</div>{% endif %}
+  </div>
+</section>

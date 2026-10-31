@@ -1,0 +1,31 @@
+{% extends 'layout/base.twig' %}
+{% import 'partials/macros.twig' as ui %}
+{# Jede Seite des Seitenbaukastens. Inhalt (content_html) kommt aus templates/blocks/*.twig über Mea\Module\Builder\PageRenderer. #}
+{% set seo_title = page.seo_title ?: (is_home ? site.company.name : page.title ~ ' – ' ~ site.company.name) %}
+{% set seo_description = page.seo_description ?: page.intro %}
+{% set robots_noindex = meta.noindex ?? false %}
+{% set og_image = meta.og ? media_url(meta.og, 1440) : null %}
+
+{% block head %}
+  {% if meta.preload %}<link rel="preload" as="image" href="{{ media_url(meta.preload, 960) }}" imagesrcset="{{ media_url(meta.preload, 960) }} 960w, {{ media_url(meta.preload, 1440) }} 1440w" imagesizes="100vw" fetchpriority="high">{% endif %}
+  {% if page_css %}<link rel="stylesheet" href="{{ page_css }}">{% endif %}
+  {% if editing %}<link rel="stylesheet" href="{{ asset('css/builder-canvas.css') }}">{% endif %}
+{% endblock %}
+
+{% block content %}{{ content_html|raw }}{% endblock %}
+
+{% block schema %}
+  {% if is_home %}
+    {% set orgs = [] %}
+    {% for l in all_locations %}
+      {% set orgs = orgs|merge([{'@type': 'EducationalOrganization', name: site.company.name ~ ' – ' ~ l.short_name, telephone: l.phone, address: {'@type': 'PostalAddress', streetAddress: l.street, postalCode: l.postal_code, addressLocality: l.city, addressCountry: 'DE'}}]) %}
+    {% endfor %}
+    <script type="application/ld+json">{{ {'@context': 'https://schema.org', '@type': 'EducationalOrganization', name: site.company.legal_name, url: base_url ~ '/', logo: abs_url(media_url(site.company.logo_media_id, 480)), telephone: site.company.phone, sameAs: [site.company.facebook, site.company.instagram]|filter(v => v), department: orgs}|json_ld }}</script>
+  {% endif %}
+  {% if meta.exam_list is not empty %}
+    {% set list = [] %}
+    {% for e in meta.exam_list %}{% set list = list|merge([{'@type': 'ListItem', position: loop.index, url: base_url ~ '/pruefungen/' ~ e.slug ~ '/', name: e.public_name}]) %}{% endfor %}
+    <script type="application/ld+json">{{ {'@context': 'https://schema.org', '@type': 'ItemList', itemListElement: list}|json_ld }}</script>
+  {% endif %}
+  {{ ui.faq_schema(meta.faqs) }}
+{% endblock %}

@@ -37,6 +37,8 @@ final class ContentSeeder
             $this->menus();
             $this->redirects();
             (new EmailTemplateSeeder($this->db))->run();
+            // Seiten und Startseite in den Seitenbaukasten übernehmen
+            (new \Mea\Module\Builder\LegacyImport($this->db))->run();
         });
     }
 
