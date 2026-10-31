@@ -182,14 +182,22 @@ a:hover { color: var(--color-link-hover); }
 body.nav-open { overflow: hidden; }
 
 /* ---------- Startbereich ---------- */
-/* Foto über die ganze Breite, dunkler Verlauf von links für lesbaren Text */
-.hero { position: relative; background: var(--color-secondary); color: var(--color-on-dark-muted); overflow: hidden; isolation: isolate; }
+/* Foto über die ganze Breite. Der Verlauf ist nur hinter der Textspalte dunkel:
+   Ganz links (vor dem Inhaltsrand) und rechts bleibt das Foto sichtbar. --hero-x = linke Kante der Textspalte. */
+.hero { --hero-x: max(var(--page-gutter), 50% - var(--content-max-width) / 2); position: relative; background: var(--color-secondary); color: var(--color-on-dark-muted); overflow: hidden; isolation: isolate; }
 .hero__bg { position: absolute; inset: 0; z-index: -2; }
-.hero__bg img { width: 100%; height: 100%; object-fit: cover; object-position: 70% 30%; }
+.hero__bg img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 38%; }
 .hero::before {
   content: ""; position: absolute; inset: 0; z-index: -1;
   background:
-    linear-gradient(90deg, color-mix(in srgb, var(--color-secondary) 96%, transparent) 0%, color-mix(in srgb, var(--color-secondary) 90%, transparent) 30%, color-mix(in srgb, var(--color-secondary) 62%, transparent) 52%, color-mix(in srgb, var(--color-secondary) 18%, transparent) 78%, color-mix(in srgb, var(--color-secondary) 5%, transparent) 100%),
+    linear-gradient(90deg,
+      color-mix(in srgb, var(--color-secondary) 38%, transparent) 0%,
+      color-mix(in srgb, var(--color-secondary) 62%, transparent) max(0px, calc(var(--hero-x) - 120px)),
+      color-mix(in srgb, var(--color-secondary) 86%, transparent) calc(var(--hero-x) + 40px),
+      color-mix(in srgb, var(--color-secondary) 84%, transparent) calc(var(--hero-x) + 500px),
+      color-mix(in srgb, var(--color-secondary) 48%, transparent) calc(var(--hero-x) + 760px),
+      color-mix(in srgb, var(--color-secondary) 12%, transparent) calc(var(--hero-x) + 1000px),
+      color-mix(in srgb, var(--color-secondary) 5%, transparent) 100%),
     linear-gradient(0deg, color-mix(in srgb, var(--color-secondary) 55%, transparent) 0%, transparent 35%);
 }
 .hero__inner { position: relative; min-height: clamp(560px, 78vh, 760px); display: flex; align-items: center; padding-block: clamp(48px, 3rem + 2vw, 88px); }
@@ -205,10 +213,11 @@ body.nav-open { overflow: hidden; }
 .hero h1 { color: var(--color-on-dark); font-size: var(--font-size-display); line-height: var(--line-height-display); letter-spacing: var(--letter-spacing-display); font-weight: var(--font-weight-display); margin-bottom: var(--space-5); }
 .hero h1 em { font-style: normal; color: var(--color-on-dark-accent); }
 .hero__lead { font-size: var(--font-size-lead); max-width: 560px; color: color-mix(in srgb, var(--color-on-dark) 55%, var(--color-on-dark-muted)); margin-bottom: var(--space-6); }
-.hero__benefits { list-style: none; padding: var(--space-5) 0 0; margin: var(--space-6) 0 0; border-top: var(--border-width) solid color-mix(in srgb, var(--color-on-dark) 20%, transparent); display: grid; gap: var(--space-4); grid-template-columns: repeat(3, 1fr); }
-.hero__benefits li { display: grid; align-content: start; gap: 4px; font-size: var(--font-size-small); line-height: var(--line-height-compact); color: var(--color-on-dark-muted); }
-.hero__benefits strong { color: var(--color-on-dark); font-weight: var(--font-weight-ui); display: flex; gap: 8px; align-items: flex-start; }
-.hero__benefits .icon { color: var(--color-on-dark-accent); margin-top: 1px; }
+/* Drei Vorteile in einer Zeile, kleine Schrift */
+.hero__benefits { list-style: none; padding: var(--space-4) 0 0; margin: var(--space-6) 0 0; border-top: var(--border-width) solid color-mix(in srgb, var(--color-on-dark) 20%, transparent); display: flex; flex-wrap: wrap; gap: 8px 24px; }
+.hero__benefits li { font-size: calc(var(--font-size-small) * .867); line-height: 1.3; color: var(--color-on-dark-muted); white-space: nowrap; }
+.hero__benefits strong { color: var(--color-on-dark); font-weight: var(--font-weight-ui); display: inline-flex; gap: 6px; align-items: center; }
+.hero__benefits .icon { color: var(--color-on-dark-accent); width: 16px; height: 16px; flex: none; }
 .stars { display: inline-flex; gap: 2px; color: var(--color-accent); }
 .stars .icon { width: 16px; height: 16px; fill: currentColor; }
 .stars .is-empty { fill: none; }
@@ -216,10 +225,11 @@ body.nav-open { overflow: hidden; }
 @media (max-width: 960px) {
   /* Handy: Foto als Band oben, das nach unten in die Sekundärfarbe übergeht */
   .hero__bg { bottom: auto; height: clamp(260px, 62vw, 420px); }
-  .hero__bg img { object-position: 78% 30%; }
+  .hero__bg img { object-position: 45% 35%; }
   .hero::before { background: linear-gradient(180deg, color-mix(in srgb, var(--color-secondary) 15%, transparent) 0, color-mix(in srgb, var(--color-secondary) 35%, transparent) clamp(110px, 30vw, 220px), var(--color-secondary) clamp(260px, 62vw, 420px)); }
   .hero__inner { min-height: 0; display: block; padding-top: clamp(170px, 46vw, 320px); }
-  .hero__benefits { grid-template-columns: 1fr; }
+  .hero__benefits { flex-direction: column; gap: 10px; }
+  .hero__benefits li { white-space: normal; font-size: var(--font-size-small); }
 }
 @media (prefers-reduced-transparency: reduce) { .hero__badge, .g-hero { backdrop-filter: none; -webkit-backdrop-filter: none; } }
 

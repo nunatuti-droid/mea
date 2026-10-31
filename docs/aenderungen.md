@@ -321,6 +321,18 @@ Das Aussehen der ganzen Website lässt sich jetzt in der Verwaltung einstellen: 
 
 **Nach dem Einspielen:** nichts weiter nötig. Das Update führt die Datenbankschritte selbst aus; die CSS-Datei entsteht beim ersten Seitenaufruf.
 
+# Update 0.9.1 – Neues Startbild (31.10.2026)
+
+**Was neu ist**
+- Neues Foto „Gemeinsames Lernen“ im Startbereich (`migrations/media/hero-gemeinsames-lernen.jpg`, 1672 × 941, daraus WebP/JPEG in 480, 960, 1440 und 1672 px).
+- Übernahme beim ersten Aufruf nach dem Update über `ContentPatches` (einmalig, gemerkt in der Einstellung `content_patches`). Ist das Bild schon in den Medien (gleiche Prüfsumme), wird es nicht doppelt angelegt.
+- Verlauf: dunkel nur hinter der Textspalte, die Position richtet sich nach dem Inhaltsrand. Links davon und rechts bleibt das Foto sichtbar.
+- Drei Vorteile: 13 px Schrift, eine Zeile ab Tablet-Breite, auf dem Handy untereinander.
+
+**Dateien:** `public/assets/css/app.css`, `src/Module/Builder/ContentPatches.php` (neu), `src/Core/App.php`, `migrations/media/hero-gemeinsames-lernen.jpg` (neu), `tests/Integration/PageBuilderTest.php`.
+
+**Hinweis:** Wer das Startbild danach im Seitenbaukasten ändert, behält seine Wahl. Der Schritt läuft nur einmal.
+
 # Update 0.9.0 – Seitenbaukasten
 
 Ausführlich mit Ursache, Bestandsaufnahme, Tests und Einschränkungen: `docs/pagebuilder.md`.

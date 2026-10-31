@@ -320,4 +320,24 @@ final class PageBuilderTest extends IntegrationTestCase
         self::assertSame(0, (int) self::db()->value('SELECT COUNT(*) FROM pages WHERE blocks_json IS NULL'));
         self::assertSame([], \Mea\Module\Builder\LegacyImport::ensure(self::db()), 'zweiter Aufruf tut nichts');
     }
+
+    public function testContentPatchSetsNewHeroImageOnce(): void
+    {
+        $root = sys_get_temp_dir() . '/mea-patch-' . getmypid();
+        @mkdir($root . '/migrations/media', 0775, true);
+        copy(self::root() . '/migrations/media/hero-gemeinsames-lernen.jpg', $root . '/migrations/media/hero-gemeinsames-lernen.jpg');
+        $patches = new \Mea\Module\Builder\ContentPatches(self::db(), new \Mea\Module\Content\SettingsRepository(self::db()), $root);
+
+        self::assertCount(1, $patches->apply());
+        $media = (int) self::db()->value("SELECT id FROM media WHERE original_name = 'hero-gemeinsames-lernen.jpg'");
+        self::assertGreaterThan(0, $media);
+        self::assertNotEmpty(self::db()->value('SELECT alt_text FROM media WHERE id = ?', [$media]));
+        foreach ([false, true] as $draft) {
+            $hero = array_values(array_filter(PageService::tree(self::db()->one('SELECT * FROM pages WHERE is_home = 1'), $draft), fn($n) => $n['type'] === 'hero_home'));
+            self::assertSame($media, (int) $hero[0]['f']['media']);
+        }
+        self::assertSame([], $patches->apply(), 'läuft nur einmal');
+        self::assertSame(1, (int) self::db()->value("SELECT COUNT(*) FROM media WHERE original_name = 'hero-gemeinsames-lernen.jpg'"));
+        self::assertStringContainsString('-hero-gemeinsames-lernen-', $this->get('/')->body);
+    }
 }

@@ -187,6 +187,13 @@ final class App
             $this->pageService = new \Mea\Module\Builder\PageService($this->db, fn() => $this->treeValidator(), $this->pageRenderer(), $this->designDir(), $this->log);
             // Nach einem Update: bisherige Seiten einmalig in den Seitenbaukasten übernehmen (schnelle Prüfung, danach nichts mehr zu tun)
             \Mea\Module\Builder\LegacyImport::ensure($this->db);
+            if ($this->config->get('APP_ENV') !== 'testing') {
+                try {
+                    (new \Mea\Module\Builder\ContentPatches($this->db, $this->settings, $this->root))->apply();
+                } catch (\Throwable $e) {
+                    $this->log->error('Inhaltsänderung des Updates fehlgeschlagen', ['error' => $e->getMessage()]);
+                }
+            }
         }
         return $this->pageService;
     }
