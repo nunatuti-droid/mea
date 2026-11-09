@@ -1,6 +1,6 @@
 # PROJECT_STATUS.md – MEA Webauftritt und Verwaltung
 
-Stand: 09.11.2026. Erstellt aus: Projekt-Threads, GitHub-Repo `nunatuti-droid/mea` (PRs, Branches), Projektordner `/mnt/project-files/` (insb. `installation/`, `seitenbaukasten/`).
+Stand: 09.11.2026 (aktualisiert nach Merge von PR #7). Erstellt aus: Projekt-Threads, GitHub-Repo `nunatuti-droid/mea` (PRs, Branches), Projektordner `/mnt/project-files/` (insb. `installation/`, `seitenbaukasten/`).
 Kennzeichnung: **belegt** = in Dokumenten, Threads, Paketen oder GitHub nachgewiesen. **nicht belegt** = konnte nicht überprüft werden.
 Nicht gelesen: `release-key/` (Geheimnis, bewusst ausgelassen).
 
@@ -9,8 +9,11 @@ Nicht gelesen: `release-key/` (Geheimnis, bewusst ausgelassen).
 ## 1. Kurzüberblick
 
 - Neue, CMS-freie Website für das MEA Bildungszentrum (telc-Prüfungszentrum Herne, Standort Marl, Sprachkurse, AVGS u. a.) mit eigener Verwaltung unter `/verwaltung/`.
-- **Höchste Paketversion im Projektordner: 0.9.4** (31.10.2026). Letzte *bestätigte* Installation auf dem Testserver: **0.7.1** (Thread „Prüfschlüssel und Update-Paket erzeugen"). Welche Version aktuell auf dem Server läuft: **nicht belegt**.
-- Der Programmcode liegt **nicht im Branch `main`** (dort nur der Startcommit „Repository anlegen", Datei `.gitignore`). Er steckt in den offenen PRs/Branches (siehe Abschnitt 8) und in den Update-ZIPs.
+- **Code-Stand auf `main`: entspricht Paket 0.9.4** (Quellcode von `src`, `templates`, `migrations`, `public/assets`, `bin` mit `update-0.9.4.zip` verglichen: identisch) **plus ein Fix** (Probe-Button der E-Mail-Vorlage, Commit `3c2f7b6`). Merge von PR #7 am 09.11.2026, Merge-Commit `8ba5532cfb3ea537d26ef72fe673c08a6e7b0a3f` (Eltern `1113748` und `3c2f7b6`).
+- **Die Datei `VERSION` im Repo steht noch auf 0.6.0.** Sie wird beim Paketbau (`release:build`) überschrieben; Anpassung auf 0.9.4 ist geplant, aber noch nicht freigegeben.
+- **Serverstand (nicht belegt):** Letzte *bestätigte* Installation auf dem Testserver `mea3.ghazi-online.de` ist **0.7.1** (30.10.2026, per Plesk-Aufgabe, Selbsttest bestanden). Ob 0.7.2 bis 0.9.4 eingespielt wurden, ist **nicht belegt**. Es wurde in dieser Phase kein Server verändert und nichts deployt.
+
+---
 
 ## 2. Architektur (belegt)
 
@@ -24,7 +27,7 @@ Nicht gelesen: `release-key/` (Geheimnis, bewusst ausgelassen).
 | Sicherheit | Argon2id, Pflicht-2FA (TOTP), CSRF, CSP ohne Inline-Skripte, Firewall mit Punktekonto/IP-Sperren, Dateiwächter (SHA-256, Ed25519-signiert), signierte Update-Pakete (`RELEASE_PUBLIC_KEY` in `.env`) |
 | Seitenaufbau | Seitenbaukasten (ab 0.9.0): gemeinsamer `PageRenderer`, Templates `templates/blocks/*`, Seiten-CSS als Datei `public/media/design/seite-<id>-<hash>.css` |
 | Designsystem | zentrale CSS-Variablen aus der Datenbank (ab 0.8.0) |
-| Tests | zuletzt 178 automatische Tests (PHPUnit) grün, axe-core (WCAG 2.2 AA) ohne Befund (Angabe in Paketanleitungen 0.9.1–0.9.4) |
+| Tests | 178 PHPUnit-Tests (2.396 Assertions) grün, in dieser Phase selbst ausgeführt (Details Abschnitt 8a). Keine CI im Repo (`.github/` fehlt). |
 
 Architekturentscheidungen sind in `docs/adr/README.md` (ADR-10/11/15/16/17 u. a.) und `docs/anforderungen.md` der Phasen-Branches dokumentiert (laut PR-Texten; Dateien selbst in dieser Sitzung nicht geöffnet).
 
@@ -100,12 +103,19 @@ Hinweis: Ein eigener Thread zum Designsystem ist in der Threadliste **nicht** au
 
 Dateien aus 0.7.x–0.9.4, die nur in den ZIPs/Commits stehen (Update-Seite, Designsystem-Modul, Sicherung): vollständige Dateiliste **nicht einzeln geprüft**.
 
-## 8. Repository-Stand (GitHub, belegt)
+## 8. Repository-Stand (GitHub, belegt, Stand 09.11.2026)
 
-- `main`: nur Startcommit (`.gitignore`). **Kein Code auf `main`.**
-- Offene PRs (alle ungemerged): #1 `phase-3-frontend` → main; #2 `phase-4-backend` → phase-3; #3 `phase-5-operations` → phase-4; #4 `phase-6-golive` → phase-5; #5 `claude/project-thread-hwfwvc` → phase-6-golive (Update-Ablauf-Korrekturen).
-- Weitere Branches: `claude/project-thread-odq5v7` (Update in Verwaltung 0.7.5, Kontrast 0.7.6), `claude/project-thread-y7mqrh` (ZIP-Sicherung, Vollsicherung, Partnerlogos 0.9.2–0.9.4). **Ob diese Branches PRs haben oder Seitenbaukasten/Designsystem (0.8.0/0.9.0) enthalten, ist nicht belegt.**
-- Pakete 0.7.x–0.9.4 liegen nur im Projektordner `installation/`, nicht im Repo.
+- **`main` = `8ba5532`.** Enthält die gesamte Entwicklungskette (47 Commits plus Merge-Commit): `phase-3-frontend` → `phase-4-backend` → `phase-5-operations` → `phase-6-golive` → `claude/project-thread-hwfwvc` → `…-odq5v7` → `…-y7mqrh` → Fix `3c2f7b6`. Die Original-SHAs sind erhalten (Merge-Commit, kein Squash/Rebase).
+- **PRs:** #1 gemergt (automatisch erkannt); #7 gemergt (Konsolidierung); #2 bis #5 geschlossen mit Hinweis „vollständig in `main` enthalten" (09.11.2026); #6 betrifft diese Datei.
+- **Branches** (alle noch vorhanden, keiner gelöscht; alle Heads sind Vorfahren von `main`, außer dem Branch dieser Datei): `phase-3-frontend`, `phase-4-backend`, `phase-5-operations`, `phase-6-golive`, `claude/project-thread-hwfwvc`, `claude/project-thread-odq5v7`, `claude/project-thread-y7mqrh`, `fix/email-test-button-wrap`, `claude/project-thread-4ohyn8` (PR #6). Löschung erst nach Freigabe und Wartefrist.
+- Update-Pakete 0.7.0 bis 0.9.4 liegen nur im Projektordner `installation/`, nicht im Repo.
+
+### 8a. Behobene Fehler und Prüfergebnisse dieser Phase (belegt, selbst ausgeführt)
+- **Behoben:** `/verwaltung/email-vorlagen/4/` scrollte bei 375 px horizontal (14 px), weil der Button „Probe an <E-Mail> senden" nicht umbrechen durfte. Neue Klasse `.btn--wrap` in `public/assets/css/admin.css`, angewandt in `templates/admin/emails/template_test.twig` (Commit `3c2f7b6`).
+- **Behoben (laut Tests am Branch-Ende):** Der frühere Testfehler „12 statt 13 E-Mail-Vorlagen" ist am Tip behoben (der Test erwartet 13); Zeitpunkt der Korrektur nicht geprüft.
+- **Behoben (PR #5, jetzt in `main`):** Selbsttest im Wartungsmodus, kein Hängen des Selbsttest-Prozesses, keine Abbrüche durch Zeitgrenze beim Update.
+- **Geprüft** (isolierte lokale Test-Datenbank): PHPUnit 178 Tests grün; Migration auf leerer DB (23 Schritte) und Upgrade von `phase-6-golive` (3 Schritte) ok; `selftest` bestanden; Dateiwächter ok und erkennt eingeschleuste Datei; E2E-Smoketest + axe (WCAG 2.2 AA, 13 Seiten, 1366/375 px) grün; Admin-E2E grün nach dem Fix.
+- **Secret-Scan:** lokale Mustersuche über die Historie ohne Funde. Das GitHub-Tool `run_secret_scanning` ist nicht nutzbar (Advanced Security nicht aktiv).
 
 ## 9. Offene Aufgaben und bekannte Probleme
 
@@ -114,7 +124,7 @@ Dateien aus 0.7.x–0.9.4, die nur in den ZIPs/Commits stehen (Update-Seite, Des
 3. **Google-Profil-Link und echte Bewertungswerte** eintragen (siehe 6).
 4. **Cron-Job** (`php bin/console cron`, jede Minute) in Plesk anlegen, falls nicht geschehen; ohne ihn keine E-Mails/Löschfristen.
 5. **PHP-Grenzen in Plesk** für Bewerbungs-PDFs: `upload_max_filesize` ≥ 8M, `post_max_size` ≥ 20M.
-6. **PR #5 und die Phasen-PRs #1–#4 mergen**; `main` ist leer. Bekannter Testfehler laut PR #5: `testEmailTemplatesAreSeededAndRender` erwartet 12 Vorlagen, es sind 13 (schlägt unabhängig von PR #5 fehl; später ggf. behoben, **nicht belegt**).
+6. **`VERSION` im Repo auf 0.9.4 setzen** (eigener Commit; wartet auf Freigabe). **Keine CI** im Repo: Tests laufen nur lokal. Alte Hilfsbranches nach Wartefrist aufräumen.
 7. **Zugänge/Unterlagen von MEA** (laut PR #1/#4): PayPal- und SMTP-Zugang, Netcup-Zugang, 3 PDFs der alten Download-Seite, Preise und Termine, Rechtstexte, dritter Standort/Öffnungszeiten, USt-IdNr., Partnerlogo-Erlaubnis. Aktueller Erledigungsstand: **nicht belegt**.
 8. **Einschränkungen Seitenbaukasten**: Datensatzseiten (Leistung/Prüfung/Standort), Buchungsstrecke, Bewerbungsformular, 404-Seite nicht im Baukasten; nicht geprüft: Screenreader durch Person, Safari/Firefox; Editor am besten ab ca. 1200 px.
 9. **Weiter offene Wunschpunkte**: „Alle Texte aller Seiten im Backend bearbeitbar" (Punkt 9 der zweiten Runde) war „wartet auf Wahl"; Teil davon durch Seitenbaukasten/`TemplateTexts` adressiert, Vollständigkeit **nicht belegt**.
@@ -124,12 +134,13 @@ Dateien aus 0.7.x–0.9.4, die nur in den ZIPs/Commits stehen (Update-Seite, Des
 
 ## 10. Nächste Entwicklungsschritte (Vorschlag aus belegten offenen Punkten)
 
-1. Stand auf dem Server klären (installierte Version, Cron, PHP-Limits) und ggf. 0.9.4 einspielen.
-2. Branches/PRs konsolidieren: Code der 0.7.5–0.9.4-Stände in einen mergebaren Hauptzweig bringen, `main` aktualisieren.
-3. Google-Profil-Daten eintragen; Datenschutz/AGB juristisch prüfen lassen; Lizenzfrage C1 Hochschule klären.
-4. Go-live-Check (`php bin/console golive:check`), danach Indexierung einschalten.
-5. Restpunkte Seitenbaukasten (Datensatzseiten, feste Beschriftungen) bei Bedarf.
+1. `VERSION` auf 0.9.4 setzen (nach Freigabe, eigener Commit).
+2. Serverstand klären (installierte Version auf `mea3.ghazi-online.de`, Cron, PHP-Limits) und erst danach ein Update einspielen; Server-Updates sind getrennt vom Repo-Merge.
+3. CI einrichten (PHPUnit, E2E), damit Tests nicht nur lokal laufen.
+4. Google-Profil-Daten eintragen; Datenschutz/AGB juristisch prüfen lassen; Lizenzfrage C1 Hochschule klären.
+5. Go-live-Check (`php bin/console golive:check`), danach Indexierung einschalten.
+6. Restpunkte Seitenbaukasten (Datensatzseiten, feste Beschriftungen) bei Bedarf.
 
 ## 11. Pflege dieses Dokuments
 
-Nach größeren Aufgaben aktualisieren (Version, Pakete, offene Punkte). Speicherorte: Projektordner `/mnt/project-files/PROJECT_STATUS.md` und Repo-Root `PROJECT_STATUS.md` (Branch `claude/project-thread-4ohyn8`, per PR).
+Nach größeren Aufgaben aktualisieren (Version, Pakete, offene Punkte). Speicherorte: Projektordner `/mnt/project-files/PROJECT_STATUS.md` und Repo-Root `PROJECT_STATUS.md` (nach Merge von PR #6 auf `main`).
