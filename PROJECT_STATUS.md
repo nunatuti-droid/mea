@@ -7,7 +7,7 @@ Neuer Chat: zuerst diese Datei lesen, dann `git log` und `git status` prüfen, d
 ## 1. Git-Stand (Stand 09.11.2026)
 - Branch `main`, Commit `70d5001` (Merge PR #6). Davor `8ba5532` (Merge PR #7 = gesamte Entwicklung + Fix `3c2f7b6`).
 - Der Anwendungscode auf `main` ist identisch mit `3c2f7b6` (Unterschied zu `main` nur diese Datei).
-- `VERSION` im Repo: **0.6.0**. Der Code entspricht dem Update-Paket **0.9.4** (`src`, `templates`, `migrations`, `public/assets`, `bin` verglichen). `VERSION` wird beim Paketbau (`release:build`) überschrieben; Anpassung auf 0.9.4 ist offen.
+- `VERSION` im Repo: **0.9.4** (entspricht dem Update-Paket 0.9.4; `src`, `templates`, `migrations`, `public/assets`, `bin` verglichen). Der Paketbau (`release:build`) schreibt `VERSION` weiterhin selbst.
 - PRs: #1, #6, #7 gemergt; #2 bis #5 geschlossen (in `main` enthalten). Es gibt keine offenen PRs.
 - Alte Branches bestehen noch (`phase-3` bis `phase-6`, `claude/project-thread-*`, `fix/email-test-button-wrap`); alle sind in `main` enthalten und können nach einer Wartefrist gelöscht werden.
 - Keine CI (`.github/` fehlt). Update-Pakete 0.7.0 bis 0.9.4 liegen im Projektordner `installation/`, nicht im Repo.
@@ -34,7 +34,6 @@ Nach Version-Updates: `php bin/console migrate` (23 Migrationen), danach `selfte
 - Auf `main` (`70d5001`) nicht erneut ausgeführt; der Code ist unverändert.
 
 ## 5. Bekannte Fehler und offene Punkte
-- `VERSION` steht auf 0.6.0 (siehe oben).
 - Keine CI; Tests laufen nur lokal.
 - **Serverstand nicht belegt:** bestätigt installiert ist nur 0.7.1 auf `mea3.ghazi-online.de` (30.10.2026). Ob 0.7.2 bis 0.9.4 eingespielt sind, ist unbekannt.
 - Datenschutzerklärung (Entwurf) und AGB (Platzhalter) fachlich prüfen lassen; Lizenz „telc Deutsch C1 Hochschule“ klären.
@@ -45,4 +44,4 @@ Nach Version-Updates: `php bin/console migrate` (23 Migrationen), danach `selfte
 - Behoben zuletzt: Überlauf auf `/verwaltung/email-vorlagen/4/` bei 375 px (Commit `3c2f7b6`).
 
 ## 6. Nächster sinnvoller Schritt
-`VERSION` auf 0.9.4 setzen (ein kleiner eigener Commit), danach Serverstand klären und erst dann ein Update einspielen.
+Serverstand klären (installierte Version, Cron, PHP-Limits) und erst dann ein Update einspielen. Hinweis: Das Paket 0.9.4 würde von einer 0.9.4-Installation als „nicht neuer“ abgelehnt.
