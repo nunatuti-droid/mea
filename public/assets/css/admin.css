@@ -85,6 +85,7 @@ p { margin: 0 0 .75em; }
 .btn--danger { --bg: var(--c-danger); --fg: #fff; --bd: var(--c-danger); }
 .btn--ghost { --bg: transparent; }
 .btn--sm { min-height: 34px; padding: 5px 12px; font-size: .875rem; }
+.btn--wrap { white-space: normal; max-width: 100%; text-align: left; overflow-wrap: anywhere; }
 .btn[disabled], .btn[aria-disabled="true"] { opacity: .5; cursor: not-allowed; }
 .link-quiet { color: var(--c-muted); font-size: .9rem; }
 .card { background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--r-lg); padding: 22px 24px; margin: 0 0 20px; box-shadow: var(--shadow); min-width: 0; }
