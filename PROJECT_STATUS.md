@@ -5,12 +5,12 @@ Neuer Chat: zuerst diese Datei lesen, dann `git log` und `git status` prüfen, d
 `belegt` = im Repo oder in Tests nachgewiesen. `nicht belegt` = nicht überprüfbar.
 
 ## 1. Git-Stand (Stand 09.11.2026)
-- Branch `main`, Stand vor PR #10: `58ae52f` (Merge PR #9). Gesamte Entwicklung + Fix `3c2f7b6` kamen mit PR #7 (`8ba5532`).
+- Branch `main`, Stand nach PR #10: `b9edb08`. Gesamte Entwicklung + Fix `3c2f7b6` kamen mit PR #7 (`8ba5532`).
 - Der Anwendungscode auf `main` ist identisch mit `3c2f7b6` (Unterschied zu `main` nur diese Datei).
-- `VERSION` im Repo: **0.9.5** (Vorbereitung des Releases 0.9.5; Anwendungscode unverändert gegenüber 0.9.4, enthält aber den E-Mail-Probe-Button-Fix, den das Paket 0.9.4 nicht enthält). Release-Build und Tag stehen noch aus. Der Paketbau (`release:build`) schreibt `VERSION` weiterhin selbst.
+- `VERSION` im Repo: **0.9.5** (Vorbereitung des Releases 0.9.5; Anwendungscode unverändert gegenüber 0.9.4, enthält aber den E-Mail-Probe-Button-Fix, den das Paket 0.9.4 nicht enthält). Paket gebaut und auf mea3 eingespielt; Tag steht aus. Der Paketbau (`release:build`) schreibt `VERSION` weiterhin selbst.
 - PRs: #1, #6, #7 gemergt; #2 bis #5 geschlossen (in `main` enthalten). Es gibt keine offenen PRs.
 - Alte Branches bestehen noch (`phase-3` bis `phase-6`, `claude/project-thread-*`, `fix/email-test-button-wrap`); alle sind in `main` enthalten und können nach einer Wartefrist gelöscht werden.
-- Keine CI (`.github/` fehlt). Update-Pakete 0.7.0 bis 0.9.4 (0.9.5 noch nicht gebaut) liegen im Projektordner `installation/`, nicht im Repo.
+- Keine CI (`.github/` fehlt). Update-Pakete 0.7.0 bis 0.9.5 liegen im Projektordner `installation/`, nicht im Repo.
 
 ## 2. Entwicklungsstand (belegt)
 Neue CMS-freie Website für das MEA Bildungszentrum (PHP 8.3, MySQL/MariaDB, Twig) mit Verwaltung unter `/verwaltung/`.
@@ -35,7 +35,7 @@ Nach Version-Updates: `php bin/console migrate` (23 Migrationen), danach `selfte
 
 ## 5. Bekannte Fehler und offene Punkte
 - Keine CI; Tests laufen nur lokal.
-- **Serverstand nicht belegt:** bestätigt installiert ist nur 0.7.1 auf `mea3.ghazi-online.de` (30.10.2026). Ob 0.7.2 bis 0.9.4 eingespielt sind, ist unbekannt.
+- **Serverstand:** auf `mea3.ghazi-online.de` ist **0.9.5** installiert (09.11.2026 20:00, laut Verwaltung → Updates; Prüfschlüssel `872c342c…` passt zum Paket). Dateiwächter danach: ok, 0 Abweichungen. Letzte Vollsicherung vorher: 09.11.2026 19:53. Nächtliche Sicherung lief noch nie (Cron fehlt). Suchmaschinen-Indexierung ist gewollt gesperrt (Entwicklungsphase).
 - Datenschutzerklärung (Entwurf) und AGB (Platzhalter) fachlich prüfen lassen; Lizenz „telc Deutsch C1 Hochschule“ klären.
 - Echte Google-Profildaten eintragen (Link, Note, Anzahl, Datum).
 - Plesk: Cron einrichten; `upload_max_filesize` ≥ 8M, `post_max_size` ≥ 20M (Bewerbungs-PDFs).
@@ -44,4 +44,4 @@ Nach Version-Updates: `php bin/console migrate` (23 Migrationen), danach `selfte
 - Behoben zuletzt: Überlauf auf `/verwaltung/email-vorlagen/4/` bei 375 px (Commit `3c2f7b6`).
 
 ## 6. Nächster sinnvoller Schritt
-Serverstand klären (installierte Version, Cron, PHP-Limits) und erst dann ein Update einspielen. Release 0.9.5: Sicherung und Testkopie von 0.7.1 (Plesk) durch MEA, danach Build, Signaturprüfung und Testinstallation auf der Kopie. Hinweis: Das Paket 0.9.4 würde von einer 0.9.4-Installation als „nicht neuer“ abgelehnt.
+Plesk: Cron einrichten und PHP-Limits prüfen (siehe Punkt 5). Release 0.9.5 ist gebaut (`installation/update-0.9.5.zip`, SHA-256 `47286ec6…b6714`) und eingespielt. Ein Git-Tag `v0.9.5` auf `b9edb08` fehlt noch (Push aus der Sitzung nicht erlaubt; manuell auf GitHub setzen).
