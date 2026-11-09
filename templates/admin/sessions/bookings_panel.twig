@@ -1,0 +1,25 @@
+{% import 'admin/partials/ui.twig' as ui %}
+<section class="card" id="buchungen">
+  <h2 class="h3">Buchungen zu diesem Termin</h2>
+  {% if session_bookings is empty %}
+    <p class="text-muted">Noch keine Buchungen.</p>
+  {% else %}
+    <div class="table-wrap" tabindex="0">
+      <table class="tbl tbl--compact">
+        <caption class="visually-hidden">Buchungen</caption>
+        <thead><tr><th scope="col">Nummer</th><th scope="col">Teilnehmer/in</th><th scope="col">Status</th><th scope="col">Zahlung</th><th scope="col" class="num">Betrag</th></tr></thead>
+        <tbody>
+          {% for b in session_bookings %}
+            <tr>
+              <th scope="row">{% if can_bookings %}<a href="/verwaltung/buchungen/{{ b.id }}/">{{ b.public_ref }}</a>{% else %}{{ b.public_ref }}{% endif %}</th>
+              <td>{{ b.first_name }} {{ b.last_name }}</td>
+              <td>{{ ui.status(b.status, labels.booking_status) }}</td>
+              <td>{{ ui.status(b.payment_status, labels.payment_status) }}</td>
+              <td class="num">{{ b.total_cents|money(b.currency) }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+</section>

@@ -1,0 +1,7 @@
+{% extends 'admin/layout.twig' %}
+{% set title = 'Sitzung abgelaufen' %}
+{% block auth %}
+  <h1>Bitte erneut versuchen</h1>
+  <p>Das Formular ist abgelaufen oder wurde in einem anderen Fenster geändert. Laden Sie die Seite neu und senden Sie es erneut.</p>
+  <p><a class="btn btn--primary" href="/verwaltung/">Zur Verwaltung</a></p>
+{% endblock %}

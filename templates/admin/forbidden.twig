@@ -1,0 +1,11 @@
+{% extends 'admin/layout.twig' %}
+{% set title = 'Keine Berechtigung' %}
+{% block content %}
+  <h1>Keine Berechtigung</h1>
+  <p>Ihre Rolle hat keinen Zugriff auf diesen Bereich. Wenden Sie sich bei Bedarf an einen Administrator.</p>
+  <p><a href="/verwaltung/">Zur Übersicht</a></p>
+{% endblock %}
+{% block auth %}
+  <h1>Keine Berechtigung</h1>
+  <p><a href="/verwaltung/">Zur Übersicht</a></p>
+{% endblock %}

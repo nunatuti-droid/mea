@@ -1,0 +1,6 @@
+<div{{ battr(b, 'grid b-grid--' ~ f.cols) }}>
+{% for l in d.locations %}
+  {% if f.look == 'full' %}{% include 'partials/location_card.twig' with {l: l, linked: true} %}
+  {% else %}<div class="card location-card reveal"><span class="card__icon">{{ icon('map-pin') }}</span><h3><a href="/standorte/{{ l.slug }}/">{{ l.name }}</a></h3><address>{{ l.street }}{% if l.address_extra %}, {{ l.address_extra }}{% endif %}<br>{{ l.postal_code }} {{ l.city }}</address></div>{% endif %}
+{% endfor %}
+</div>

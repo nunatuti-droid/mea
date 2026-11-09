@@ -1,0 +1,91 @@
+{% extends 'layout/base.twig' %}
+{% set seo_title = 'Bewerbung – MEA Bildungszentrum' %}
+{% set seo_description = 'Bewerben Sie sich online beim MEA Bildungszentrum und laden Sie Ihre Unterlagen als PDF hoch.' %}
+{% set canonical = '/karriere/bewerbung/' %}
+{% macro err(errors, name) %}{% if errors[name] is defined %}<p class="field__error" id="{{ name }}-error">{{ icon('circle-alert') }}{{ errors[name] }}</p>{% endif %}{% endmacro %}
+{% import _self as f %}
+{% block content %}
+  {% include 'partials/page_hero.twig' with {title: 'Jetzt bewerben', intro: 'Laden Sie Ihre Unterlagen hier sicher hoch. Wir melden uns persönlich bei Ihnen.', media_id: null, crumbs: [{label: 'Karriere', url: '/karriere/'}, {label: 'Bewerbung'}]} %}
+  <section class="section">
+    <div class="container contact-layout">
+      <div id="formular">
+        <h2>Ihre Bewerbung</h2>
+        {% if sent %}
+          <div class="alert alert--success" role="status">{{ icon('circle-check') }}<span>Vielen Dank für Ihre Bewerbung! Ihre Unterlagen sind sicher bei uns angekommen. Wir melden uns so bald wie möglich bei Ihnen.</span></div>
+        {% else %}
+          {% if form_error %}<div class="alert alert--error mb-0" role="alert">{{ icon('circle-alert') }}<span>{{ form_error }}</span></div>{% endif %}
+          {% if errors is not empty %}
+            <div class="alert alert--error" role="alert" tabindex="-1" id="form-errors">{{ icon('circle-alert') }}<span>Bitte prüfen Sie {{ errors|length == 1 ? 'das markierte Feld' : 'die ' ~ errors|length ~ ' markierten Felder' }}.{% if errors.files is not defined and errors is not empty %} Ihre Dateien bitte noch einmal auswählen.{% endif %}</span></div>
+          {% endif %}
+          <form class="form mt-5" method="post" action="/karriere/bewerbung/#formular" enctype="multipart/form-data" novalidate>
+            <input type="hidden" name="_csrf" value="{{ csrf }}">
+            <input type="hidden" name="_t" value="{{ form_started }}">
+            <div class="hp" aria-hidden="true"><label for="website">Website (bitte leer lassen)</label><input id="website" name="website" type="text" tabindex="-1" autocomplete="off"></div>
+            <div class="field{{ errors.position is defined ? ' field--error' }}">
+              <label for="position">Ich bewerbe mich als<span class="req" aria-hidden="true">*</span></label>
+              <select class="select" id="position" name="position" required{% if errors.position is defined %} aria-invalid="true" aria-describedby="position-error"{% endif %}>
+                <option value="">Bitte wählen</option>
+                {% for k, label in positions %}<option value="{{ k }}"{% if (values.position ?? '') == k %} selected{% endif %}>{{ label }}</option>{% endfor %}
+              </select>
+              {{ f.err(errors, 'position') }}
+            </div>
+            <div class="form__row">
+              <div class="field{{ errors.first_name is defined ? ' field--error' }}">
+                <label for="first_name">Vorname<span class="req" aria-hidden="true">*</span></label>
+                <input class="input" id="first_name" name="first_name" type="text" autocomplete="given-name" required maxlength="80" value="{{ values.first_name ?? '' }}"{% if errors.first_name is defined %} aria-invalid="true" aria-describedby="first_name-error"{% endif %}>
+                {{ f.err(errors, 'first_name') }}
+              </div>
+              <div class="field{{ errors.last_name is defined ? ' field--error' }}">
+                <label for="last_name">Nachname<span class="req" aria-hidden="true">*</span></label>
+                <input class="input" id="last_name" name="last_name" type="text" autocomplete="family-name" required maxlength="80" value="{{ values.last_name ?? '' }}"{% if errors.last_name is defined %} aria-invalid="true" aria-describedby="last_name-error"{% endif %}>
+                {{ f.err(errors, 'last_name') }}
+              </div>
+            </div>
+            <div class="form__row">
+              <div class="field{{ errors.email is defined ? ' field--error' }}">
+                <label for="email">E-Mail<span class="req" aria-hidden="true">*</span></label>
+                <input class="input" id="email" name="email" type="email" autocomplete="email" required maxlength="190" value="{{ values.email ?? '' }}"{% if errors.email is defined %} aria-invalid="true" aria-describedby="email-error"{% endif %}>
+                {{ f.err(errors, 'email') }}
+              </div>
+              <div class="field{{ errors.phone is defined ? ' field--error' }}">
+                <label for="phone">Telefon <span class="hint">(optional)</span></label>
+                <input class="input" id="phone" name="phone" type="tel" autocomplete="tel" maxlength="40" value="{{ values.phone ?? '' }}"{% if errors.phone is defined %} aria-invalid="true" aria-describedby="phone-error"{% endif %}>
+                {{ f.err(errors, 'phone') }}
+              </div>
+            </div>
+            <div class="field{{ errors.files is defined ? ' field--error' }}">
+              <label for="documents">Ihre Unterlagen<span class="req" aria-hidden="true">*</span></label>
+              <p class="field__help" id="documents-help">Zum Beispiel Lebenslauf, Anschreiben und Zeugnisse. Nur PDF, höchstens {{ max_files }} Dateien mit je bis zu 5 MB.</p>
+              <div class="upload">
+                <input class="upload__input" id="documents" name="documents[]" type="file" accept="application/pdf,.pdf" multiple required aria-describedby="documents-help{% if errors.files is defined %} files-error{% endif %}"{% if errors.files is defined %} aria-invalid="true"{% endif %}>
+                <span class="upload__box" aria-hidden="true">{{ icon('upload') }}<span><strong>PDF-Dateien auswählen</strong><span class="upload__names" data-upload-names>Noch keine Datei ausgewählt</span></span></span>
+              </div>
+              {{ f.err(errors, 'files') }}
+            </div>
+            <div class="field{{ errors.message is defined ? ' field--error' }}">
+              <label for="message">Nachricht an uns <span class="hint">(optional)</span></label>
+              <textarea class="textarea" id="message" name="message" maxlength="5000" rows="4"{% if errors.message is defined %} aria-invalid="true" aria-describedby="message-error"{% endif %}>{{ values.message ?? '' }}</textarea>
+              {{ f.err(errors, 'message') }}
+            </div>
+            <div class="field{{ errors.privacy is defined ? ' field--error' }}">
+              <label class="check"><input type="checkbox" name="privacy" value="1"{% if (values.privacy ?? '') == '1' %} checked{% endif %}{% if errors.privacy is defined %} aria-invalid="true" aria-describedby="privacy-error"{% endif %}><span>Ich habe die <a href="/datenschutz/#bewerbungen">Datenschutzhinweise zu Bewerbungen</a> gelesen und bin einverstanden, dass meine Angaben und Unterlagen für das Bewerbungsverfahren gespeichert werden.<span class="req" aria-hidden="true">*</span></span></label>
+              {{ f.err(errors, 'privacy') }}
+            </div>
+            <p class="hint text-muted mb-0">Felder mit <span class="req" aria-hidden="true">*</span> sind Pflichtfelder.</p>
+            <div><button class="btn" type="submit">{{ icon('send') }}Bewerbung absenden</button></div>
+          </form>
+        {% endif %}
+      </div>
+      <aside class="stack">
+        <div class="box box--brand">
+          <h2 class="h-sm">Gut zu wissen</h2>
+          <ul class="contact-list mt-5">
+            <li><span class="card__icon">{{ icon('shield-check') }}</span><span>Ihre Unterlagen werden verschlüsselt gespeichert und nicht per E-Mail weitergeleitet.</span></li>
+            <li><span class="card__icon">{{ icon('file-text') }}</span><span>Am besten alle Unterlagen in einer PDF-Datei zusammenfassen.</span></li>
+            <li><span class="card__icon">{{ icon('phone') }}</span><span>Fragen vorab?<br><a class="btn-link-light" href="tel:{{ site.company.phone|tel }}">{{ site.company.phone_display }}</a></span></li>
+          </ul>
+        </div>
+      </aside>
+    </div>
+  </section>
+{% endblock %}

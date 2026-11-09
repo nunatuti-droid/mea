@@ -1,0 +1,506 @@
+<?php
+declare(strict_types=1);
+
+namespace Mea\Core;
+
+use Mea\Module\Content\ContentRepository;
+use Mea\Module\Content\PublicController;
+use Mea\Module\Content\SettingsRepository;
+use Mea\Module\Exams\ExamController;
+use Mea\Module\Exams\ExamRepository;
+use Mea\Module\Exams\PriceCalculator;
+use Mea\Module\Inquiries\ContactController;
+use Mea\Module\Inquiries\InquiryService;
+use Mea\Module\Inquiries\RateLimiter;
+use Mea\Module\Locations\LocationController;
+use Mea\Module\Locations\LocationRepository;
+use Mea\Module\Media\MediaRepository;
+use Mea\Module\Seo\SeoController;
+use Mea\Admin\AdminKernel;
+use Mea\Admin\AdminModule;
+use Mea\Admin\Labels;
+use Mea\Module\Audit\AuditLog;
+use Mea\Module\Auth\AuthService;
+use Mea\Module\Auth\Totp;
+use Mea\Module\Mail\Mailer;
+use Mea\Module\Mail\OutboxWorker;
+use Mea\Module\Mail\TemplateRenderer;
+use Mea\Module\Mail\TransportFactory;
+use Monolog\Handler\StreamHandler;
+use Monolog\Logger;
+
+/** Baut die Anwendung zusammen und beantwortet eine Anfrage. */
+final class App
+{
+    public readonly Config $config;
+    public readonly Database $db;
+    public readonly View $view;
+    public readonly Logger $log;
+    public readonly Crypto $crypto;
+    public readonly SettingsRepository $settings;
+    public readonly Mailer $mailer;
+    public readonly AuditLog $audit;
+    public readonly AuthService $auth;
+    public readonly ExamRepository $exams;
+    public readonly LocationRepository $locations;
+    public readonly MediaRepository $media;
+    public readonly HtmlSanitizer $html;
+    public readonly \Psr\Clock\ClockInterface $clock;
+    public readonly string $baseUrl;
+    private Router $router;
+    /** Nur für den Selbsttest: Wartungsmodus und Offline-Schalter übergehen, damit nach einem Update der neue Stand geprüft werden kann. */
+    public bool $bypassMaintenance = false;
+    public readonly ContentRepository $content;
+    public readonly PublicController $publicPages;
+    public readonly \Mea\Module\Security\Firewall $firewall;
+    public readonly \Mea\Module\Ops\SiteStatus $siteStatus;
+    public readonly \Mea\Module\Consent\ConsentConfig $consent;
+
+    public function __construct(public readonly string $root, ?Config $config = null, ?Database $db = null, ?\Psr\Clock\ClockInterface $clock = null)
+    {
+        $this->clock = $clock ?? new SystemClock();
+        $this->config = $config ?? Config::fromEnvironment($root);
+        date_default_timezone_set('UTC');
+        $this->log = new Logger('mea');
+        @mkdir($root . '/storage/logs', 0750, true);
+        $this->log->pushHandler(new StreamHandler($root . '/storage/logs/app.log'));
+        $this->db = $db ?? Database::fromConfig($this->config);
+
+        $baseUrl = $this->baseUrl = $this->config->get('APP_URL', 'http://localhost') ?? '';
+        $debug = $this->config->bool('APP_DEBUG');
+        $media = $this->media = new MediaRepository($this->db);
+        $this->crypto = Crypto::fromConfig($this->config);
+        $this->html = new HtmlSanitizer($root . '/storage/cache/htmlpurifier');
+        $this->view = new View($root, $debug, $media, $baseUrl);
+
+        $settings = $this->settings = new SettingsRepository($this->db);
+        $this->siteStatus = new \Mea\Module\Ops\SiteStatus($settings, $this->config);
+        $this->consent = new \Mea\Module\Consent\ConsentConfig($settings);
+        $this->content = new ContentRepository($this->db);
+        $locations = $this->locations = new LocationRepository($this->db);
+        $exams = $this->exams = new ExamRepository($this->db, new PriceCalculator());
+        $this->mailer = new Mailer($this->db, new TemplateRenderer($this->db, $root), $settings, $baseUrl);
+        $this->audit = new AuditLog($this->db, $this->crypto);
+        $this->firewall = new \Mea\Module\Security\Firewall($this->db, $this->crypto, $this->clock);
+        $limiter = new RateLimiter($this->db, $this->crypto->hash('ratelimit', 'salt'));
+        $this->auth = new AuthService($this->db, $this->crypto, new Totp($this->clock), $limiter, $this->mailer, $this->audit, $this->clock);
+
+        $this->view->addGlobal('site', $settings->all());
+        $this->view->addGlobal('main_menu', $this->content->menu('main'));
+        $this->view->addGlobal('footer_menu', $this->content->menu('footer'));
+        $this->view->addGlobal('legal_menu', $this->content->menu('legal'));
+        $this->view->addGlobal('all_locations', $locations->active());
+        $this->view->addGlobal('exam_center', $locations->examCenter());
+        $this->view->addGlobal('consent', ['categories' => $this->consent->categories(), 'client' => $this->consent->clientConfig()]);
+        $this->view->addGlobal('noindex', !$this->siteStatus->indexingAllowed());
+        $this->view->addGlobal('site_live', ['online' => true, 'indexing' => true]);
+        $this->view->addGlobal('base_url', rtrim($baseUrl, '/'));
+        $this->view->addGlobal('rating_summary', $this->content->ratingSummary());
+        $this->view->addGlobal('footer_reviews', $this->content->reviews());
+        $this->view->addGlobal('google_reviews', $this->content->googleReviews(3));
+        // Designsystem: Adresse der erzeugten CSS-Variablen, vorab geladene Schriften, Browserfarbe
+        $this->view->addFunction('design_css', fn(): string => $this->design()->stylesheetUrl());
+        $this->view->addFunction('design_preloads', fn(): array => $this->design()->preloads());
+        $this->view->addFunction('design_theme_color', fn(): string => $this->design()->themeColor());
+        // Seitenbaukasten: Bausteine ausgeben (Website, Vorschau und Editor teilen sich diese Funktionen)
+        $this->view->addFunction('blocks', fn(?array $nodes): \Twig\Markup => $this->pageRenderer()->children($nodes));
+        $this->view->addFunction('battr', fn(array $b, string $class = '', array $attr = []): \Twig\Markup => $this->pageRenderer()->attr($b, $class, $attr));
+        $this->view->addFunction('bedit', fn(string $field, string $kind = 'text'): \Twig\Markup => $this->pageRenderer()->editAttr($field, $kind));
+        $this->view->addFunction('media_alt', fn(mixed $id): string => (string) ($this->media->find((int) $id)['alt_text'] ?? ''));
+        $this->view->addFunction('txt', fn(string $key, array $vars = []): string => \Mea\Module\Content\TemplateTexts::get((array) $this->settings->get(\Mea\Module\Content\TemplateTexts::SETTING, []), $key, $vars));
+        $this->view->addFunction('video_embed', fn(?string $url): ?array => \Mea\Module\Builder\Video::embed((string) $url));
+
+        $pageView = fn(string $slug, array $ctx = [], int $status = 200): ?Response => $this->pageView()->respond($slug, $ctx, $status);
+        $pages = $this->publicPages = new PublicController($this->view, $this->content, fn() => $this->pages(), fn() => $this->pageView());
+        $examCtl = new ExamController($this->view, $exams, $this->content, $pageView);
+        $locCtl = new LocationController($this->view, $locations, $this->content, $pageView);
+        $contact = new ContactController(
+            $this->view,
+            new InquiryService($this->db),
+            $limiter,
+            $locations,
+            $this->content,
+            $this->mailer,
+            $pageView,
+        );
+        $seo = new SeoController($this->content, $exams, $locations, $baseUrl, fn(): bool => !$this->siteStatus->indexingAllowed());
+
+        $r = $this->router = new Router();
+        // Verwaltung zuerst, damit die allgemeinen Seiten-Routen sie nicht überdecken
+        $this->view->addGlobal('labels', Labels::MAPS);
+        // Werte der Verwaltung vorab anlegen; Twig erlaubt nach dem ersten Rendern nur Änderungen bestehender Globals
+        foreach (['me' => null, 'csrf' => '', 'can' => [], 'current_path' => '', 'flash' => null] as $k => $v) {
+            $this->view->addGlobal($k, $v);
+        }
+        (new AdminModule($this))->register(new AdminKernel($r, $this->auth, $this->view, $this->audit));
+        $r->get('/', $pages->home(...));
+        $r->get('/leistungen/', $pages->servicesIndex(...));
+        $r->get('/faq/', $pages->faq(...));
+        $r->get('/telc-pruefungszentrum/', $examCtl->index(...));
+        $r->get('/pruefungen/', fn() => Response::redirect('/telc-pruefungszentrum/', 301));
+        $r->get('/pruefungen/{slug:[a-z0-9-]+}/', $examCtl->show(...));
+        $booking = new \Mea\Module\Bookings\BookingController($this, $limiter);
+        $booking->register($r);
+        $r->get('/preise/', $examCtl->prices(...));
+        $r->get('/standorte/', $locCtl->index(...));
+        $r->get('/standorte/{slug:[a-z0-9-]+}/', $locCtl->show(...));
+        $isTesting = $this->config->get('APP_ENV') === 'testing';
+        $apply = new \Mea\Module\Applications\ApplicationController($this->view, $this->applications(), $limiter, $this->content,
+            fn(string $tmp): bool => $isTesting ? is_file($tmp) : is_uploaded_file($tmp), $this->mailer, $this->log);
+        $r->get('/karriere/bewerbung/', $apply->show(...));
+        $r->post('/karriere/bewerbung/', $apply->submit(...));
+        $r->get('/kontakt/', $contact->show(...));
+        $r->post('/kontakt/', $contact->submit(...));
+        $r->post('/einwilligung/', (new \Mea\Module\Consent\ConsentController($this->db, $this->consent, $limiter))->record(...));
+        $r->get(\Mea\Module\Design\DesignService::FALLBACK_URL, $this->designFallback(...));
+        $r->get(\Mea\Module\Builder\PageService::CSS_ROUTE . '{id:\d+}-{hash:[a-f0-9]{16}}.css', $this->pageCssFallback(...));
+        $r->get('/sitemap.xml', $seo->sitemap(...));
+        $r->get('/robots.txt', $seo->robots(...));
+        $r->get('/{parent:[a-z0-9-]+}/{slug:[a-z0-9-]+}/', $pages->childService(...));
+        $r->get('/{slug:[a-z0-9-]+}/', $pages->slug(...));
+    }
+
+    private ?\Mea\Module\Payments\PaymentGateway $gateway = null;
+    private ?\Mea\Module\Bookings\BookingService $bookingService = null;
+    private ?\Mea\Module\Applications\ApplicationService $applicationService = null;
+    private ?\Mea\Module\Content\GoogleReviewSync $googleSync = null;
+    private ?\Mea\Module\Design\DesignService $designService = null;
+    private ?string $designDir = null;
+
+    private ?\Mea\Module\Builder\PageRenderer $pageRenderer = null;
+    private ?\Mea\Module\Builder\PageService $pageService = null;
+    private ?\Mea\Module\Builder\PageView $pageViewService = null;
+
+    public function pageRenderer(): \Mea\Module\Builder\PageRenderer
+    {
+        return $this->pageRenderer ??= new \Mea\Module\Builder\PageRenderer($this->view, $this->content, $this->exams, $this->locations, $this->design()->fonts(),
+            fn(int $id, bool $draft): ?array => $this->pages()->component($id, $draft),
+            function (): array {
+                $v = $this->design()->values();
+                return ['tablet' => (int) $v['bp_tablet'], 'mobile' => (int) $v['bp_mobile']];
+            });
+    }
+
+    public function pages(): \Mea\Module\Builder\PageService
+    {
+        if ($this->pageService === null) {
+            $this->pageService = new \Mea\Module\Builder\PageService($this->db, fn() => $this->treeValidator(), $this->pageRenderer(), $this->designDir(), $this->log);
+            // Nach einem Update: bisherige Seiten einmalig in den Seitenbaukasten übernehmen (schnelle Prüfung, danach nichts mehr zu tun)
+            \Mea\Module\Builder\LegacyImport::ensure($this->db);
+            if ($this->config->get('APP_ENV') !== 'testing') {
+                try {
+                    (new \Mea\Module\Builder\ContentPatches($this->db, $this->settings, $this->root))->apply();
+                } catch (\Throwable $e) {
+                    $this->log->error('Inhaltsänderung des Updates fehlgeschlagen', ['error' => $e->getMessage()]);
+                }
+            }
+        }
+        return $this->pageService;
+    }
+
+    public function treeValidator(): \Mea\Module\Builder\TreeValidator
+    {
+        return new \Mea\Module\Builder\TreeValidator($this->html, $this->design()->fonts(),
+            function (array $ids): array {
+                if ($ids === []) {
+                    return [];
+                }
+                return array_map('intval', array_column($this->db->all('SELECT id FROM media WHERE id IN (' . implode(',', array_fill(0, count($ids), '?')) . ')', $ids), 'id'));
+            },
+            fn(int $id): bool => $this->db->value('SELECT 1 FROM builder_components WHERE id = ?', [$id]) !== null);
+    }
+
+    public function pageView(): \Mea\Module\Builder\PageView
+    {
+        return $this->pageViewService ??= new \Mea\Module\Builder\PageView($this->view, $this->pageRenderer(), $this->pages(), '/media/design');
+    }
+
+    /** Seitenstile, falls der Ordner nicht beschreibbar ist. */
+    private function pageCssFallback(Request $req, string $id, string $hash): Response
+    {
+        $css = $this->pages()->cssByHash((int) $id, $hash);
+        if ($css === null) {
+            throw HttpException::notFound();
+        }
+        return (new Response($css, 200, ['Content-Type' => 'text/css; charset=utf-8', 'Cache-Control' => 'public, max-age=31536000, immutable']));
+    }
+
+    public function design(): \Mea\Module\Design\DesignService
+    {
+        return $this->designService ??= new \Mea\Module\Design\DesignService($this->db, $this->settings, $this->designDir(), $this->log);
+    }
+
+    /** Ordner der erzeugten CSS-Dateien (öffentlich, vom Dateiwächter und von Updates ausgenommen). */
+    public function designDir(): string
+    {
+        return $this->designDir ?? $this->root . '/public/media/design';
+    }
+
+    public function fontDir(): string
+    {
+        return dirname($this->designDir()) . '/fonts';
+    }
+
+    /** Für Tests: erzeugte Dateien in einen eigenen Ordner schreiben. */
+    public function useDesignDir(string $dir): void
+    {
+        $this->designDir = $dir;
+        $this->designService = null;
+    }
+
+    /** Ausweg, falls public/media nicht beschreibbar ist: CSS-Variablen direkt aus der Anwendung. */
+    private function designFallback(Request $req): Response
+    {
+        $css = $this->design()->stylesheet();
+        $etag = '"' . substr(hash('sha256', $css), 0, 16) . '"';
+        if (trim((string) ($req->server['HTTP_IF_NONE_MATCH'] ?? '')) === $etag) {
+            return new Response('', 304, ['ETag' => $etag]);
+        }
+        return Response::text($css, 'text/css')->withHeader('ETag', $etag)
+            ->withHeader('Cache-Control', isset($req->query['v']) ? 'public, max-age=31536000, immutable' : 'public, max-age=300');
+    }
+
+    public function googleReviews(): \Mea\Module\Content\GoogleReviewSync
+    {
+        return $this->googleSync ??= new \Mea\Module\Content\GoogleReviewSync($this->db, $this->settings, $this->crypto);
+    }
+
+    /** Für Tests: Google-Abruf mit eigener HTTP-Funktion. */
+    public function useGoogleHttp(\Closure $http): void
+    {
+        $this->googleSync = new \Mea\Module\Content\GoogleReviewSync($this->db, $this->settings, $this->crypto, $http);
+    }
+
+    public function applications(): \Mea\Module\Applications\ApplicationService
+    {
+        return $this->applicationService ??= new \Mea\Module\Applications\ApplicationService($this->db, $this->crypto, $this->root . '/storage/applications');
+    }
+
+    public function paymentGateway(): \Mea\Module\Payments\PaymentGateway
+    {
+        return $this->gateway ??= new \Mea\Module\Payments\PayPalGateway(
+            new \GuzzleHttp\Client(['http_errors' => true]),
+            (string) ($this->config->get('PAYPAL_MODE') ?? 'sandbox'),
+            (string) ($this->config->get('PAYPAL_CLIENT_ID') ?? ''),
+            (string) ($this->config->get('PAYPAL_SECRET') ?? ''),
+            (string) ($this->config->get('PAYPAL_WEBHOOK_ID') ?? ''),
+        );
+    }
+
+    /** Für Tests: anderen Zahlungsanbieter einsetzen. */
+    public function useGateway(\Mea\Module\Payments\PaymentGateway $g): void
+    {
+        $this->gateway = $g;
+        $this->bookingService = null;
+    }
+
+    public function bookings(): \Mea\Module\Bookings\BookingService
+    {
+        return $this->bookingService ??= new \Mea\Module\Bookings\BookingService(
+            $this->db, new PriceCalculator(), $this->paymentGateway(), $this->mailer, $this->audit,
+            $this->crypto, $this->clock, $this->log, $this->baseUrl,
+        );
+    }
+
+    public function version(): string
+    {
+        return trim((string) @file_get_contents($this->root . '/VERSION')) ?: '0.0.0';
+    }
+
+    public function backups(): \Mea\Module\Ops\BackupService
+    {
+        $b64 = $this->config->get('BACKUP_KEY');
+        $key = $b64 !== null ? (string) base64_decode($b64, true) : $this->crypto->subKey('backup');
+        return new \Mea\Module\Ops\BackupService($this->db, $this->root, new \Mea\Module\Ops\BackupCrypto($key), $this->log, $this->version());
+    }
+
+    public function updates(): \Mea\Module\Ops\UpdateService
+    {
+        return new \Mea\Module\Ops\UpdateService($this->db, $this->root, $this->config->get('RELEASE_PUBLIC_KEY'), $this->backups(), $this->log, $this->version());
+    }
+
+    public function fileGuard(): \Mea\Module\Security\FileGuard
+    {
+        return new \Mea\Module\Security\FileGuard($this->root, $this->config->get('RELEASE_PUBLIC_KEY'));
+    }
+
+    public function outbox(): OutboxWorker
+    {
+        $c = $this->settings->get('company', []);
+        return new OutboxWorker(
+            $this->db,
+            TransportFactory::fromConfig($this->config, $this->root),
+            (string) ($this->config->get('MAIL_FROM') ?? ''),
+            (string) ($this->config->get('MAIL_FROM_NAME') ?? ($c['name'] ?? 'MEA Bildungszentrum')),
+        );
+    }
+
+    public function handle(Request $req): Response
+    {
+        $guard = null;
+        try {
+            // Einstellung kann sich zwischen Anfragen ändern (Schalter in der Verwaltung)
+            $this->view->addGlobal('noindex', !$this->siteStatus->indexingAllowed());
+            $this->view->addGlobal('site_live', ['online' => $this->siteStatus->isOnline(), 'indexing' => $this->siteStatus->indexingAllowed()]);
+            $guard = $this->guard($req);
+            $response = $guard ?? $this->dispatch($req);
+        } catch (HttpException $e) {
+            $response = $this->errorPage($e->getCode() ?: 404);
+        } catch (\Throwable $e) {
+            $this->log->error($e->getMessage(), ['exception' => $e, 'path' => $req->path]);
+            $response = $this->errorPage(500);
+        }
+        if ($guard === null && $response->status === 404) {
+            $this->noteNotFound($req);
+        }
+        return $this->secure($response, $req);
+    }
+
+    /** Nicht gefundene Adressen: Dateisuche zählt für den Anwendungsschutz, alles andere landet (ohne IP) im 404-Protokoll. */
+    private function noteNotFound(Request $req): void
+    {
+        try {
+            if (preg_match('/\.(php\d?|asp|aspx|jsp|cgi|bak|sql|zip|tar|gz|old|swp|ini|log)$/i', $req->path)) {
+                $this->firewall->record('probe', $req, 1, 'info'); // Suche nach Dateien, die es hier nicht gibt
+                return;
+            }
+            if (!in_array($req->method, ['GET', 'HEAD'], true) || str_starts_with($req->path, '/verwaltung/') || str_starts_with($req->path, '/buchung/') || strlen($req->path) > 255
+                || !preg_match('#^/[\x21-\x7E]*$#', $req->path)) {
+                return;
+            }
+            $ref = parse_url((string) ($req->server['HTTP_REFERER'] ?? ''), PHP_URL_HOST);
+            $this->db->run('INSERT INTO not_found_log (path, referrer_host) VALUES (?, ?)
+                            ON DUPLICATE KEY UPDATE hits = hits + 1, last_seen_at = UTC_TIMESTAMP(), resolved_at = NULL,
+                            referrer_host = COALESCE(VALUES(referrer_host), referrer_host)',
+                [$req->path, is_string($ref) ? mb_substr($ref, 0, 120) : null]);
+        } catch (\Throwable $e) {
+            $this->log->warning('404-Protokoll nicht schreibbar', ['error' => $e->getMessage()]);
+        }
+    }
+
+    /** Wartungsmodus und Anwendungsschutz vor dem Routing. */
+    private function guard(Request $req): ?Response
+    {
+        $isAdmin = str_starts_with($req->path, '/verwaltung/');
+        $isDesignCss = $req->path === \Mea\Module\Design\DesignService::FALLBACK_URL;
+        if (is_file(self::maintenanceFlag($this->root)) && !$isAdmin && !$isDesignCss && !$this->bypassMaintenance) {
+            return self::staticPage(503, 'Wartungsarbeiten', 'Die Website wird gerade aktualisiert. Bitte versuchen Sie es in wenigen Minuten erneut.')
+                ->withHeader('Retry-After', '300');
+        }
+        // Website im Backend offline geschaltet: Wartungsseite, Verwaltung und Zahlungsrückmeldungen bleiben erreichbar
+        if (!$this->bypassMaintenance && !$isDesignCss && !\Mea\Module\Ops\SiteStatus::alwaysReachable($req->path) && !$this->siteStatus->isOnline()) {
+            return $this->offlinePage();
+        }
+        $check = $this->firewall->inspect($req);
+        return match ($check['action']) {
+            'block' => self::staticPage(403, 'Zugriff vorübergehend gesperrt', 'Von Ihrer Verbindung kamen auffällige Anfragen. Der Zugriff ist deshalb vorübergehend gesperrt. Wenn Sie uns erreichen möchten, rufen Sie uns bitte an.'),
+            'reject' => self::staticPage(403, 'Anfrage abgelehnt', 'Diese Anfrage wurde aus Sicherheitsgründen abgelehnt.'),
+            'probe' => $this->errorPage(404),
+            'method' => self::staticPage(405, 'Methode nicht erlaubt', 'Diese Anfrage wird nicht unterstützt.')->withHeader('Allow', implode(', ', \Mea\Module\Security\Firewall::METHODS)),
+            default => null,
+        };
+    }
+
+    private function offlinePage(): Response
+    {
+        try {
+            $body = $this->view->render('public/offline.twig', ['message' => $this->siteStatus->offlineMessage()]);
+        } catch (\Throwable $e) {
+            $this->log->error('Wartungsseite: ' . $e->getMessage());
+            return self::staticPage(503, 'Wartungsarbeiten', $this->siteStatus->offlineMessage());
+        }
+        return Response::html($body, 503)->withHeader('Retry-After', '3600')->withHeader('Cache-Control', 'no-store')
+            ->withHeader('X-Robots-Tag', 'noindex');
+    }
+
+    public static function maintenanceFlag(string $root): string
+    {
+        return $root . '/storage/maintenance.flag';
+    }
+
+    /** Einfache Seite ohne Datenbankzugriff (Sperre, Wartung). */
+    private static function staticPage(int $code, string $title, string $text): Response
+    {
+        $t = htmlspecialchars($title, ENT_QUOTES);
+        $body = '<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">'
+            . '<meta name="robots" content="noindex"><title>' . $t . '</title><link rel="stylesheet" href="/media/design/aktuell.css?v=' . gmdate('YmdH') . '"><link rel="stylesheet" href="/assets/css/app.css"></head>'
+            . '<body><main class="container section"><h1>' . $t . '</h1><p class="lead">' . htmlspecialchars($text, ENT_QUOTES) . '</p></main></body></html>';
+        return Response::html($body, $code)->withHeader('Cache-Control', 'no-store');
+    }
+
+    private function dispatch(Request $req): Response
+    {
+        // Einheitliche URLs mit Schrägstrich am Ende (alte WordPress-Struktur)
+        if (in_array($req->method, ['GET', 'HEAD'], true) && !str_ends_with($req->path, '/')
+            && !preg_match('/\.[a-z0-9]{2,5}$/', $req->path)) {
+            $qs = http_build_query($req->query);
+            return Response::redirect($req->path . '/' . ($qs ? '?' . $qs : ''), 301);
+        }
+        [$status, $handler, $vars] = $this->router->match($req->method, $req->path);
+        if ($status === 200 && $handler !== null) {
+            try {
+                return $handler($req, ...array_values($vars));
+            } catch (HttpException $e) {
+                if ($e->getCode() !== 404) {
+                    throw $e;
+                }
+            }
+        } elseif ($status === 405) {
+            return new Response('Methode nicht erlaubt', 405, ['Allow' => 'GET, HEAD']);
+        }
+        $redirect = $this->content->redirectFor($req->path);
+        if ($redirect !== null) {
+            if ((int) $redirect['status_code'] === 410) {
+                return $this->errorPage(410);
+            }
+            return Response::redirect((string) $redirect['target_url'], (int) $redirect['status_code']);
+        }
+        throw HttpException::notFound();
+    }
+
+    private function errorPage(int $code): Response
+    {
+        try {
+            $body = $this->view->render('public/error.twig', ['code' => $code]);
+        } catch (\Throwable) {
+            $body = '<!doctype html><title>Fehler</title><p>Es ist ein Fehler aufgetreten.</p>';
+        }
+        return Response::html($body, $code);
+    }
+
+    /** Sicherheitsheader für jede Antwort. */
+    private function secure(Response $r, Request $req): Response
+    {
+        // Fremde Quellen nur für Dienste, die in der Verwaltung eingetragen sind; geladen werden sie erst nach Einwilligung
+        $x = $this->consent->cspSources();
+        $add = fn(array $l): string => $l !== [] ? ' ' . implode(' ', $l) : '';
+        $csp = "default-src 'self'; script-src 'self'" . $add($x['script']) . "; style-src 'self'; img-src 'self' data:" . $add($x['img']) . "; font-src 'self'; "
+            . "frame-src 'self' https://www.google.com https://www.youtube-nocookie.com https://player.vimeo.com" . $add($x['frame']) . "; connect-src 'self'" . $add($x['connect']) . "; form-action 'self'; "
+            . "base-uri 'self'; frame-ancestors 'none'; object-src 'none'";
+        // Live-Vorschau des Designsystems: die Verwaltung zeigt öffentliche Seiten in einem Rahmen derselben Website
+        $framable = (isset($req->query['designvorschau']) && !str_starts_with($req->path, '/verwaltung/'))
+            // Arbeitsbereich des Seitenbaukastens: nur im Editor derselben Website
+            || preg_match('~^/verwaltung/(seiten|bausteine)/\d+/leinwand/$~', $req->path) === 1;
+        if ($framable) {
+            $csp = str_replace("frame-ancestors 'none'", "frame-ancestors 'self'", $csp);
+        }
+        $h = [
+            'Content-Security-Policy' => $csp,
+            'X-Content-Type-Options' => 'nosniff',
+            'Referrer-Policy' => 'strict-origin-when-cross-origin',
+            'Permissions-Policy' => 'camera=(), microphone=(), geolocation=(), payment=()',
+            'X-Frame-Options' => $framable ? 'SAMEORIGIN' : 'DENY',
+            'Cross-Origin-Opener-Policy' => 'same-origin',
+        ];
+        if ($req->isSecure()) {
+            $h['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains';
+        }
+        if (!$this->siteStatus->indexingAllowed()) {
+            $h['X-Robots-Tag'] = 'noindex, nofollow';
+        }
+        foreach ($h as $k => $v) {
+            $r->headers[$k] ??= $v;
+        }
+        return $r;
+    }
+}

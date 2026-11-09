@@ -1,0 +1,74 @@
+<footer class="site-footer footer">
+  <div class="container">
+    <div class="footer__top">
+      <div class="footer__brand">
+        <a href="/" aria-label="{{ company.name }} – Startseite">{{ img(company.logo_media_id, '160px', {alt: company.name}) }}</a>
+        <p>{{ company.claim }} {{ txt('footer.about') }}</p>
+        <a class="btn btn--light btn--sm" href="{{ txt('footer.contact_url') }}">{{ icon('mail') }}{{ txt('footer.contact_label') }}</a>
+        <div class="footer__social">
+          {% if company.facebook %}<a href="{{ company.facebook }}" rel="noopener" target="_blank">Facebook<span class="visually-hidden"> (öffnet in neuem Fenster)</span></a>{% endif %}
+          {% if company.instagram %}<a href="{{ company.instagram }}" rel="noopener" target="_blank">Instagram<span class="visually-hidden"> (öffnet in neuem Fenster)</span></a>{% endif %}
+        </div>
+      </div>
+      {% for item in main_menu|filter(i => i.children is not empty) %}
+        <div>
+          <h2>{{ item.label }}</h2>
+          <ul>{% for c in item.children %}<li><a href="{{ c.url }}">{{ c.label }}</a></li>{% endfor %}</ul>
+        </div>
+      {% endfor %}
+      <div>
+        <h2>{{ txt('footer.company_heading') }}</h2>
+        <ul>{% for c in footer_menu %}<li><a href="{{ c.url }}">{{ c.label }}</a></li>{% endfor %}</ul>
+      </div>
+      <div>
+        <h2>{{ txt('footer.locations_heading') }}</h2>
+        <div class="footer__locations">
+          {% for loc in all_locations %}
+            <address>
+              <a href="/standorte/{{ loc.slug }}/"><strong>{{ loc.name }}</strong></a><br>
+              {{ loc.street }}{% if loc.address_extra %}, {{ loc.address_extra }}{% endif %}<br>{{ loc.postal_code }} {{ loc.city }}
+              {% if loc.phone %}<br><a href="tel:{{ loc.phone|tel }}">{{ loc.phone }}</a>{% endif %}
+            </address>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+    {% set g_on = site.google.profile_url ?? false %}
+    {% if footer_reviews is not empty or g_on %}
+      <div class="footer__reviews{{ g_on ? '' : ' footer__reviews--plain' }}">
+        {% if g_on %}{% include 'partials/google_rating.twig' with {variant: 'card'} %}{% endif %}
+        {% if g_on and google_reviews is not empty %}
+          {% import 'partials/macros.twig' as ui %}
+          <div class="footer__greviews">
+            <h2 class="footer__voice-title">{{ txt('footer.google_heading') }}</h2>
+            <ul class="g-reviews">
+              {% for gr in google_reviews %}
+                <li class="g-review">
+                  <div class="g-review__head">
+                    <span class="g-review__avatar" aria-hidden="true">{{ gr.author_name|slice(0, 1)|upper }}</span>
+                    <span><strong>{% if gr.author_url %}<a href="{{ gr.author_url }}" target="_blank" rel="noopener nofollow">{{ gr.author_name }}<span class="visually-hidden"> (Profil bei Google, öffnet in neuem Fenster)</span></a>{% else %}{{ gr.author_name }}{% endif %}</strong>
+                    {% if gr.published_at %}<small>{{ gr.published_at|date('m/Y', false) }}</small>{% endif %}</span>
+                    {% include 'partials/google_g.twig' with {size: 16} %}
+                  </div>
+                  {{ ui.stars(gr.rating) }}
+                  {% if gr.body %}<p>{{ gr.body|length > 220 ? gr.body|slice(0, 210)|trim ~ ' …' : gr.body }}</p>{% endif %}
+                </li>
+              {% endfor %}
+            </ul>
+          </div>
+        {% elseif footer_reviews is not empty %}
+          {% set fr = footer_reviews|first %}
+          <div class="footer__voice">
+            <h2 class="footer__voice-title">{{ txt('footer.voice_heading') }}</h2>
+            <blockquote>„{{ fr.body }}“<cite>{{ fr.display_name }}{% if fr.role_label %}, {{ fr.role_label }}{% endif %}</cite></blockquote>
+            <a class="footer__voice-link" href="{{ txt('footer.voice_url') }}">{{ txt('footer.voice_link', {n: footer_reviews|length}) }}{{ icon('arrow-right') }}</a>
+          </div>
+        {% endif %}
+      </div>
+    {% endif %}
+    <div class="footer__bottom">
+      <p class="mb-0">© {{ 'now'|date('Y') }} {{ company.legal_name }}</p>
+      <ul>{% for c in legal_menu %}<li><a href="{{ c.url }}">{{ c.label }}</a></li>{% endfor %}<li><button type="button" class="footer__consent" data-consent-open>{{ txt('footer.consent_label') }}</button></li></ul>
+    </div>
+  </div>
+</footer>

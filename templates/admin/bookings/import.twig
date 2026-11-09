@@ -1,0 +1,38 @@
+{% extends 'admin/layout.twig' %}
+{% import 'admin/partials/ui.twig' as ui %}
+{% block content %}
+  <p class="crumb"><a href="/verwaltung/buchungen/">{{ icon('arrow-left') }}Buchungen</a></p>
+  <div class="adm-head">
+    <div>
+      <h1>Buchung übernehmen</h1>
+      <p class="adm-head__intro">Für Anmeldungen aus dem alten Shop, per Telefon oder vor Ort. Die Buchung ist sofort bestätigt und belegt einen Platz. Eine Zahlung wird nur vermerkt; Geld wird hier nicht eingezogen.</p>
+    </div>
+  </div>
+  {% if errors is not empty %}
+    <div class="alert alert--error" role="alert" tabindex="-1" data-focus>
+      {{ icon('circle-alert') }}
+      <div><p><strong>Die Buchung wurde nicht übernommen.</strong></p>
+      {% if errors._form is defined %}<p>{{ errors._form }}</p>{% endif %}
+      <ul>{% for k, e in errors|filter((e, k) => k != '_form') %}<li><a href="#f-{{ k }}">{{ e }}</a></li>{% endfor %}</ul></div>
+    </div>
+  {% endif %}
+  <form method="post" class="adm-form" data-dirty-guard novalidate>
+    <input type="hidden" name="_csrf" value="{{ csrf }}">
+    <fieldset class="card">
+      <legend>Termin</legend>
+      <div class="form-grid">{{ ui.field(fields[0], values, errors, []) }}</div>
+    </fieldset>
+    <fieldset class="card">
+      <legend>Teilnehmer/in</legend>
+      <div class="form-grid">{% for f in fields|slice(1, 10) %}{{ ui.field(f, values, errors, []) }}{% endfor %}</div>
+    </fieldset>
+    <fieldset class="card">
+      <legend>Zahlung</legend>
+      <div class="form-grid">{% for f in fields|slice(11) %}{{ ui.field(f, values, errors, []) }}{% endfor %}</div>
+    </fieldset>
+    <div class="form-actions">
+      <button class="btn btn--primary" type="submit">{{ icon('check') }}Buchung übernehmen</button>
+      <a class="btn btn--ghost" href="/verwaltung/buchungen/">Abbrechen</a>
+    </div>
+  </form>
+{% endblock %}

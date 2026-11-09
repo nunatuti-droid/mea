@@ -1,0 +1,6 @@
+{#- Designsystem: Schriften früh laden, dann die zentralen CSS-Variablen (Verwaltung → Designsystem), danach die Komponenten -#}
+<meta name="theme-color" content="{{ design_theme_color() }}">
+{% for font in design_preloads() %}<link rel="preload" href="{{ font }}" as="font" type="font/woff2" crossorigin>
+{% endfor %}
+<link rel="stylesheet" href="{{ design_css() }}">
+<link rel="stylesheet" href="{{ asset('css/app.css') }}">

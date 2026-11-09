@@ -1,0 +1,3 @@
+{%- set cls = f.look == 'arrow' ? 'link-arrow' : 'btn' ~ (f.look != 'primary' ? ' btn--' ~ f.look) ~ (f.size != 'normal' ? ' btn--' ~ f.size) ~ (f.block ? ' btn--block') -%}
+{%- set ic = f.icon ?: (f.look == 'arrow' ? 'arrow-right' : '') -%}
+<a{{ battr(b, cls, {href: f.url ?: '#', target: f.blank ? '_blank' : null, rel: f.blank ? 'noopener' : null}) }}>{% if ic and (f.icon_pos == 'before' and f.look != 'arrow') %}{{ icon(ic) }}{% endif %}<span{{ bedit('label') }}>{{ f.label }}</span>{% if ic and (f.icon_pos == 'after' or f.look == 'arrow') %}{{ icon(ic) }}{% endif %}{% if f.blank %}<span class="visually-hidden"> (öffnet in neuem Fenster)</span>{% endif %}</a>

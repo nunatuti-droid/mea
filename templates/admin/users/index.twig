@@ -1,0 +1,42 @@
+{% extends 'admin/layout.twig' %}
+{% import 'admin/partials/ui.twig' as ui %}
+{% block content %}
+  <div class="adm-head"><div><h1>Benutzer</h1><p class="adm-head__intro">Jedes Konto braucht die Zwei-Faktor-Anmeldung. Neue Personen werden per E-Mail eingeladen; der Link gilt 48 Stunden.</p></div></div>
+  <div class="table-wrap" tabindex="0">
+    <table class="tbl">
+      <caption class="visually-hidden">Benutzer</caption>
+      <thead><tr><th scope="col">Name</th><th scope="col">E-Mail</th><th scope="col">Rolle</th><th scope="col">Zwei-Faktor</th><th scope="col">Letzte Anmeldung</th><th scope="col">Status</th></tr></thead>
+      <tbody>
+        {% for u in users %}
+          <tr>
+            <th scope="row"><a href="/verwaltung/benutzer/{{ u.id }}/">{{ u.name }}</a></th>
+            <td>{{ u.email }}</td><td>{{ roles[u.role] }}</td>
+            <td>{{ u.totp_enabled_at ? 'eingerichtet' : '–' }}</td>
+            <td>{{ u.last_login_at ? u.last_login_at|utc|date('d.m.Y H:i') : '–' }}</td>
+            <td>{{ ui.status(u.status, labels.user_status) }}{% if u.status == 'invited' and u.invite_expires %}<br><span class="text-sm text-muted">Link bis {{ u.invite_expires|utc|date('d.m. H:i') }}</span>{% endif %}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <section class="card mt" id="einladen">
+    <h2 class="h3">Person einladen</h2>
+    <form method="post" action="/verwaltung/benutzer/einladen/" class="form-grid" novalidate>
+      <input type="hidden" name="_csrf" value="{{ csrf }}">
+      {{ ui.field({name: 'name', label: 'Name', required: true, max: 120}, values, errors, []) }}
+      {{ ui.field({name: 'email', label: 'E-Mail-Adresse', type: 'email', required: true}, values, errors, []) }}
+      {{ ui.field({name: 'role', label: 'Rolle', type: 'select', required: true, options: roles, placeholder: 'Bitte wählen'}, values, errors, []) }}
+      <div class="field"><span class="field__help">Für eine Administrator-Einladung bestätigen Sie Ihre Identität erneut.</span><button class="btn btn--primary" type="submit">{{ icon('send') }}Einladung senden</button></div>
+    </form>
+  </section>
+  <section class="card">
+    <h2 class="h3">Was darf welche Rolle?</h2>
+    <div class="table-wrap" tabindex="0">
+      <table class="tbl tbl--compact">
+        <caption class="visually-hidden">Rechte je Rolle</caption>
+        <thead><tr><th scope="col">Bereich</th>{% for r, l in roles %}<th scope="col">{{ l }}</th>{% endfor %}</tr></thead>
+        <tbody>{% for p, l in permissions %}<tr><th scope="row">{{ l }}</th>{% for r in roles|keys %}<td>{{ matrix[r][p] ? '✓' : '–' }}<span class="visually-hidden">{{ matrix[r][p] ? 'erlaubt' : 'nicht erlaubt' }}</span></td>{% endfor %}</tr>{% endfor %}</tbody>
+      </table>
+    </div>
+  </section>
+{% endblock %}

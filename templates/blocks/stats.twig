@@ -1,0 +1,1 @@
+<dl{{ battr(b, 'stats stats--' ~ f.look ~ ' b-grid--' ~ (f.items|length > 4 ? 4 : max(1, f.items|length))) }}>{% for i in f.items %}<div class="stats__item reveal"><dt>{{ i.label }}</dt><dd><strong>{{ i.value }}</strong>{% if i.text %}<span>{{ i.text }}</span>{% endif %}</dd></div>{% endfor %}</dl>

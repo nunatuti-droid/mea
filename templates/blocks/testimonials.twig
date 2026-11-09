@@ -1,0 +1,8 @@
+{% import 'partials/macros.twig' as ui %}
+<div{{ battr(b, 'grid grid--3') }}>
+{% for r in d.reviews %}
+  <figure class="quote-card reveal">{{ icon('quote') }}{% if r.rating %}{{ ui.stars(r.rating) }}{% endif %}<blockquote>„{{ r.body }}“</blockquote><figcaption><strong>{{ r.display_name }}</strong>{{ r.role_label }}</figcaption></figure>
+{% else %}
+  {% if ctx.editing %}<p class="b-placeholder">Noch keine Bewertungen eingetragen.</p>{% endif %}
+{% endfor %}
+</div>

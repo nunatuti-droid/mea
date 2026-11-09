@@ -1,0 +1,5 @@
+{%- set rows = f.rows|split("\n") -%}
+<div{{ battr(b, 'table-wrap') }}><table class="table{{ f.stack ? ' table--stack' }}">{% if f.caption %}<caption class="visually-hidden">{{ f.caption }}</caption>{% endif %}
+{%- set head = f.head ? rows|first|split('|')|map(c => c|trim) : [] -%}
+{% if f.head %}<thead><tr>{% for c in head %}<th scope="col">{{ c }}</th>{% endfor %}</tr></thead>{% endif %}
+<tbody>{% for r in (f.head ? rows|slice(1) : rows) %}<tr>{% for c in r|split('|') %}<td{% if f.stack and head[loop.index0] is defined %} data-label="{{ head[loop.index0] }}"{% endif %}>{{ c|trim }}</td>{% endfor %}</tr>{% endfor %}</tbody></table></div>

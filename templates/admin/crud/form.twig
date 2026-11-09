@@ -1,0 +1,78 @@
+{% extends 'admin/layout.twig' %}
+{% import 'admin/partials/ui.twig' as ui %}
+{% block content %}
+  <p class="crumb"><a href="/verwaltung/{{ r.key }}/">{{ icon('arrow-left') }}{{ r.plural }}</a></p>
+  <div class="adm-head">
+    <div><h1>{{ title }}</h1></div>
+    <div class="adm-head__actions">
+      {% if public_url %}<a class="btn btn--ghost btn--sm" href="{{ public_url }}" target="_blank" rel="noopener">{{ icon('eye') }}Ansehen</a>{% endif %}
+      {% if r.revisionEntity and id %}<a class="btn btn--ghost btn--sm" href="/verwaltung/{{ r.key }}/{{ id }}/vorschau/{{ loaded_revision ? '?rev=' ~ loaded_revision.id }}" target="_blank" rel="noopener">{{ icon('monitor-smartphone') }}Vorschau</a>{% endif %}
+      {% for a in actions %}
+        {% if a.post is defined and a.post %}
+          <form method="post" action="{{ a.url }}" class="inline"{% if a.confirm is defined %} data-confirm="{{ a.confirm }}"{% endif %}><input type="hidden" name="_csrf" value="{{ csrf }}"><button class="btn btn--ghost btn--sm" type="submit">{{ icon(a.icon) }}{{ a.label }}</button></form>
+        {% else %}
+          <a class="btn btn--ghost btn--sm" href="{{ a.url }}">{{ icon(a.icon) }}{{ a.label }}</a>
+        {% endif %}
+      {% endfor %}
+      {% block head_actions %}{% endblock %}
+    </div>
+  </div>
+  {% if loaded_revision %}
+    <div class="alert alert--info" role="status">{{ icon('history') }}<p>Sie sehen {{ loaded_revision.kind == 'draft' ? 'den Entwurf' : 'die Version' }} vom {{ loaded_revision.created_at|utc|date('d.m.Y H:i') }}{% if loaded_revision.user_name %} ({{ loaded_revision.user_name }}){% endif %}. Mit „Speichern und veröffentlichen“ wird dieser Stand live. <a href="/verwaltung/{{ r.key }}/{{ id }}/">Aktuellen Stand laden</a></p></div>
+  {% elseif latest_draft %}
+    <div class="alert alert--warning" role="status">{{ icon('file-pen') }}<p>Es gibt einen neueren Entwurf vom {{ latest_draft.created_at|utc|date('d.m.Y H:i') }}{% if latest_draft.user_name %} ({{ latest_draft.user_name }}){% endif %}. <a href="?rev={{ latest_draft.id }}">Entwurf laden</a></p></div>
+  {% endif %}
+  {% if errors is not empty %}
+    <div class="alert alert--error" role="alert" tabindex="-1" data-focus>
+      {{ icon('circle-alert') }}
+      <div><p><strong>Bitte prüfen Sie {{ errors|length == 1 ? 'das markierte Feld' : 'die markierten Felder' }}.</strong></p>
+      {% if errors._form is defined %}<p>{{ errors._form }}</p>{% endif %}
+      <ul>{% for k, e in errors|filter((e, k) => k != '_form') %}<li><a href="#f-{{ k }}">{{ e }}</a></li>{% endfor %}</ul></div>
+    </div>
+  {% endif %}
+  <form method="post" class="adm-form" data-dirty-guard novalidate>
+    <input type="hidden" name="_csrf" value="{{ csrf }}">
+    <input type="hidden" name="_version" value="{{ version }}">
+    {% for group, fields in groups %}
+      <fieldset class="card">
+        <legend>{{ group }}</legend>
+        <div class="form-grid">
+          {% for f in fields %}{{ ui.field(f, values, errors, media_options) }}{% endfor %}
+        </div>
+      </fieldset>
+    {% endfor %}
+    <div class="form-actions">
+      <button class="btn btn--primary" type="submit" name="_action" value="publish">{{ icon('check') }}{{ r.revisionEntity ? 'Speichern und veröffentlichen' : 'Speichern' }}</button>
+      {% if r.revisionEntity and id %}<button class="btn btn--ghost" type="submit" name="_action" value="draft">{{ icon('file-pen') }}Als Entwurf speichern</button>{% endif %}
+      <a class="btn btn--ghost" href="/verwaltung/{{ r.key }}/">Abbrechen</a>
+    </div>
+  </form>
+  {% for p in panels %}{% include p.template with p.data %}{% endfor %}
+  {% if revisions is not empty %}
+    <section class="card" id="versionen">
+      <h2 class="h3">Versionen</h2>
+      <table class="tbl tbl--compact">
+        <caption class="visually-hidden">Versionshistorie</caption>
+        <thead><tr><th scope="col">Zeitpunkt</th><th scope="col">Art</th><th scope="col">Von</th><th scope="col"><span class="visually-hidden">Aktionen</span></th></tr></thead>
+        <tbody>
+          {% for v in revisions %}
+            <tr><td>{{ v.created_at|utc|date('d.m.Y H:i') }}</td><td>{{ v.kind == 'draft' ? 'Entwurf' : 'Veröffentlicht' }}{% if v.note %} <span class="text-muted text-sm">({{ v.note }})</span>{% endif %}</td><td>{{ v.user_name ?? '–' }}</td>
+              <td class="num"><a href="/verwaltung/{{ r.key }}/{{ id }}/vorschau/?rev={{ v.id }}" target="_blank" rel="noopener">Vorschau</a> · <a href="?rev={{ v.id }}">Laden</a></td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <p class="text-sm text-muted">„Laden“ übernimmt eine Version ins Formular. Erst beim Speichern wird sie wiederhergestellt.</p>
+    </section>
+  {% endif %}
+  {% if id and r.deletable() %}
+    <section class="card card--danger">
+      <h2 class="h3">Löschen</h2>
+      {% if delete_blocker %}
+        <p>{{ delete_blocker }}</p>
+      {% else %}
+        <p>Dieser Eintrag wird endgültig entfernt.</p>
+        {{ ui.confirm_post('/verwaltung/' ~ r.key ~ '/' ~ id ~ '/loeschen/', 'Endgültig löschen', 'Wirklich löschen? Das kann nicht rückgängig gemacht werden.', csrf, 'danger', 'trash-2') }}
+      {% endif %}
+    </section>
+  {% endif %}
+{% endblock %}

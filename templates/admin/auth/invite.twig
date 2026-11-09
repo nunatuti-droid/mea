@@ -1,0 +1,14 @@
+{% extends 'admin/layout.twig' %}
+{% set title = 'Einladung annehmen' %}
+{% block auth %}
+  <h1>Willkommen</h1>
+  <p>Sie wurden als <strong>{{ role }}</strong> für <strong>{{ email }}</strong> eingeladen. Legen Sie Ihren Namen und ein eigenes Passwort fest. Danach richten Sie die Zwei-Faktor-Anmeldung ein.</p>
+  {% set errors = errors ?? {} %}
+  <form method="post">
+    <input type="hidden" name="_csrf" value="{{ csrf }}">
+    <div class="field{{ errors.name is defined ? ' has-error' }}"><label for="name">Name</label><input id="name" type="text" name="name" value="{{ name }}" autocomplete="name" required{% if errors.name is defined %} aria-invalid="true" aria-describedby="name-err"{% endif %}>{% if errors.name is defined %}<p class="field__error" id="name-err">{{ errors.name }}</p>{% endif %}</div>
+    <div class="field{{ errors.password is defined ? ' has-error' }}"><label for="password">Passwort</label><input id="password" type="password" name="password" autocomplete="new-password" minlength="12" required aria-describedby="pw-help{{ errors.password is defined ? ' pw-err' }}"{% if errors.password is defined %} aria-invalid="true"{% endif %}><p class="field__help" id="pw-help">Mindestens 12 Zeichen. Ein Satz aus mehreren Wörtern ist leicht zu merken und sicher.</p>{% if errors.password is defined %}<p class="field__error" id="pw-err">{{ errors.password }}</p>{% endif %}</div>
+    <div class="field{{ errors.password_confirm is defined ? ' has-error' }}"><label for="password_confirm">Passwort wiederholen</label><input id="password_confirm" type="password" name="password_confirm" autocomplete="new-password" required{% if errors.password_confirm is defined %} aria-invalid="true" aria-describedby="pc-err"{% endif %}>{% if errors.password_confirm is defined %}<p class="field__error" id="pc-err">{{ errors.password_confirm }}</p>{% endif %}</div>
+    <button class="btn btn--primary" type="submit">Weiter zur Zwei-Faktor-Einrichtung</button>
+  </form>
+{% endblock %}

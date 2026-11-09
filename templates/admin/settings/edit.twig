@@ -1,0 +1,13 @@
+{% extends 'admin/layout.twig' %}
+{% import 'admin/partials/ui.twig' as ui %}
+{% block content %}
+  <div class="adm-head"><div><h1>Firmendaten &amp; SEO</h1><p class="adm-head__intro">Angaben, die auf vielen Seiten erscheinen: Kontakt, Startseite, Suchmaschinen und Fristen.</p></div></div>
+  {% if errors is not empty %}<div class="alert alert--error" role="alert" tabindex="-1" data-focus>{{ icon('circle-alert') }}<div><p><strong>Bitte prüfen Sie die markierten Felder.</strong></p><ul>{% for k, e in errors %}<li><a href="#f-{{ k }}">{{ e }}</a></li>{% endfor %}</ul></div></div>{% endif %}
+  <form method="post" class="adm-form" data-dirty-guard novalidate>
+    <input type="hidden" name="_csrf" value="{{ csrf }}">
+    {% for group, fields in groups %}
+      <fieldset class="card"><legend>{{ group }}</legend><div class="form-grid">{% for f in fields %}{{ ui.field(f, values, errors, media_options) }}{% endfor %}</div></fieldset>
+    {% endfor %}
+    <div class="form-actions"><button class="btn btn--primary" type="submit">{{ icon('check') }}Speichern</button></div>
+  </form>
+{% endblock %}

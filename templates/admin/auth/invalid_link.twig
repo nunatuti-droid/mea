@@ -1,0 +1,7 @@
+{% extends 'admin/layout.twig' %}
+{% set title = 'Link ungültig' %}
+{% block auth %}
+  <h1>Dieser Link ist nicht mehr gültig</h1>
+  <p>Einladungs- und Passwort-Links gelten nur einmal und nur für begrenzte Zeit. Bitten Sie einen Administrator um eine neue Einladung oder fordern Sie einen neuen Link an.</p>
+  <p><a href="/verwaltung/passwort-vergessen/">Neuen Passwort-Link anfordern</a></p>
+{% endblock %}

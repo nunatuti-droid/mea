@@ -1,0 +1,5 @@
+{% if site.google.profile_url ?? false %}
+<div{{ battr(b, 'b-rating') }}>{% include 'partials/google_rating.twig' with {variant: f.variant == 'card' ? 'card' : 'line'} %}</div>
+{% elseif ctx.editing %}
+<p{{ battr(b, 'b-placeholder') }}>Google-Bewertung erscheint, sobald das Google-Profil in der Verwaltung eingetragen ist.</p>
+{% endif %}

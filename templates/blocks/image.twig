@@ -1,0 +1,3 @@
+{%- set alt = f.alt == '-' ? '' : (f.alt ?: null) -%}
+{%- set attrs = {loading: f.eager ? 'eager' : 'lazy'}|merge(alt is not null ? {alt: alt} : {})|merge(f.eager ? {fetchpriority: 'high'} : {}) -%}
+<figure{{ battr(b, 'b-image b-ratio--' ~ f.ratio ~ ' b-shape--' ~ f.shape) }}>{% if f.url %}<a href="{{ f.url }}">{% endif %}{% if f.media %}{{ img(f.media, '(max-width: 900px) 100vw, 800px', attrs) }}{% elseif ctx.editing %}<span class="b-placeholder">Bild wählen</span>{% endif %}{% if f.url %}</a>{% endif %}{% if f.caption %}<figcaption>{{ f.caption }}</figcaption>{% endif %}</figure>

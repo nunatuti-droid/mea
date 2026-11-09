@@ -1,0 +1,12 @@
+{%- set c = site.company -%}
+<div{{ battr(b, 'stack') }}>
+  <div class="box{{ f.look == 'brand' ? ' box--brand' }}">
+    {% if f.title %}<h2 class="h-sm">{{ f.title }}</h2>{% endif %}
+    <ul class="contact-list mt-5">
+      {% if f.phone and c.phone %}<li><span class="card__icon">{{ icon('phone') }}</span><span>Telefon<br><a class="btn-link-light" href="tel:{{ c.phone|tel }}">{{ c.phone_display }}</a></span></li>{% endif %}
+      {% if f.whatsapp and c.whatsapp %}<li><span class="card__icon">{{ icon('message-circle') }}</span><span>WhatsApp<br><a class="btn-link-light" href="https://wa.me/{{ c.whatsapp|tel|replace({'+': ''}) }}" rel="noopener" target="_blank">{{ c.whatsapp_display }}</a></span></li>{% endif %}
+      {% if f.email and c.email %}<li><span class="card__icon">{{ icon('mail') }}</span><span>E-Mail<br><a class="btn-link-light" href="mailto:{{ c.email }}">{{ c.email }}</a></span></li>{% endif %}
+    </ul>
+  </div>
+  {% if f.locations %}{% for l in d.locations %}{% include 'partials/location_card.twig' with {l: l, linked: true} %}{% endfor %}{% endif %}
+</div>

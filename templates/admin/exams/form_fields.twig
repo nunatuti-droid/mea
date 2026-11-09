@@ -1,0 +1,36 @@
+<section class="card" id="zusatzfelder">
+  <h2 class="h3">Zusatzfelder für die Anmeldung</h2>
+  <p class="text-muted text-sm">Fragen, die nur bei dieser Prüfung gestellt werden, z. B. „Teilnahme an früheren telc-Prüfungen“. Standardangaben wie Geburtsdatum steuern Sie über die Buchungsregel.</p>
+  <form method="post" action="/verwaltung/pruefungen/{{ exam_id }}/felder/" data-repeat data-dirty-guard>
+    <input type="hidden" name="_csrf" value="{{ csrf }}">
+    <div data-repeat-list class="repeat-list">
+      {% for ff in form_fields %}
+        {% set i = loop.index0 %}
+        <div class="repeat-row repeat-row--field" data-repeat-item>
+          <div class="field"><label for="ff-l-{{ i }}">Frage / Bezeichnung</label><input id="ff-l-{{ i }}" type="text" name="fields[{{ i }}][label]" value="{{ ff.label }}" maxlength="150"></div>
+          <div class="field"><label for="ff-t-{{ i }}">Art</label><select id="ff-t-{{ i }}" name="fields[{{ i }}][type]">{% for k, l in field_types %}<option value="{{ k }}" {{ ff.field_type == k ? 'selected' }}>{{ l }}</option>{% endfor %}</select></div>
+          <div class="field"><label for="ff-k-{{ i }}">Kennung</label><input id="ff-k-{{ i }}" type="text" name="fields[{{ i }}][key]" value="{{ ff.field_key }}" maxlength="40"></div>
+          <label class="check"><input type="checkbox" name="fields[{{ i }}][required]" value="1" {{ ff.is_required ? 'checked' }}> <span>Pflicht</span></label>
+          <button type="button" class="btn btn--ghost btn--sm" data-repeat-remove aria-label="Feld {{ ff.label }} entfernen">{{ icon('trash-2') }}</button>
+          <div class="field field--wide"><label for="ff-o-{{ i }}">Optionen (nur bei „Auswahl“, eine pro Zeile)</label><textarea id="ff-o-{{ i }}" name="fields[{{ i }}][options]" rows="2">{{ (ff.options_json ? ff.options_json|json_decode : [])|join("\n") }}</textarea></div>
+          <div class="field field--wide"><label for="ff-h-{{ i }}">Hilfetext (optional)</label><input id="ff-h-{{ i }}" type="text" name="fields[{{ i }}][help]" value="{{ ff.help_text }}" maxlength="255"></div>
+        </div>
+      {% endfor %}
+    </div>
+    <template>
+      <div class="repeat-row repeat-row--field" data-repeat-item>
+        <div class="field"><label for="ff-l-__i__">Frage / Bezeichnung</label><input id="ff-l-__i__" type="text" name="fields[__i__][label]" maxlength="150"></div>
+        <div class="field"><label for="ff-t-__i__">Art</label><select id="ff-t-__i__" name="fields[__i__][type]">{% for k, l in field_types %}<option value="{{ k }}">{{ l }}</option>{% endfor %}</select></div>
+        <div class="field"><label for="ff-k-__i__">Kennung</label><input id="ff-k-__i__" type="text" name="fields[__i__][key]" maxlength="40" placeholder="automatisch"></div>
+        <label class="check"><input type="checkbox" name="fields[__i__][required]" value="1"> <span>Pflicht</span></label>
+        <button type="button" class="btn btn--ghost btn--sm" data-repeat-remove aria-label="Feld entfernen">{{ icon('trash-2') }}</button>
+        <div class="field field--wide"><label for="ff-o-__i__">Optionen (nur bei „Auswahl“, eine pro Zeile)</label><textarea id="ff-o-__i__" name="fields[__i__][options]" rows="2"></textarea></div>
+        <div class="field field--wide"><label for="ff-h-__i__">Hilfetext (optional)</label><input id="ff-h-__i__" type="text" name="fields[__i__][help]" maxlength="255"></div>
+      </div>
+    </template>
+    <div class="row mt">
+      <button type="button" class="btn btn--ghost btn--sm" data-repeat-add>{{ icon('plus') }}Feld hinzufügen</button>
+      <button type="submit" class="btn btn--primary btn--sm">Felder speichern</button>
+    </div>
+  </form>
+</section>

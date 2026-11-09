@@ -1,0 +1,10 @@
+{% import 'partials/macros.twig' as ui %}
+<div{{ battr(b, 'faq-block') }}>
+{% if d.faqs is empty %}
+  <p>{{ f.empty }}</p>
+{% elseif f.grouped %}
+  {% for name, items in d.groups %}<h2 class="{{ loop.first ? '' : 'mt-7' }}">{{ name }}</h2>{{ ui.faq_list(items) }}{% endfor %}
+{% else %}
+  {{ ui.faq_list(d.faqs) }}
+{% endif %}
+</div>

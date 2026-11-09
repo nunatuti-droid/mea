@@ -1,0 +1,108 @@
+{% extends 'admin/layout.twig' %}
+{% import 'admin/partials/ui.twig' as ui %}
+{% block content %}
+  {% set s = b.snapshot %}
+  {% set p = b.participant %}
+  <p class="crumb"><a href="/verwaltung/buchungen/">{{ icon('arrow-left') }}Buchungen</a></p>
+  <div class="adm-head">
+    <div><h1 class="mono">{{ b.public_ref }}</h1><p class="row">{{ ui.status(b.status, labels.booking_status) }} {{ ui.status(b.payment_status, labels.payment_status) }}</p></div>
+    <div class="adm-head__actions">
+      {% if b.status == 'confirmed' %}
+        <form method="post" action="/verwaltung/buchungen/{{ b.id }}/bestaetigung/" class="inline"><input type="hidden" name="_csrf" value="{{ csrf }}"><button class="btn btn--ghost btn--sm" type="submit">{{ icon('send') }}Bestätigung erneut senden</button></form>
+      {% endif %}
+      {% if b.status in ['pending_payment', 'expired', 'cancelled'] and b.payments is not empty and b.payment_status != 'paid' %}
+        <form method="post" action="/verwaltung/buchungen/{{ b.id }}/zahlung-pruefen/" class="inline"><input type="hidden" name="_csrf" value="{{ csrf }}"><button class="btn btn--ghost btn--sm" type="submit">{{ icon('refresh-cw') }}Zahlung bei PayPal prüfen</button></form>
+      {% endif %}
+    </div>
+  </div>
+  {% if current_session.status == 'cancelled' and b.status == 'confirmed' %}
+    <div class="alert alert--warning" role="status">{{ icon('circle-alert') }}<p>Der Termin wurde abgesagt. Bitte stornieren und erstatten oder die Person auf einen anderen Termin umbuchen.</p></div>
+  {% endif %}
+  <div class="grid-2">
+    <section class="card">
+      <h2 class="h3">Prüfung und Termin <span class="text-muted text-sm">(Stand bei Buchung)</span></h2>
+      <dl class="kv">
+        <dt>Prüfung</dt><dd>{{ s.exam.public_name }}{% if s.exam.level %} ({{ s.exam.level }}){% endif %}</dd>
+        <dt>Termin</dt><dd><a href="/verwaltung/termine/{{ b.exam_session_id }}/">{{ s.session.starts_at|utc|date('d.m.Y H:i') }} Uhr</a>{% if current_session.starts_at != s.session.starts_at %}<br><span class="text-sm">Aktuell: {{ current_session.starts_at|utc|date('d.m.Y H:i') }} Uhr</span>{% endif %}</dd>
+        <dt>Ort</dt><dd>{{ s.session.location.name }}</dd>
+        <dt>Preis</dt><dd>Prüfungsgebühr {{ s.price.base_cents|money(s.price.currency) }}{% for f in s.price.fees %}<br>{{ f.label }} {{ f.amount_cents|money(s.price.currency) }}{% endfor %}<br><strong>Gesamt {{ b.total_cents|money(b.currency) }}</strong></dd>
+        <dt>Bedingungen</dt><dd>{{ b.terms_version_id ? 'Fassung #' ~ b.terms_version_id ~ ' bestätigt' : 'keine hinterlegt' }}{% if b.privacy_accepted_at %}, Datenschutz bestätigt am {{ b.privacy_accepted_at|utc|date('d.m.Y H:i') }}{% endif %}</dd>
+        <dt>Gebucht</dt><dd>{{ b.created_at|utc|date('d.m.Y H:i') }}{% if b.confirmed_at %}, bestätigt {{ b.confirmed_at|utc|date('d.m.Y H:i') }}{% endif %}</dd>
+        {% if b.cancelled_at %}<dt>Storniert</dt><dd>{{ b.cancelled_at|utc|date('d.m.Y H:i') }}: {{ b.cancel_reason }}</dd>{% endif %}
+      </dl>
+    </section>
+    <section class="card">
+      <h2 class="h3">Teilnehmer/in</h2>
+      {% if p.anonymized_at %}<p class="text-muted">Daten wurden am {{ p.anonymized_at|utc|date('d.m.Y') }} anonymisiert.</p>{% else %}
+      <dl class="kv">
+        <dt>Name</dt><dd>{{ p.salutation }} {{ p.first_name }} {{ p.last_name }}</dd>
+        <dt>E-Mail</dt><dd><a href="mailto:{{ p.email }}">{{ p.email }}</a></dd>
+        {% if p.phone %}<dt>Telefon</dt><dd><a href="tel:{{ p.phone|tel }}">{{ p.phone }}</a></dd>{% endif %}
+        {% if p.birth_date %}<dt>Geburtsdatum</dt><dd>{{ p.birth_date|date('d.m.Y', false) }}</dd>{% endif %}
+        {% if p.birth_place %}<dt>Geburtsort</dt><dd>{{ p.birth_place }}</dd>{% endif %}
+        {% if p.street %}<dt>Anschrift</dt><dd>{{ p.street }}<br>{{ p.postal_code }} {{ p.city }}</dd>{% endif %}
+        {% for k, x in extra %}<dt>{{ x.label }}</dt><dd>{{ x.value is same as(true) ? 'ja' : (x.value is same as(false) ? 'nein' : x.value) }}</dd>{% endfor %}
+      </dl>{% endif %}
+    </section>
+  </div>
+  <section class="card">
+    <h2 class="h3">Zahlungen</h2>
+    {% if b.payments is empty %}<p class="text-muted">Kein Zahlungsvorgang.</p>{% else %}
+      <table class="tbl tbl--compact">
+        <caption class="visually-hidden">Zahlungen</caption>
+        <thead><tr><th scope="col">Anbieter</th><th scope="col">Vorgang</th><th scope="col">Transaktion</th><th scope="col">Status</th><th scope="col" class="num">Betrag</th><th scope="col" class="num">Erstattet</th></tr></thead>
+        <tbody>{% for pay in b.payments %}<tr><td>{{ pay.provider|upper }} {{ pay.mode == 'sandbox' ? '(Test)' }}</td><td class="mono">{{ pay.provider_order_id }}</td><td class="mono">{{ pay.provider_capture_id ?? '–' }}</td><td>{{ pay.status }}{% if pay.last_error %}<br><span class="text-sm text-muted">{{ pay.last_error }}</span>{% endif %}</td><td class="num">{{ pay.amount_cents|money(pay.currency) }}</td><td class="num">{{ pay.refunded_cents|money(pay.currency) }}</td></tr>{% endfor %}</tbody>
+      </table>
+    {% endif %}
+    {% if b.refunds is not empty %}
+      <h3 class="h3 mt">Erstattungen</h3>
+      <ul class="list-plain">{% for r in b.refunds %}<li><span>{{ r.amount_cents|money(b.currency) }} – {{ r.reason }}</span><span class="text-sm text-muted">{{ r.status }} · {{ r.created_at|utc|date('d.m.Y H:i') }}{% if r.user_name %} · {{ r.user_name }}{% endif %}</span></li>{% endfor %}</ul>
+    {% endif %}
+  </section>
+  <div class="grid-2">
+    {% if b.status not in ['cancelled', 'expired', 'refunded'] %}
+    <section class="card card--danger">
+      <h2 class="h3">Stornieren</h2>
+      <form method="post" action="/verwaltung/buchungen/{{ b.id }}/stornieren/" class="stack" data-confirm="Buchung wirklich stornieren?">
+        <input type="hidden" name="_csrf" value="{{ csrf }}">
+        <div class="field"><label for="c-reason">Grund <span class="req" aria-hidden="true">*</span></label><input id="c-reason" type="text" name="reason" maxlength="255" required></div>
+        {% if b.payment_status == 'paid' and can.refunds %}
+          <label class="check"><input type="checkbox" name="refund" value="1" checked> <span>Über PayPal erstatten</span></label>
+          <div class="field"><label for="c-amount">Betrag (leer = vollständig {{ open_refund|money(b.currency) }})</label><input id="c-amount" type="text" name="amount" inputmode="decimal" placeholder="{{ (open_refund / 100)|number_format(2, ',', '') }}"></div>
+          <p class="text-sm text-muted">Prüfen Sie die Stornoregel: kostenlos bis {{ s.rule.free_cancellation_days ?? '–' }} Tage vorher{% if s.rule.cancellation_fee_cents ?? false %}, danach Gebühr {{ s.rule.cancellation_fee_cents|money }}{% elseif s.rule.cancellation_fee_percent ?? false %}, danach {{ s.rule.cancellation_fee_percent }} %{% endif %}.</p>
+        {% endif %}
+        <label class="check"><input type="checkbox" name="notify" value="1" checked> <span>Teilnehmer/in per E-Mail informieren</span></label>
+        <button class="btn btn--danger" type="submit">{{ icon('ban') }}Stornieren</button>
+      </form>
+    </section>
+    {% endif %}
+    {% if can.refunds and open_refund > 0 and b.status in ['confirmed', 'cancelled'] %}
+    <section class="card">
+      <h2 class="h3">Erstatten (ohne Stornierung)</h2>
+      <form method="post" action="/verwaltung/buchungen/{{ b.id }}/erstatten/" class="stack" data-confirm="Erstattung jetzt über PayPal ausführen?">
+        <input type="hidden" name="_csrf" value="{{ csrf }}">
+        <div class="field"><label for="r-amount">Betrag (höchstens {{ open_refund|money(b.currency) }})</label><input id="r-amount" type="text" name="amount" inputmode="decimal" required></div>
+        <div class="field"><label for="r-reason">Grund</label><input id="r-reason" type="text" name="reason" maxlength="255" required></div>
+        <label class="check"><input type="checkbox" name="notify" value="1" checked> <span>Per E-Mail informieren</span></label>
+        <button class="btn btn--ghost" type="submit">{{ icon('rotate-ccw') }}Erstatten</button>
+      </form>
+    </section>
+    {% endif %}
+  </div>
+  <section class="card">
+    <h2 class="h3">Interne Notiz</h2>
+    <form method="post" action="/verwaltung/buchungen/{{ b.id }}/notiz/" class="stack">
+      <input type="hidden" name="_csrf" value="{{ csrf }}">
+      <label class="visually-hidden" for="note">Interne Notiz</label><textarea id="note" name="internal_note" rows="3" maxlength="5000">{{ b.internal_note }}</textarea>
+      <div><button class="btn btn--ghost btn--sm" type="submit">Notiz speichern</button></div>
+    </form>
+  </section>
+  <div class="grid-2">
+    <section class="card"><h2 class="h3">E-Mails</h2>
+      {% if emails is empty %}<p class="text-muted">Keine.</p>{% else %}<ul class="list-plain">{% for e in emails %}<li><a href="/verwaltung/email-protokoll/{{ e.id }}/">{{ e.subject }}</a> {{ ui.status(e.status, labels.email_status) }}</li>{% endfor %}</ul>{% endif %}
+    </section>
+    <section class="card"><h2 class="h3">Verlauf</h2>
+      <ul class="list-plain">{% for h in history %}<li><span>{{ h.summary }}</span><span class="text-sm text-muted">{{ h.created_at|utc|date('d.m.Y H:i') }}{% if h.name %} · {{ h.name }}{% endif %}</span></li>{% endfor %}</ul>
+    </section>
+  </div>
+{% endblock %}

@@ -1,0 +1,40 @@
+{# Cookie-Einwilligung: Banner beim ersten Besuch, Einstellungen jederzeit über den Link im Fußbereich #}
+<script type="application/json" id="consent-config">{{ consent.client|json_ld }}</script>
+<section class="consent" id="consent-banner" aria-labelledby="consent-title" hidden>
+  <div class="consent__body">
+    <h2 id="consent-title" class="consent__title">Ihre Privatsphäre</h2>
+    <p>Wir verwenden notwendige Cookies, damit die Website funktioniert. {% if consent.categories|length > 2 %}Mit Ihrer Einwilligung nutzen wir zusätzlich Dienste für Statistik, Marketing oder externe Medien.{% else %}Externe Inhalte wie Karten laden wir nur mit Ihrer Einwilligung.{% endif %} Ihre Auswahl können Sie jederzeit unter „Cookie-Einstellungen“ ändern oder widerrufen. Mehr dazu in der <a href="/datenschutz/">Datenschutzerklärung</a>.</p>
+  </div>
+  <div class="consent__actions">
+    <button type="button" class="btn btn--sm" data-consent="accept">Alle akzeptieren</button>
+    <button type="button" class="btn btn--sm" data-consent="reject">Nur notwendige</button>
+    <button type="button" class="btn btn--sm btn--secondary" data-consent-open>Einstellungen</button>
+  </div>
+</section>
+<dialog class="consent-dialog" id="consent-dialog" aria-labelledby="consent-dialog-title">
+  <form method="dialog" class="consent-dialog__inner">
+    <div class="consent-dialog__head">
+      <h2 id="consent-dialog-title">Cookie-Einstellungen</h2>
+      <button type="submit" class="consent-dialog__close" value="close" aria-label="Schließen">{{ icon('x') }}</button>
+    </div>
+    <p class="consent-dialog__intro">Wählen Sie, welche Dienste wir verwenden dürfen. Notwendige Cookies sind immer aktiv. Sie können Ihre Einwilligung jederzeit hier widerrufen.</p>
+    {% for c in consent.categories %}
+      <div class="consent-cat">
+        <div class="consent-cat__head">
+          <h3 id="cc-{{ c.key }}">{{ c.label }}</h3>
+          <label class="switch">
+            <input type="checkbox" role="switch" name="cat" value="{{ c.key }}" aria-labelledby="cc-{{ c.key }}"{% if c.required %} checked disabled{% endif %}>
+            <span class="switch__track" aria-hidden="true"></span>
+          </label>
+        </div>
+        <p>{{ c.text }}</p>
+        <ul>{% for s in c.services %}<li><strong>{{ s.name }}:</strong> {{ s.text }}</li>{% endfor %}</ul>
+      </div>
+    {% endfor %}
+    <div class="consent-dialog__actions">
+      <button type="button" class="btn btn--sm" data-consent="save">Auswahl speichern</button>
+      <button type="button" class="btn btn--sm btn--secondary" data-consent="reject">Nur notwendige</button>
+      <button type="button" class="btn btn--sm btn--secondary" data-consent="accept">Alle akzeptieren</button>
+    </div>
+  </form>
+</dialog>

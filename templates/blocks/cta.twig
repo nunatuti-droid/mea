@@ -1,0 +1,10 @@
+<div{{ battr(b, 'cta-band reveal') }}>
+  <div>
+    <h2{{ bedit('title') }}>{{ f.title }}</h2>
+    {% if f.text %}<p>{{ f.text }}</p>{% endif %}
+  </div>
+  <div class="btn-row">
+    {% if f.btn_label %}<a class="btn btn--light" href="{{ f.btn_url ?: '/kontakt/' }}">{{ icon('mail') }}{{ f.btn_label }}</a>{% endif %}
+    {% if f.phone %}<a class="btn btn--ghost-light" href="tel:{{ site.company.phone|tel }}">{{ icon('phone') }}{{ site.company.phone_display }}</a>{% endif %}
+  </div>
+</div>

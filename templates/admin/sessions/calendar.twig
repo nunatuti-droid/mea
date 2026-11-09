@@ -1,0 +1,50 @@
+{% extends 'admin/layout.twig' %}
+{% block content %}
+  <div class="adm-head">
+    <div><h1>Kalender</h1></div>
+    <a class="btn btn--primary" href="/verwaltung/termine/neu/">{{ icon('plus') }}Termin anlegen</a>
+  </div>
+  <div class="cal-nav">
+    <h2>{{ label }}</h2>
+    <a class="btn btn--ghost btn--sm" href="?ansicht={{ view }}&datum={{ prev }}{{ location_filter ? '&ort=' ~ location_filter }}" aria-label="Zurück">‹</a>
+    <a class="btn btn--ghost btn--sm" href="?ansicht={{ view }}&datum={{ today }}{{ location_filter ? '&ort=' ~ location_filter }}">Heute</a>
+    <a class="btn btn--ghost btn--sm" href="?ansicht={{ view }}&datum={{ next }}{{ location_filter ? '&ort=' ~ location_filter }}" aria-label="Weiter">›</a>
+    <nav class="seg" aria-label="Ansicht">
+      {% for v, l in {monat: 'Monat', woche: 'Woche', tag: 'Tag'} %}<a href="?ansicht={{ v }}&datum={{ date|date('Y-m-d') }}{{ location_filter ? '&ort=' ~ location_filter }}"{% if view == v %} aria-current="page"{% endif %}>{{ l }}</a>{% endfor %}
+    </nav>
+    <form method="get" class="row">
+      <input type="hidden" name="ansicht" value="{{ view }}"><input type="hidden" name="datum" value="{{ date|date('Y-m-d') }}">
+      <label class="visually-hidden" for="ort">Standort</label>
+      <select id="ort" name="ort"><option value="">Alle Standorte</option>{% for l in locations %}<option value="{{ l.id }}" {{ location_filter == l.id ? 'selected' }}>{{ l.short_name }}</option>{% endfor %}</select>
+      <button class="btn btn--ghost btn--sm" type="submit">Filtern</button>
+    </form>
+  </div>
+  {% macro ev(s) %}
+    <a class="cal__ev{{ s.status == 'cancelled' ? ' cal__ev--cancelled' : (s.status == 'closed' ? ' cal__ev--closed' : (s.full ? ' cal__ev--full' : '')) }}" href="/verwaltung/termine/{{ s.id }}/">
+      <strong>{{ s.local|date('H:i') }}</strong> {{ s.public_name }}<br>{{ s.location }} · {{ s.taken }}/{{ s.capacity }}{% if s.status == 'cancelled' %} · abgesagt{% elseif s.full %} · voll{% endif %}
+    </a>
+  {% endmacro %}
+  {% import _self as c %}
+  {% if view == 'monat' %}
+    <div class="cal">
+      {% for d in ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'] %}<div class="cal__dow" aria-hidden="true">{{ d }}</div>{% endfor %}
+      {% for d in days %}
+        <div class="cal__day{{ d.other ? ' cal__day--other' }}{{ d.today ? ' cal__day--today' }}{{ d.holiday ? ' cal__day--holiday' }}">
+          <a class="cal__num" href="?ansicht=tag&datum={{ d.key }}"><span aria-hidden="true">{{ d.date|date('j') }}</span><span class="visually-hidden">{{ d.date|format_date(pattern='EEEE, d. MMMM', locale='de') }}</span></a>
+          {% if d.holiday %}<span class="cal__holiday">{{ d.holiday }}</span>{% endif %}
+          {% for s in d.sessions %}{{ c.ev(s) }}{% endfor %}
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <ul class="agenda card">
+      {% for d in days %}
+        <li>
+          <div class="agenda__date">{{ d.date|format_date(pattern='EEE, d. MMM', locale='de') }}{% if d.holiday %}<br><span class="cal__holiday">{{ d.holiday }}</span>{% endif %}</div>
+          <div class="stack">{% for s in d.sessions %}{{ c.ev(s) }}{% else %}<span class="text-muted text-sm">Keine Termine</span>{% endfor %}</div>
+        </li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+  <p class="text-sm text-muted mt">Klick auf einen Termin öffnet ihn zum Bearbeiten oder Verschieben. Feiertage werden aus der Feiertagsliste angezeigt.</p>
+{% endblock %}

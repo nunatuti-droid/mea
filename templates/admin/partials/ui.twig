@@ -1,0 +1,91 @@
+{# Formularfelder und Bausteine der Verwaltung #}
+{% macro field(f, values, errors, media_options) %}
+  {% set name = f.name %}
+  {% set type = f.type ?? 'text' %}
+  {% set id = 'f-' ~ name %}
+  {% set err = errors[name] ?? null %}
+  {% set val = values[name] ?? '' %}
+  {% set described = (f.help is defined ? id ~ '-help ' : '') ~ (err ? id ~ '-err' : '') %}
+  <div class="field field--{{ type }}{{ err ? ' has-error' : '' }}{{ f.wide is defined and f.wide ? ' field--wide' : '' }}">
+    {% if type == 'multi' %}
+      <fieldset class="multi"{% if described %} aria-describedby="{{ described|trim }}"{% endif %}>
+        <legend>{{ f.label }}{% if f.required is defined and f.required %} <span class="req" aria-hidden="true">*</span>{% endif %}</legend>
+        {% for k, label in f.options %}<label class="check"><input type="checkbox" name="{{ name }}[]" value="{{ k }}" {{ (k ~ '') in val ? 'checked' }}> <span>{{ label }}</span></label>{% endfor %}
+      </fieldset>
+    {% elseif type == 'checkbox' %}
+      <label class="check"><input type="checkbox" id="{{ id }}" name="{{ name }}" value="1" {{ val == '1' ? 'checked' }}{% if described %} aria-describedby="{{ described|trim }}"{% endif %}{{ f.readonly is defined and f.readonly ? ' disabled' }}> <span>{{ f.label }}</span></label>
+    {% else %}
+      <label for="{{ id }}">{{ f.label }}{% if f.required is defined and f.required %} <span class="req" aria-hidden="true">*</span>{% endif %}</label>
+      {% set common = ' id="' ~ id ~ '" name="' ~ name ~ '"' ~ (f.required is defined and f.required ? ' required aria-required="true"' : '') ~ (err ? ' aria-invalid="true"' : '') ~ (described ? ' aria-describedby="' ~ described|trim ~ '"' : '') ~ (f.readonly is defined and f.readonly ? ' readonly' : '') %}
+      {% if type == 'textarea' or type == 'lines' %}
+        <textarea{{ common|raw }} rows="{{ f.rows ?? (type == 'lines' ? 5 : 4) }}"{% if f.max is defined %} maxlength="{{ f.max }}"{% endif %}>{{ val }}</textarea>
+      {% elseif type == 'html' %}
+        <div class="editor" data-editor>
+          <div class="editor__bar" role="toolbar" aria-label="Formatierung">
+            <button type="button" data-cmd="formatBlock" data-arg="h2" title="Überschrift 2">{{ icon('heading-2') }}</button>
+            <button type="button" data-cmd="formatBlock" data-arg="h3" title="Überschrift 3">{{ icon('heading-3') }}</button>
+            <button type="button" data-cmd="formatBlock" data-arg="p" title="Absatz">¶</button>
+            <span class="editor__sep"></span>
+            <button type="button" data-cmd="bold" title="Fett">{{ icon('bold') }}</button>
+            <button type="button" data-cmd="italic" title="Kursiv">{{ icon('italic') }}</button>
+            <span class="editor__sep"></span>
+            <button type="button" data-cmd="insertUnorderedList" title="Aufzählung">{{ icon('list') }}</button>
+            <button type="button" data-cmd="insertOrderedList" title="Nummerierte Liste">{{ icon('list-ordered') }}</button>
+            <button type="button" data-cmd="formatBlock" data-arg="blockquote" title="Zitat">{{ icon('quote') }}</button>
+            <span class="editor__sep"></span>
+            <button type="button" data-action="link" title="Link einfügen">{{ icon('link') }}</button>
+            <button type="button" data-action="table" title="Tabelle einfügen">{{ icon('table') }}</button>
+            <button type="button" data-action="image" title="Bild aus der Mediathek">{{ icon('image') }}</button>
+            <span class="editor__sep"></span>
+            <button type="button" data-cmd="undo" title="Rückgängig">{{ icon('undo-2') }}</button>
+            <button type="button" data-cmd="redo" title="Wiederholen">{{ icon('redo-2') }}</button>
+            <button type="button" data-action="source" title="HTML-Quelltext" aria-pressed="false">{{ icon('code-xml') }}</button>
+          </div>
+          <div class="editor__area" contenteditable="true" role="textbox" aria-multiline="true" aria-labelledby="{{ id }}-label"></div>
+          <textarea{{ common|raw }} class="editor__source" rows="12">{{ val }}</textarea>
+        </div>
+        <span id="{{ id }}-label" class="visually-hidden">{{ f.label }}</span>
+      {% elseif type == 'select' %}
+        <select{{ common|raw }}{{ f.readonly is defined and f.readonly ? ' disabled' }}>
+          {% if f.placeholder is defined %}<option value="">{{ f.placeholder }}</option>{% endif %}
+          {% for k, label in f.options %}<option value="{{ k }}" {{ (k ~ '') == val ? 'selected' }}>{{ label }}</option>{% endfor %}
+        </select>
+      {% elseif type == 'media' %}
+        <div class="media-pick" data-media-pick>
+          <select{{ common|raw }}>
+            <option value="">– kein Bild –</option>
+            {% for m in media_options %}<option value="{{ m.id }}" data-thumb="{{ m.thumb ? '/media/' ~ m.thumb : '' }}" {{ (m.id ~ '') == val ? 'selected' }}>#{{ m.id }} {{ m.alt_text|default(m.original_name)|u.truncate(70, '…') }}</option>{% endfor %}
+          </select>
+          <img class="media-pick__thumb" alt="" hidden>
+        </div>
+      {% else %}
+        {% set html_type = {money: 'text', int: 'number', datetime: 'datetime-local', slug: 'text', email: 'email', tel: 'tel', url: 'text', date: 'date', time: 'time'}[type] ?? 'text' %}
+        <input type="{{ html_type }}"{{ common|raw }} value="{{ val }}"{% if f.max is defined %} maxlength="{{ f.max }}"{% endif %}{% if type == 'money' %} inputmode="decimal" placeholder="0,00"{% endif %}{% if f.min is defined %} min="{{ f.min }}"{% endif %}{% if type == 'slug' %} pattern="[a-z0-9]+(-[a-z0-9]+)*" data-slug-from="{{ f.from ?? '' }}"{% endif %}{% if f.counter is defined %} data-counter="{{ f.counter }}"{% endif %}>
+      {% endif %}
+    {% endif %}
+    {% if f.help is defined %}<p class="field__help" id="{{ id }}-help">{{ f.help }}</p>{% endif %}
+    {% if err %}<p class="field__error" id="{{ id }}-err">{{ icon('circle-alert') }}{{ err }}</p>{% endif %}
+  </div>
+{% endmacro %}
+
+{% macro status(value, map) %}
+  {% set s = map[value] ?? {label: value, tone: 'neutral'} %}
+  <span class="badge badge--{{ s.tone }}">{{ s.label }}</span>
+{% endmacro %}
+
+{% macro pager(page, pages, query, base) %}
+  {% if pages > 1 %}
+    <nav class="pager" aria-label="Seiten">
+      {% if page > 1 %}<a href="{{ base }}?{{ (query|merge({seite: page - 1}))|url_encode }}">‹ Zurück</a>{% endif %}
+      <span>Seite {{ page }} von {{ pages }}</span>
+      {% if page < pages %}<a href="{{ base }}?{{ (query|merge({seite: page + 1}))|url_encode }}">Weiter ›</a>{% endif %}
+    </nav>
+  {% endif %}
+{% endmacro %}
+
+{% macro confirm_post(action, label, question, csrf, tone, icon_name) %}
+  <form method="post" action="{{ action }}" class="inline" data-confirm="{{ question }}">
+    <input type="hidden" name="_csrf" value="{{ csrf }}">
+    <button class="btn btn--{{ tone ?? 'ghost' }} btn--sm" type="submit">{% if icon_name %}{{ icon(icon_name) }}{% endif %}{{ label }}</button>
+  </form>
+{% endmacro %}

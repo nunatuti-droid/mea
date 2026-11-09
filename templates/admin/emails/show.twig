@@ -1,0 +1,28 @@
+{% extends 'admin/layout.twig' %}
+{% import 'admin/partials/ui.twig' as ui %}
+{% block content %}
+  <p class="crumb"><a href="/verwaltung/email-protokoll/">{{ icon('arrow-left') }}E-Mail-Protokoll</a></p>
+  <div class="adm-head">
+    <div><h1>{{ m.subject }}</h1><p class="row">{{ ui.status(m.status, labels.email_status) }}</p></div>
+    {% if m.status == 'failed' %}
+      <form method="post" action="/verwaltung/email-protokoll/{{ m.id }}/erneut/" class="inline"><input type="hidden" name="_csrf" value="{{ csrf }}"><button class="btn btn--primary" type="submit">{{ icon('refresh-cw') }}Erneut senden</button></form>
+    {% endif %}
+  </div>
+  <section class="card">
+    <dl class="kv">
+      <dt>An</dt><dd>{{ m.to_name ? m.to_name ~ ' · ' }}{{ m.to_email }}</dd>
+      <dt>Vorlage</dt><dd>{{ m.template_key ?? '–' }}</dd>
+      <dt>Erstellt</dt><dd>{{ m.created_at|utc|date('d.m.Y H:i:s') }}</dd>
+      <dt>Gesendet</dt><dd>{{ m.sent_at ? m.sent_at|utc|date('d.m.Y H:i:s') : '–' }}</dd>
+      <dt>Versuche</dt><dd>{{ m.attempts }} von 5</dd>
+      {% if m.last_error %}<dt>Letzter Fehler</dt><dd class="mono text-sm">{{ m.last_error }}</dd>{% endif %}
+      {% if m.related_type == 'booking' %}<dt>Buchung</dt><dd><a href="/verwaltung/buchungen/{{ m.related_id }}/">Zur Buchung</a></dd>{% endif %}
+      {% if m.related_type == 'inquiry' %}<dt>Anfrage</dt><dd><a href="/verwaltung/anfragen/{{ m.related_id }}/">Zur Anfrage</a></dd>{% endif %}
+    </dl>
+  </section>
+  <section class="card">
+    <h2 class="h3">Inhalt</h2>
+    <iframe class="mail-frame" src="/verwaltung/email-protokoll/{{ m.id }}/inhalt/" title="Inhalt der E-Mail" sandbox></iframe>
+    <details class="mt"><summary>Textfassung</summary><pre class="pre">{{ m.body_text }}</pre></details>
+  </section>
+{% endblock %}

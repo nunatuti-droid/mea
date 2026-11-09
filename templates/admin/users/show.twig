@@ -1,0 +1,41 @@
+{% extends 'admin/layout.twig' %}
+{% import 'admin/partials/ui.twig' as ui %}
+{% block content %}
+  <p class="crumb"><a href="/verwaltung/benutzer/">{{ icon('arrow-left') }}Benutzer</a></p>
+  <div class="adm-head"><div><h1>{{ u.name }}</h1><p class="adm-head__intro">{{ u.email }} · {{ ui.status(u.status, labels.user_status) }}</p></div></div>
+  {% if is_last_admin %}<div class="alert alert--info" role="status">{{ icon('shield-check') }}<p>Das ist der letzte aktive Administrator. Rolle und Status können erst geändert werden, wenn es einen weiteren gibt.</p></div>{% endif %}
+  <div class="grid-2">
+    <section class="card">
+      <h2 class="h3">Konto</h2>
+      <form method="post" class="stack">
+        <input type="hidden" name="_csrf" value="{{ csrf }}">
+        <div class="field"><label for="name">Name</label><input id="name" type="text" name="name" value="{{ u.name }}" maxlength="120" required></div>
+        <div class="field"><label for="role">Rolle</label><select id="role" name="role">{% for k, l in roles %}<option value="{{ k }}" {{ u.role == k ? 'selected' }}>{{ l }}</option>{% endfor %}</select></div>
+        <div class="field"><label for="status">Status</label><select id="status" name="status">
+          {% if u.status == 'invited' %}<option value="invited" selected>Eingeladen</option>{% else %}<option value="active" {{ u.status == 'active' ? 'selected' }}>Aktiv</option>{% endif %}
+          <option value="disabled" {{ u.status == 'disabled' ? 'selected' }}>Gesperrt</option></select></div>
+        <p class="text-sm text-muted">Änderungen an Rolle oder Status erfordern eine erneute Bestätigung mit Passwort und Code.</p>
+        <div><button class="btn btn--primary" type="submit">Speichern</button></div>
+      </form>
+    </section>
+    <section class="card stack">
+      <h2 class="h3">Sicherheit</h2>
+      <p>Zwei-Faktor: <strong>{{ u.totp_enabled_at ? 'eingerichtet am ' ~ u.totp_enabled_at|utc|date('d.m.Y') : 'nicht eingerichtet' }}</strong><br>
+        Letzte Anmeldung: {{ u.last_login_at ? u.last_login_at|utc|date('d.m.Y H:i') : '–' }}<br>
+        {% if u.locked_until and u.locked_until > 'now'|date('Y-m-d H:i:s', 'UTC') %}<strong>Vorübergehend gesperrt</strong> nach Fehlversuchen.{% endif %}</p>
+      {% if u.status == 'invited' %}
+        {{ ui.confirm_post('/verwaltung/benutzer/' ~ u.id ~ '/einladung/', 'Einladung erneut senden', 'Neue Einladung senden? Der bisherige Link wird ungültig.', csrf, 'ghost', 'send') }}
+        {{ ui.confirm_post('/verwaltung/benutzer/' ~ u.id ~ '/einladung-widerrufen/', 'Einladung widerrufen', 'Einladung widerrufen?', csrf, 'ghost', 'ban') }}
+      {% endif %}
+      {% if u.totp_enabled_at and not is_self %}
+        {{ ui.confirm_post('/verwaltung/benutzer/' ~ u.id ~ '/2fa-zuruecksetzen/', 'Zwei-Faktor zurücksetzen', 'Zwei-Faktor-Anmeldung zurücksetzen? Die Person muss sie neu einrichten; alle Sitzungen werden beendet.', csrf, 'ghost', 'key-round') }}
+      {% endif %}
+      {{ ui.confirm_post('/verwaltung/benutzer/' ~ u.id ~ '/sitzungen-beenden/', 'Alle Sitzungen beenden', 'Alle Sitzungen dieser Person beenden?', csrf, 'ghost', 'log-out') }}
+      <h3 class="h3">Aktive Sitzungen</h3>
+      {% if sessions is empty %}<p class="text-muted text-sm">Keine.</p>{% else %}<ul class="list-plain">{% for s in sessions %}<li><span class="text-sm">{{ s.user_agent|u.truncate(70, '…') }}</span><span class="text-sm text-muted">{{ s.last_seen_at|utc|date('d.m. H:i') }}</span></li>{% endfor %}</ul>{% endif %}
+    </section>
+  </div>
+  <section class="card"><h2 class="h3">Letzte Aktivitäten</h2>
+    <ul class="list-plain">{% for a in activity %}<li><span>{{ a.summary }}</span><span class="text-sm text-muted">{{ a.created_at|utc|date('d.m.Y H:i') }}</span></li>{% else %}<li class="text-muted">Keine.</li>{% endfor %}</ul>
+  </section>
+{% endblock %}

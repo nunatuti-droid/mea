@@ -1,0 +1,13 @@
+{% extends 'admin/layout.twig' %}
+{% set title = 'Bestätigungscode' %}
+{% block auth %}
+  <h1>Bestätigungscode</h1>
+  <p>Geben Sie den 6-stelligen Code aus Ihrer Authenticator-App ein. Ohne Telefon können Sie einen Ihrer Backup-Codes verwenden.</p>
+  {% if error is defined and error %}<div class="alert alert--error" role="alert">{{ icon('circle-alert') }}<p>{{ error }}</p></div>{% endif %}
+  <form method="post" action="/verwaltung/anmelden/code/">
+    <input type="hidden" name="_csrf" value="{{ csrf }}">
+    <div class="field"><label for="code">Code</label><input id="code" type="text" name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="11" required autofocus></div>
+    <button class="btn btn--primary" type="submit">Anmelden</button>
+  </form>
+  <p class="text-sm mt"><a href="/verwaltung/anmelden/">Abbrechen</a></p>
+{% endblock %}

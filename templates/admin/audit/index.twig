@@ -1,0 +1,40 @@
+{% extends 'admin/layout.twig' %}
+{% import 'admin/partials/ui.twig' as ui %}
+{% block content %}
+  <div class="adm-head"><div><h1>Änderungsprotokoll</h1><p class="adm-head__intro">Wer hat wann was geändert. Einträge lassen sich nicht bearbeiten. Passwörter und Schlüssel werden nie gespeichert.</p></div></div>
+  <form class="toolbar" method="get" role="search">
+    <label class="visually-hidden" for="q">Suchen</label><input type="search" id="q" name="q" value="{{ query.q ?? '' }}" placeholder="Text suchen …">
+    <label class="visually-hidden" for="f-user">Person</label>
+    <select id="f-user" name="benutzer"><option value="">Person: alle</option>{% for u in users %}<option value="{{ u.id }}" {{ (query.benutzer ?? '') == u.id ~ '' ? 'selected' }}>{{ u.name }}</option>{% endfor %}</select>
+    <label class="visually-hidden" for="f-area">Bereich</label>
+    <select id="f-area" name="bereich"><option value="">Bereich: alle</option>{% for a in areas %}<option value="{{ a }}" {{ (query.bereich ?? '') == a ? 'selected' }}>{{ area_labels[a] ?? a }}</option>{% endfor %}</select>
+    <label for="f-von" class="text-sm">Von</label><input type="date" id="f-von" name="von" value="{{ query.von ?? '' }}">
+    <label for="f-bis" class="text-sm">Bis</label><input type="date" id="f-bis" name="bis" value="{{ query.bis ?? '' }}">
+    <button class="btn btn--ghost btn--sm" type="submit">{{ icon('search') }}Anwenden</button>
+    {% if query is not empty %}<a class="link-quiet" href="/verwaltung/protokoll/">Zurücksetzen</a>{% endif %}
+  </form>
+  {% if rows is empty %}
+    <div class="empty">{{ icon('history') }}<p>Keine Einträge.</p></div>
+  {% else %}
+    <div class="table-wrap" tabindex="0">
+      <table class="tbl">
+        <caption class="visually-hidden">Änderungsprotokoll, {{ total }} Einträge</caption>
+        <thead><tr><th scope="col">Zeit</th><th scope="col">Person</th><th scope="col">Bereich</th><th scope="col">Änderung</th></tr></thead>
+        <tbody>
+          {% for r in rows %}
+            {% set area = r.action|split('.')|first %}
+            <tr>
+              <td class="nowrap">{{ r.created_at|utc|date('d.m.Y H:i:s') }}</td>
+              <td>{{ r.user_name ?? (r.user_id ? 'gelöschte Person' : 'System') }}</td>
+              <td>{{ area_labels[area] ?? area }}<br><span class="text-sm text-muted mono">{{ r.action }}</span></td>
+              <td>{{ r.summary }}
+                {% if r.details %}<details><summary class="text-sm">Details</summary><pre class="pre">{{ r.details }}</pre></details>{% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {{ ui.pager(page, pages, query, '/verwaltung/protokoll/') }}
+  {% endif %}
+{% endblock %}

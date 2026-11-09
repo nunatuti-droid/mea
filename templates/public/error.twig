@@ -1,0 +1,17 @@
+{% extends 'layout/base.twig' %}
+{% set seo_title = code == 404 ? 'Seite nicht gefunden' : (code == 410 ? 'Seite entfernt' : 'Fehler') %}
+{% set robots_noindex = true %}
+{% block content %}
+  <section class="section">
+    <div class="container stack">
+      <span class="eyebrow">Fehler {{ code }}</span>
+      <h1>{{ code == 404 ? 'Diese Seite gibt es nicht (mehr).' : (code == 410 ? 'Diese Seite wurde entfernt.' : 'Hier ist etwas schiefgelaufen.') }}</h1>
+      <p class="lead">{{ code >= 500 ? 'Bitte versuchen Sie es in einigen Minuten erneut. Wir wurden automatisch informiert.' : 'Vielleicht finden Sie hier, was Sie suchen:' }}</p>
+      <div class="btn-row">
+        <a class="btn" href="/telc-pruefungszentrum/">Prüfungen und Termine</a>
+        <a class="btn btn--secondary" href="/leistungen/">Leistungen</a>
+        <a class="btn btn--secondary" href="/kontakt/">Kontakt</a>
+      </div>
+    </div>
+  </section>
+{% endblock %}

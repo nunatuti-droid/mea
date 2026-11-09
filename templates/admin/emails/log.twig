@@ -1,0 +1,40 @@
+{% extends 'admin/layout.twig' %}
+{% import 'admin/partials/ui.twig' as ui %}
+{% block content %}
+  <div class="adm-head">
+    <div><h1>E-Mail-Protokoll</h1><p class="adm-head__intro">Alle automatischen E-Mails. Der Cronjob versendet wartende Nachrichten jede Minute; Fehlversuche werden bis zu fünfmal wiederholt.</p></div>
+    <form method="post" action="/verwaltung/email-protokoll/senden/" class="inline"><input type="hidden" name="_csrf" value="{{ csrf }}"><button class="btn btn--ghost" type="submit">{{ icon('send') }}Jetzt versenden</button></form>
+  </div>
+  {% if not configured %}
+    <div class="alert alert--warning" role="status">{{ icon('circle-alert') }}<p>Der E-Mail-Versand ist noch nicht eingerichtet. Nachrichten werden gesammelt und versendet, sobald MAIL_DSN und MAIL_FROM in der .env stehen.</p></div>
+  {% endif %}
+  <form class="toolbar" method="get" role="search">
+    <label class="visually-hidden" for="q">Suchen</label><input type="search" id="q" name="q" value="{{ query.q ?? '' }}" placeholder="Empfänger oder Betreff …">
+    <label class="visually-hidden" for="f-status">Status</label>
+    <select id="f-status" name="status"><option value="">Status: alle</option>{% for k, s in labels.email_status %}<option value="{{ k }}" {{ (query.status ?? '') == k ? 'selected' }}>{{ s.label }} ({{ counts[k] ?? 0 }})</option>{% endfor %}</select>
+    <button class="btn btn--ghost btn--sm" type="submit">{{ icon('search') }}Anwenden</button>
+    {% if query is not empty %}<a class="link-quiet" href="/verwaltung/email-protokoll/">Zurücksetzen</a>{% endif %}
+  </form>
+  {% if rows is empty %}
+    <div class="empty">{{ icon('mail-check') }}<p>Keine E-Mails.</p></div>
+  {% else %}
+    <div class="table-wrap" tabindex="0">
+      <table class="tbl">
+        <caption class="visually-hidden">E-Mails, {{ total }} Einträge</caption>
+        <thead><tr><th scope="col">Betreff</th><th scope="col">Empfänger</th><th scope="col">Status</th><th scope="col">Erstellt</th><th scope="col">Gesendet</th></tr></thead>
+        <tbody>
+          {% for m in rows %}
+            <tr>
+              <th scope="row"><a href="/verwaltung/email-protokoll/{{ m.id }}/">{{ m.subject }}</a></th>
+              <td>{{ m.to_email }}</td>
+              <td>{{ ui.status(m.status, labels.email_status) }}{% if m.status == 'queued' and m.attempts > 0 %}<br><span class="text-sm text-muted">Versuch {{ m.attempts }}, nächster {{ m.next_attempt_at|utc|date('H:i') }}</span>{% endif %}</td>
+              <td class="nowrap">{{ m.created_at|utc|date('d.m.Y H:i') }}</td>
+              <td class="nowrap">{{ m.sent_at ? m.sent_at|utc|date('d.m.Y H:i') : '–' }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {{ ui.pager(page, pages, query, '/verwaltung/email-protokoll/') }}
+  {% endif %}
+{% endblock %}

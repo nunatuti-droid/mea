@@ -1,0 +1,46 @@
+{% extends 'layout/base.twig' %}
+{% import 'partials/macros.twig' as ui %}
+{% set l = location %}
+{% set seo_title = l.name ~ ' – MEA Bildungszentrum' %}
+{% set seo_description = 'Adresse, Anfahrt und Kontakt: ' ~ l.name ~ ', ' ~ l.street ~ ', ' ~ l.postal_code ~ ' ' ~ l.city ~ '.' %}
+{% set canonical = '/standorte/' ~ l.slug ~ '/' %}
+{% block content %}
+  {% include 'partials/page_hero.twig' with {title: l.name, intro: l.street ~ (l.address_extra ? ', ' ~ l.address_extra : '') ~ ', ' ~ l.postal_code ~ ' ' ~ l.city, media_id: l.image_media_id, crumbs: [{label: 'Standorte', url: '/standorte/'}, {label: l.short_name}]} %}
+  <section class="section">
+    <div class="container contact-layout">
+      <div class="stack">
+        {% if exam_center %}
+          {% if l.is_exam_center %}
+            <div class="notice notice--venue">{{ icon('award') }}<p><strong>Zertifiziertes telc-Prüfungszentrum.</strong> An diesem Standort finden alle unsere telc-Prüfungen statt, persönlich vor Ort und auf Papier. <a href="/telc-pruefungszentrum/">Prüfungstermine ansehen</a></p></div>
+          {% else %}
+            <div class="notice">{{ icon('info') }}<p>An diesem Standort finden keine telc-Prüfungen statt. Alle Prüfungen legen Sie in unserem zertifizierten telc-Prüfungszentrum in <a href="/standorte/{{ exam_center.slug }}/">{{ exam_center.city }}</a> ab.</p></div>
+          {% endif %}
+        {% endif %}
+        <h2>Anfahrt</h2>
+        {% if l.directions_html %}<div class="prose">{{ l.directions_html|raw }}</div>{% endif %}
+        {# Google Maps per Adresse; geladen erst nach Klick oder mit Einwilligung „Externe Medien“ #}
+        <div class="map" data-map-src="https://www.google.com/maps?q={{ l.route_query }}&amp;hl=de&amp;z=16&amp;output=embed" data-map-title="Karte: {{ l.name }}">
+          <div class="map__consent">
+            <span class="card__icon">{{ icon('map') }}</span>
+            <p>Die Karte wird von Google Maps geladen. Dabei werden Ihre IP-Adresse und weitere Daten an Google übertragen, auch in die USA. Mehr dazu in der <a href="/datenschutz/#karten">Datenschutzerklärung</a>.</p>
+            <button class="btn btn--sm" type="button" data-map-load>Karte laden</button>
+            <button class="link-quiet" type="button" data-consent-open>Karten immer laden: Cookie-Einstellungen</button>
+          </div>
+        </div>
+      </div>
+      {% include 'partials/location_card.twig' with {l: l, linked: false} %}
+    </div>
+  </section>
+  {% if others is not empty %}
+    <section class="section section--alt"><div class="container"><div class="section-head"><h2>Weitere Standorte</h2></div><div class="grid grid--2">{% for o in others %}{% include 'partials/location_card.twig' with {l: o, linked: true} %}{% endfor %}</div></div></section>
+  {% endif %}
+{% endblock %}
+{% block schema %}
+  {% set hours = [] %}
+  {% set dayNames = {1: 'Monday', 2: 'Tuesday', 3: 'Wednesday', 4: 'Thursday', 5: 'Friday', 6: 'Saturday', 7: 'Sunday'} %}
+  {% for h in l.hours %}{% set hours = hours|merge([{'@type': 'OpeningHoursSpecification', dayOfWeek: dayNames[h.weekday], opens: h.opens, closes: h.closes}]) %}{% endfor %}
+  {% set data = {'@context': 'https://schema.org', '@type': 'LocalBusiness', name: site.company.legal_name ~ ' – ' ~ l.short_name, url: base_url ~ '/standorte/' ~ l.slug ~ '/', telephone: l.phone, address: {'@type': 'PostalAddress', streetAddress: l.street, postalCode: l.postal_code, addressLocality: l.city, addressCountry: 'DE'}} %}
+  {% if hours is not empty %}{% set data = data|merge({openingHoursSpecification: hours}) %}{% endif %}
+  {% if l.has_coordinates %}{% set data = data|merge({geo: {'@type': 'GeoCoordinates', latitude: l.latitude, longitude: l.longitude}}) %}{% endif %}
+  <script type="application/ld+json">{{ data|json_ld }}</script>
+{% endblock %}

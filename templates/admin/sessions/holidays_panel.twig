@@ -1,0 +1,5 @@
+<form method="post" action="/verwaltung/feiertage/erzeugen/" class="card row">
+  <input type="hidden" name="_csrf" value="{{ csrf }}">
+  <div class="field"><label for="jahr">Feiertage NRW erzeugen für Jahr</label><input id="jahr" type="number" name="jahr" min="2020" max="2100" value="{{ 'now'|date('Y') + 1 }}"></div>
+  <button class="btn btn--ghost" type="submit">{{ icon('calendar-range') }}Erzeugen</button>
+</form>

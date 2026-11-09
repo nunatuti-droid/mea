@@ -1,0 +1,40 @@
+{% extends 'admin/layout.twig' %}
+{% import 'admin/partials/ui.twig' as ui %}
+{% block content %}
+  <p class="crumb"><a href="/verwaltung/medien/">{{ icon('arrow-left') }}Mediathek</a></p>
+  <div class="adm-head"><div><h1>{{ m.original_name }}</h1><p class="adm-head__intro">{{ m.kind == 'document' ? 'PDF-Dokument' : m.width ~ ' × ' ~ m.height ~ ' Pixel' }} · {{ (m.size_bytes / 1024)|round }} KB · hochgeladen {{ m.created_at|utc|date('d.m.Y') }}</p></div></div>
+  <div class="grid-2">
+    <section class="card">
+      {% if m.kind == 'document' %}
+        <p><a class="btn btn--ghost" href="/media/{{ m.public_path }}" target="_blank" rel="noopener">{{ icon('external-link') }}PDF öffnen</a></p>
+        <p class="text-sm text-muted">Öffentliche Adresse: <span class="mono">/media/{{ m.public_path }}</span></p>
+      {% else %}
+        {% set big = m.variants|last %}
+        {% if big %}<img class="lib__preview" src="/media/{{ big.path }}" alt="{{ m.alt_text }}" width="{{ big.width }}" height="{{ big.height }}">{% endif %}
+        <p class="text-sm text-muted">Größen: {% for v in m.variants %}{{ v.width }} px{{ not loop.last ? ', ' }}{% endfor %}</p>
+      {% endif %}
+    </section>
+    <section class="card">
+      <form method="post" action="/verwaltung/medien/{{ m.id }}/" novalidate>
+        <input type="hidden" name="_csrf" value="{{ csrf }}">
+        {% if m.kind == 'image' %}
+          {{ ui.field({name: 'alt_text', label: 'Alternativtext', type: 'textarea', max: 300, counter: true, help: 'Was ist zu sehen? Kurz und konkret, ohne „Bild von“.'}, m, errors, []) }}
+          <div class="field"><label class="check"><input type="checkbox" name="decorative" value="1"> Rein dekoratives Bild (kein Alternativtext nötig)</label></div>
+        {% endif %}
+        {{ ui.field({name: 'title', label: m.kind == 'document' ? 'Titel des Dokuments' : 'Titel (intern)', max: 200}, m, errors, []) }}
+        {{ ui.field({name: 'credit', label: 'Bildnachweis / Urheber', max: 200, help: 'Wird bei Bedarf unter dem Bild genannt.'}, m, errors, []) }}
+        <button class="btn btn--primary" type="submit">{{ icon('save') }}Speichern</button>
+      </form>
+    </section>
+  </div>
+  <section class="card">
+    <h2 class="h3">Verwendet in</h2>
+    {% if usages is empty %}
+      <p class="text-muted">Diese Datei wird nirgends verwendet.</p>
+      {{ ui.confirm_post('/verwaltung/medien/' ~ m.id ~ '/loeschen/', 'Datei löschen', 'Datei endgültig löschen? Das lässt sich nicht rückgängig machen.', csrf, 'danger', 'trash-2') }}
+    {% else %}
+      <ul class="list-plain">{% for u in usages %}<li><a href="{{ u.url }}">{{ u.label }}</a></li>{% endfor %}</ul>
+      <p class="text-sm text-muted mt">Löschen ist erst möglich, wenn die Datei nirgends mehr verwendet wird.</p>
+    {% endif %}
+  </section>
+{% endblock %}

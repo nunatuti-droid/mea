@@ -1,0 +1,19 @@
+{% extends 'admin/layout.twig' %}
+{% set title = 'Zwei-Faktor-Anmeldung einrichten' %}
+{% block auth %}
+  <h1>Zwei-Faktor-Anmeldung einrichten</h1>
+  <p>Für die Verwaltung ist ein zweiter Faktor Pflicht. So geht es:</p>
+  <ol>
+    <li>Installieren Sie eine Authenticator-App (zum Beispiel Google Authenticator, Microsoft Authenticator oder 2FAS).</li>
+    <li>Scannen Sie den QR-Code mit der App.</li>
+    <li>Geben Sie den angezeigten 6-stelligen Code ein.</li>
+  </ol>
+  <img class="qr" src="{{ qr }}" alt="QR-Code zum Einrichten der Authenticator-App" width="220" height="220">
+  <p class="text-sm text-muted">Kein Scannen möglich? Schlüssel manuell eingeben:<br><span class="mono secret">{{ secret }}</span></p>
+  {% if error %}<div class="alert alert--error" role="alert">{{ icon('circle-alert') }}<p>{{ error }}</p></div>{% endif %}
+  <form method="post" action="/verwaltung/einrichten/">
+    <input type="hidden" name="_csrf" value="{{ csrf }}">
+    <div class="field"><label for="code">Code aus der App</label><input id="code" type="text" name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="7" required autofocus></div>
+    <button class="btn btn--primary" type="submit">Einrichtung abschließen</button>
+  </form>
+{% endblock %}

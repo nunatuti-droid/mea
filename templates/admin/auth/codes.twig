@@ -1,0 +1,8 @@
+{% extends 'admin/layout.twig' %}
+{% set title = 'Backup-Codes' %}
+{% block auth %}
+  <h1>Ihre Backup-Codes</h1>
+  <div class="alert alert--warning" role="status">{{ icon('circle-alert') }}<p>Diese Codes werden nur jetzt angezeigt. Bewahren Sie sie sicher auf, zum Beispiel ausgedruckt oder in einem Passwort-Manager. Jeder Code gilt einmal.</p></div>
+  <div class="codes" aria-label="Backup-Codes">{% for c in codes %}<span>{{ c }}</span>{% endfor %}</div>
+  <a class="btn btn--primary" href="/verwaltung/">Ich habe die Codes gesichert</a>
+{% endblock %}
