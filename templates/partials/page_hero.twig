@@ -1,4 +1,8 @@
 {# Variablen: title, intro, media_id, crumbs, actions (optional Block) #}
+{% if media_id %}
+  {% set hero_actions %}{% if cta_url ?? false %}<a class="btn" href="{{ cta_url }}">{{ cta_label }}{{ icon('arrow-right') }}</a>{% if cta2_url ?? false %}<a class="btn btn--ghost-light" href="{{ cta2_url }}">{{ cta2_label }}</a>{% endif %}{% endif %}{% endset %}
+  {% include 'partials/page_hero_image.twig' with {title: title, intro: intro, media_id: media_id, crumbs: crumbs, eyebrow: eyebrow ?? null, actions: hero_actions|trim} %}
+{% else %}
 {% import 'partials/macros.twig' as ui %}
 <section class="page-hero">
   <div class="container page-hero__grid{{ media_id ? '' : ' page-hero__grid--single' }}">
@@ -17,3 +21,4 @@
     {% if media_id %}<div class="page-hero__media">{{ img(media_id, '(max-width: 860px) 100vw, 520px', {loading: 'eager', fetchpriority: 'high'}) }}</div>{% endif %}
   </div>
 </section>
+{% endif %}

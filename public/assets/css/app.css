@@ -871,3 +871,12 @@ body.offline { min-height: 100vh; display: grid; place-items: center; padding: v
 .divider { border: 0; border-top: var(--border-width) solid var(--color-border); margin: 0; }
 .divider--diamond { position: relative; overflow: visible; }
 .divider--diamond::after { content: ""; position: absolute; left: 50%; top: -6px; width: 11px; height: 11px; margin-left: -6px; background: var(--color-primary); transform: rotate(45deg); border-radius: 2px; }
+
+/* Seitenkopf mit Hintergrundbild: gleiche Optik wie der Hero der Startseite, niedriger */
+.hero--page .hero__inner { min-height: clamp(380px, 52vh, 520px); }
+.hero--page h1 { font-size: var(--font-size-h1); }
+.hero--page .hero__lead { margin-bottom: var(--space-5); }
+.hero--page .breadcrumbs ol, .hero--page .breadcrumbs a { color: var(--color-on-dark-muted); }
+.hero--page .breadcrumbs li + li::before { color: color-mix(in srgb, var(--color-on-dark) 40%, transparent); }
+.hero--page .breadcrumbs [aria-current] { color: var(--color-on-dark); }
+.hero--page .eyebrow { color: var(--color-on-dark-accent); }

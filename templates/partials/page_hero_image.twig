@@ -1,0 +1,14 @@
+{# Seitenkopf mit Bild als Hintergrund (wie der Hero der Startseite). Variablen: title, intro, media_id, crumbs, eyebrow, actions (HTML), section_attr, title_attr #}
+{% import 'partials/macros.twig' as ui %}
+<section{{ section_attr ?? ' class="hero hero--page"' }}>
+  <div class="hero__bg">{{ img(media_id, '100vw', {loading: 'eager', fetchpriority: 'high', alt: ''}) }}</div>
+  <div class="container hero__inner">
+    <div class="hero__content">
+      {{ ui.breadcrumbs(crumbs) }}
+      {% if eyebrow ?? false %}<span class="eyebrow">{{ eyebrow }}</span>{% endif %}
+      <h1{{ title_attr ?? '' }}>{{ title }}</h1>
+      {% if intro %}<p class="hero__lead">{{ intro }}</p>{% endif %}
+      {% if actions ?? false %}<div class="btn-row">{{ actions }}</div>{% endif %}
+    </div>
+  </div>
+</section>
