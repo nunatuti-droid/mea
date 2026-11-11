@@ -108,7 +108,7 @@ final class AcceptanceTest extends IntegrationTestCase
     {
         $id = $this->createExamViaAdmin();
         $this->publish($id);
-        $overview = $this->get('/telc-pruefungszentrum/');
+        $overview = $this->get('/pruefungen/');
         self::assertStringContainsString('telc Deutsch Pflege B1-B2', $overview->body);
         self::assertStringContainsString('/pruefungen/telc-deutsch-pflege-b1-b2/', $overview->body);
 
@@ -118,7 +118,7 @@ final class AcceptanceTest extends IntegrationTestCase
         self::assertStringContainsString('<meta name="description" content="Pflegeprüfung B1-B2 beim MEA Bildungszentrum: Termine und Anmeldung.">', $d->body);
         self::assertStringContainsString('<link rel="canonical" href="https://mea.test/pruefungen/telc-deutsch-pflege-b1-b2/">', $d->body);
         self::assertStringContainsString('/pruefungen/telc-deutsch-pflege-b1-b2/', $this->get('/sitemap.xml')->body);
-        self::assertStringContainsString('telc Deutsch Pflege B1-B2', $this->get('/preise/')->body);
+        self::assertStringContainsString('telc Deutsch Pflege B1-B2', $this->get('/pruefungen/preise/')->body);
     }
 
     public function test06_PricesAndSessionsAreMaintainedIndependently(): void
@@ -208,7 +208,7 @@ final class AcceptanceTest extends IntegrationTestCase
         $sid = $this->createSessionViaAdmin($id);
         $this->publish($id, ['status' => 'disabled']);
         self::assertSame(302, $this->get('/pruefungen/telc-deutsch-pflege-b1-b2/')->status, 'Deaktivierte Prüfung ist ausgeblendet');
-        self::assertStringNotContainsString('telc-deutsch-pflege-b1-b2', $this->get('/telc-pruefungszentrum/')->body);
+        self::assertStringNotContainsString('telc-deutsch-pflege-b1-b2', $this->get('/pruefungen/')->body);
         $r = $this->submitBooking('telc-deutsch-pflege-b1-b2', $sid);
         self::assertNotSame(200, $r->status);
         self::assertSame(0, (int) self::db()->value('SELECT COUNT(*) FROM bookings WHERE exam_session_id = ?', [$sid]));
@@ -252,7 +252,7 @@ final class AcceptanceTest extends IntegrationTestCase
         self::assertGreaterThanOrEqual(5, count($seeded));
         // Startdaten kommen als Entwurf (ohne erfundene Preise); die Verwaltung veröffentlicht sie
         self::db()->run("UPDATE exam_types SET status = 'published' WHERE slug LIKE 'telc-deutsch-%'");
-        $overview = $this->get('/telc-pruefungszentrum/')->body;
+        $overview = $this->get('/pruefungen/')->body;
         foreach ($seeded as $e) {
             self::assertSame(200, $this->get('/pruefungen/' . $e['slug'] . '/')->status, $e['slug']);
             self::assertStringContainsString('/pruefungen/' . $e['slug'] . '/', $overview);

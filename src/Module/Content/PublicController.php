@@ -35,11 +35,6 @@ final class PublicController
         return Response::html(($this->pageView)()->html($home, ['query' => $req->query]));
     }
 
-    public function servicesIndex(Request $req): Response
-    {
-        return ($this->pageView)()->respond('leistungen', ['query' => $req->query]) ?? throw HttpException::notFound();
-    }
-
     public function faq(Request $req): Response
     {
         return ($this->pageView)()->respond('faq', ['query' => $req->query]) ?? throw HttpException::notFound();
@@ -52,7 +47,8 @@ final class PublicController
         if ($service !== null) {
             return $this->renderService($service, null);
         }
-        $page = ($this->pages)()->published($slug);
+        // Preise und Prüfungsvorbereitung gehören zu /pruefungen/ und sind nur dort erreichbar
+        $page = isset(\Mea\Module\Builder\PageService::NESTED[$slug]) ? null : ($this->pages)()->published($slug);
         if ($page === null) {
             throw HttpException::notFound();
         }

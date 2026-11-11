@@ -41,7 +41,7 @@ final class DesignSystemTest extends IntegrationTestCase
         self::assertStringContainsString('<meta name="theme-color" content="#0e3042">', $html);
         self::assertStringContainsString('rel="preload" href="/assets/fonts/plus-jakarta-sans-latin-wght-normal.woff2"', $html);
         // Unterseiten und Prüfungsseite (Produktdetail) nutzen dieselbe Datei
-        foreach (['/kontakt/', '/telc-pruefungszentrum/', '/leistungen/'] as $p) {
+        foreach (['/kontakt/', '/pruefungen/', '/campus/'] as $p) {
             self::assertStringContainsString($this->app->design()->stylesheetUrl(), $this->get($p)->body, $p);
         }
     }

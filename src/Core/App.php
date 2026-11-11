@@ -134,14 +134,13 @@ final class App
         }
         (new AdminModule($this))->register(new AdminKernel($r, $this->auth, $this->view, $this->audit));
         $r->get('/', $pages->home(...));
-        $r->get('/leistungen/', $pages->servicesIndex(...));
         $r->get('/faq/', $pages->faq(...));
-        $r->get('/telc-pruefungszentrum/', $examCtl->index(...));
-        $r->get('/pruefungen/', fn() => Response::redirect('/telc-pruefungszentrum/', 301));
+        $r->get('/pruefungen/', $examCtl->index(...));
+        $r->get('/pruefungen/vorbereitung/', $examCtl->preparation(...));
+        $r->get('/pruefungen/preise/', $examCtl->prices(...));
         $r->get('/pruefungen/{slug:[a-z0-9-]+}/', $examCtl->show(...));
         $booking = new \Mea\Module\Bookings\BookingController($this, $limiter);
         $booking->register($r);
-        $r->get('/preise/', $examCtl->prices(...));
         $r->get('/standorte/', $locCtl->index(...));
         $r->get('/standorte/{slug:[a-z0-9-]+}/', $locCtl->show(...));
         $isTesting = $this->config->get('APP_ENV') === 'testing';

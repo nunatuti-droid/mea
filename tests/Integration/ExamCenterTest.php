@@ -13,7 +13,7 @@ final class ExamCenterTest extends IntegrationTestCase
 
     public function testPublicPagesShowVenueNotice(): void
     {
-        $body = $this->get('/telc-pruefungszentrum/')->body;
+        $body = $this->get('/pruefungen/')->body;
         self::assertStringContainsString('ausschließlich in unserem zertifizierten telc-Prüfungszentrum', $body);
         self::assertStringContainsString('Online-Prüfungen bieten wir nicht an', $body);
         self::assertStringContainsString('An diesem Standort finden keine telc-Prüfungen statt', $this->get('/standorte/marl/')->body);

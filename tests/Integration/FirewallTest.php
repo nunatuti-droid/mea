@@ -15,7 +15,7 @@ final class FirewallTest extends IntegrationTestCase
 
     public function testAttackPatternsAreRejectedAndLogged(): void
     {
-        self::assertSame(403, $this->from('198.51.100.1', '/telc-pruefungszentrum/?niveau=1%27%20union%20select%20password%20from%20users--')->status);
+        self::assertSame(403, $this->from('198.51.100.1', '/pruefungen/?niveau=1%27%20union%20select%20password%20from%20users--')->status);
         self::assertSame(403, $this->from('198.51.100.2', '/standorte/..%2f..%2fetc%2fpasswd')->status);
         self::assertSame(403, $this->from('198.51.100.3', '/kontakt/?thema=%3Cscript%3Ealert(1)%3C/script%3E')->status);
         self::assertSame(404, $this->from('198.51.100.4', '/wp-login.php')->status, 'Scanner bekommen nur 404');
@@ -27,7 +27,7 @@ final class FirewallTest extends IntegrationTestCase
 
     public function testNormalRequestsPass(): void
     {
-        foreach (['/', '/telc-pruefungszentrum/?niveau=B1', '/kontakt/?thema=pruefung', '/faq/', '/preise/'] as $u) {
+        foreach (['/', '/pruefungen/?niveau=B1', '/kontakt/?thema=pruefung', '/faq/', '/pruefungen/preise/'] as $u) {
             self::assertSame(200, $this->from('198.51.100.9', $u)->status, $u);
         }
         self::assertSame(0, (int) self::db()->value('SELECT COUNT(*) FROM security_events'));
