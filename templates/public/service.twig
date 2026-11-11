@@ -1,5 +1,7 @@
 {% extends 'layout/base.twig' %}
+{% macro pick(text, i) %}{% set k = text|lower %}{% set cyc = ['target', 'users', 'graduation-cap', 'handshake', 'route', 'badge-check'] %}{% if 'sprach' in k or 'hören' in k or 'sprechen' in k or 'lesen' in k %}languages{% elseif 'förder' in k or 'avgs' in k or 'gutschein' in k or 'kosten' in k or 'finanz' in k or 'azav' in k %}file-text{% elseif 'zulassung' in k or 'prüf' in k or 'zertifikat' in k or 'nachweis' in k or 'qualifikation' in k %}badge-check{% elseif 'ausbildung' in k or 'lern' in k or 'grundlagen' in k or 'berufswunsch' in k %}graduation-cap{% elseif 'ort' in k or 'region' in k or 'ruhrgebiet' in k or 'standort' in k %}map-pin{% elseif 'schritt' in k or 'planen' in k or 'ablauf' in k or 'ziel' in k %}route{% elseif 'beratung' in k or 'gespräch' in k or 'persönlich' in k or 'begleit' in k %}handshake{% elseif 'gruppe' in k or 'einzel' in k or 'team' in k or 'unternehm' in k or 'betrieb' in k %}users{% else %}{{ cyc[(i - 1) % 6] }}{% endif %}{% endmacro %}
 {% import 'partials/macros.twig' as ui %}
+{% import _self as m_ %}
 {% set url = (parent ? '/' ~ parent.slug : '') ~ '/' ~ service.slug ~ '/' %}
 {% set seo_title = service.seo_title ?: service.title ~ ' – MEA Bildungszentrum' %}
 {% set seo_description = service.seo_description ?: service.teaser %}
@@ -9,6 +11,9 @@
   ? [{label: 'Campus', url: '/campus/'}, {label: parent.menu_title ?: parent.title, url: '/' ~ parent.slug ~ '/'}, {label: service.title}]
   : [{label: 'Campus', url: '/campus/'}, {label: service.menu_title ?: service.title}] %}
 
+{% set faq_all = faqs %}
+{% for f in service.facts.faq_items ?? [] %}{% set faq_all = faq_all|merge([{question: f.q, answer_html: '<p>' ~ (f.a|e) ~ '</p>'}]) %}{% endfor %}
+
 {% block content %}
   {% include 'partials/page_hero.twig' with {
     title: service.title, intro: service.intro ?: service.teaser, media_id: service.hero_media_id, crumbs: crumbs,
@@ -17,13 +22,26 @@
     cta2_url: 'tel:' ~ (site.company.phone|tel), cta2_label: 'Anrufen: ' ~ site.company.phone_display
   } %}
 
+  {% if service.facts.highlights is defined %}
+    <section class="section section--tight">
+      <div class="container">
+        <ul class="highlights">
+          {% for h in service.facts.highlights %}
+            {% set ic = m_.pick(h, loop.index)|trim %}
+            <li class="highlights__item reveal"><span class="card__icon">{{ icon(ic) }}</span><span>{{ h }}</span></li>
+          {% endfor %}
+        </ul>
+      </div>
+    </section>
+  {% endif %}
+
   {% if service.facts.facts is defined %}
     <section class="section">
       <div class="container split">
         <div class="box box--brand reveal">
           <h2 class="mb-0">Auf einen Blick</h2>
           <ul class="facts mt-5">
-            {% for f in service.facts.facts %}<li><span>{{ f.label }}</span><strong>{{ f.value }}</strong></li>{% endfor %}
+            {% for f in service.facts.facts %}<li><span>{{ f.label ?? '' }}</span><strong>{{ f.value ?? '' }}</strong></li>{% endfor %}
           </ul>
         </div>
         <div class="prose">
@@ -36,13 +54,26 @@
     <section class="section"><div class="container"><div class="prose">{{ service.body_html|raw }}</div></div></section>
   {% endif %}
 
+  {% for sec in service.facts.sections ?? [] %}
+    <section class="section{{ (loop.index is even) ? ' section--alt' : '' }}">
+      <div class="container">
+        <div class="section-head">{% if sec.eyebrow ?? false %}<span class="eyebrow">{{ sec.eyebrow }}</span>{% endif %}<h2>{{ sec.title ?? '' }}</h2>{% if sec.text ?? false %}<p>{{ sec.text }}</p>{% endif %}</div>
+        {% if (sec.cards ?? [])|length %}
+          <div class="grid grid--{{ sec.cards|length > 2 ? 3 : 2 }}">
+            {% for c in sec.cards %}<div class="card card--feature reveal"><div class="card__body"><span class="card__icon">{{ icon(m_.pick((c.title ?? '') ~ ' ' ~ (c.text ?? ''), loop.index)|trim) }}</span><h3>{{ c.title ?? '' }}</h3><p>{{ c.text ?? '' }}</p></div></div>{% endfor %}
+          </div>
+        {% endif %}
+      </div>
+    </section>
+  {% endfor %}
+
   {% if service.facts.modules is defined %}
     <section class="section {{ service.body_html ? 'section--alt' : '' }}">
       <div class="container">
-        <div class="section-head"><span class="eyebrow">Unser Angebot</span><h2>Das gehört dazu</h2></div>
+        <div class="section-head"><span class="eyebrow">Unser Angebot</span><h2>{{ service.facts.modules_title ?? 'Das gehört dazu' }}</h2></div>
         <div class="grid grid--3">
           {% for m in service.facts.modules %}
-            <div class="card reveal"><div class="card__body"><span class="card__icon">{{ icon(m.icon) }}</span><h3>{{ m.title }}</h3><p>{{ m.text }}</p></div></div>
+            <div class="card card--feature reveal"><div class="card__body"><span class="card__icon">{{ icon(m.icon ?? 'sparkles') }}</span><h3>{{ m.title ?? '' }}</h3><p>{{ m.text ?? '' }}</p></div></div>
           {% endfor %}
         </div>
       </div>
@@ -52,27 +83,27 @@
   {% if service.facts.process is defined %}
     <section class="section section--alt">
       <div class="container">
-        <div class="section-head"><span class="eyebrow">Ablauf</span><h2>Unser Rekrutierungsprozess im Überblick</h2></div>
+        <div class="section-head"><span class="eyebrow">{{ service.facts.process_eyebrow ?? 'Ablauf' }}</span><h2>{{ service.facts.process_title ?? 'Unser Rekrutierungsprozess im Überblick' }}</h2></div>
         <ol class="steps">
-          {% for st in service.facts.process %}<li class="reveal"><h3>{{ st.title }}</h3><p>{{ st.text }}</p></li>{% endfor %}
+          {% for st in service.facts.process %}<li class="reveal"><h3>{{ st.title ?? '' }}</h3><p>{{ st.text ?? '' }}</p></li>{% endfor %}
         </ol>
       </div>
     </section>
   {% endif %}
 
-  {% if children is not empty %}
+  {% if measures is not empty %}
     <section class="section">
       <div class="container">
         <div class="section-head"><span class="eyebrow">Unsere Maßnahmen</span><h2>Das passende Coaching für Ihre Situation</h2></div>
         <div class="grid grid--3">
-          {% for c in children %}
+          {% for c in measures %}
             <article class="card reveal">
               <div class="card__media">{{ img(c.card_media_id, '(max-width: 700px) 100vw, 380px', {alt: ''}) }}</div>
               <div class="card__body">
                 <h3><a href="/{{ service.slug }}/{{ c.slug }}/">{{ c.menu_title ?: c.title }}</a></h3>
                 <p>{{ c.teaser }}</p>
                 {% if c.facts.facts is defined %}
-                  <ul class="facts">{% for f in c.facts.facts %}<li><span>{{ f.label }}</span><strong>{{ f.value }}</strong></li>{% endfor %}</ul>
+                  <ul class="facts">{% for f in c.facts.facts %}<li><span>{{ f.label ?? '' }}</span><strong>{{ f.value ?? '' }}</strong></li>{% endfor %}</ul>
                 {% endif %}
                 <span class="link-arrow" aria-hidden="true">Details{{ icon('arrow-right') }}</span>
               </div>
@@ -83,10 +114,21 @@
     </section>
   {% endif %}
 
+  {% if topics is not empty %}
+    <section class="section{{ measures is not empty ? ' section--alt' : '' }}">
+      <div class="container">
+        <div class="section-head"><span class="eyebrow">{{ service.facts.topics_eyebrow ?? 'Ihr Einstieg' }}</span><h2>{{ service.facts.topics_title ?? 'Wählen Sie das passende Thema' }}</h2></div>
+        <div class="grid grid--3">
+          {% for c in topics %}{{ ui.service_card(c, '/' ~ service.slug ~ '/' ~ c.slug ~ '/', 'Mehr erfahren') }}{% endfor %}
+        </div>
+      </div>
+    </section>
+  {% endif %}
+
   {% if siblings|length > 1 %}
     <section class="section section--alt">
       <div class="container">
-        <div class="section-head"><h2>Weitere Maßnahmen</h2></div>
+        <div class="section-head"><h2>{{ service.facts.info is defined ? 'Weitere Themen' : 'Weitere Maßnahmen' }}</h2></div>
         <div class="grid grid--3">
           {% for c in siblings|filter(c => c.id != service.id) %}{{ ui.service_card(c, '/' ~ parent.slug ~ '/' ~ c.slug ~ '/') }}{% endfor %}
         </div>
@@ -94,8 +136,8 @@
     </section>
   {% endif %}
 
-  {% if faqs is not empty %}
-    <section class="section"><div class="container"><div class="section-head"><h2>Häufige Fragen</h2></div>{{ ui.faq_list(faqs) }}</div></section>
+  {% if faq_all is not empty %}
+    <section class="section"><div class="container"><div class="section-head"><span class="eyebrow">Gut zu wissen</span><h2>Häufige Fragen</h2></div>{{ ui.faq_list(faq_all) }}</div></section>
   {% endif %}
 
   {% if not parent and other_services is not empty %}
@@ -107,10 +149,10 @@
     </section>
   {% endif %}
 
-  <section class="section"><div class="container">{{ ui.cta_band('Lassen Sie sich persönlich beraten', 'Wir nehmen uns Zeit für Ihre Fragen – am Telefon, per WhatsApp oder vor Ort.', site.company) }}</div></section>
+  <section class="section"><div class="container">{{ ui.cta_band(service.facts.cta_title ?? 'Lassen Sie sich persönlich beraten', service.facts.cta_text ?? 'Wir nehmen uns Zeit für Ihre Fragen – am Telefon, per WhatsApp oder vor Ort.', site.company) }}</div></section>
 {% endblock %}
 
 {% block schema %}
   <script type="application/ld+json">{{ {'@context': 'https://schema.org', '@type': 'Service', name: service.title, description: service.teaser, provider: {'@type': 'EducationalOrganization', name: site.company.legal_name}, areaServed: 'Ruhrgebiet'}|json_ld }}</script>
-  {{ ui.faq_schema(faqs) }}
+  {{ ui.faq_schema(faq_all) }}
 {% endblock %}

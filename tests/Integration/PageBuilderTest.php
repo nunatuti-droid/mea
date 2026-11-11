@@ -328,7 +328,7 @@ final class PageBuilderTest extends IntegrationTestCase
         copy(self::root() . '/migrations/media/hero-gemeinsames-lernen.jpg', $root . '/migrations/media/hero-gemeinsames-lernen.jpg');
         $patches = new \Mea\Module\Builder\ContentPatches(self::db(), new \Mea\Module\Content\SettingsRepository(self::db()), $root);
 
-        self::assertCount(2, $patches->apply()); // Startbild und Campus-Struktur
+        self::assertCount(6, $patches->apply()); // Startbild, Campus-Struktur, Struktur nach Vorgabe, Inhalte, Fotos, Seiten
         $media = (int) self::db()->value("SELECT id FROM media WHERE original_name = 'hero-gemeinsames-lernen.jpg'");
         self::assertGreaterThan(0, $media);
         self::assertNotEmpty(self::db()->value('SELECT alt_text FROM media WHERE id = ?', [$media]));

@@ -5,7 +5,7 @@ const fs = require('fs');
 const axeSource = fs.readFileSync(require.resolve('axe-core/axe.min.js'), 'utf8');
 
 const BASE = process.env.BASE_URL || 'http://127.0.0.1:8080';
-const PAGES = ['/', '/campus/', '/coaching-beratung/', '/coaching-beratung/mea-plus/', '/pruefungen/', '/pruefungen/telc-deutsch-b1/',
+const PAGES = ['/', '/campus/', '/coaching/', '/coaching/mea-plus/', '/bildungszentrum/ausbildung/', '/sprache-beruf/berufsdeutsch/', '/foerderung/', '/pruefungen/', '/pruefungen/telc-deutsch-b1/',
   '/pruefungen/preise/', '/pruefungen/vorbereitung/', '/standorte/', '/standorte/marl/', '/kontakt/', '/faq/', '/ueber-uns/', '/impressum/'];
 const VIEWPORTS = [{ width: 1366, height: 900 }, { width: 375, height: 800 }];
 

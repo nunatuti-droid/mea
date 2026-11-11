@@ -20,6 +20,19 @@
         <h2>{{ txt('footer.company_heading') }}</h2>
         <ul>{% for c in footer_menu %}<li><a href="{{ c.url }}">{{ c.label }}</a></li>{% endfor %}</ul>
       </div>
+      <div class="footer__reach">
+        <h2>{{ txt('footer.reach_heading') }}</h2>
+        <ul class="footer__reach-list">
+          <li><a href="tel:{{ company.phone|tel }}">{{ icon('phone') }}<span>{{ company.phone_display }}</span></a></li>
+          {% if company.whatsapp %}<li><a href="https://wa.me/{{ company.whatsapp|tel|replace({'+': ''}) }}" rel="noopener" target="_blank">{{ icon('message-circle') }}<span>WhatsApp</span><span class="visually-hidden"> (öffnet in neuem Fenster)</span></a></li>{% endif %}
+        </ul>
+        {% set hl = all_locations|filter(l => l.hours is not empty)|first %}
+        {% if hl %}
+          <p class="footer__hours-title">Öffnungszeiten {{ hl.city }}</p>
+          <ul class="footer__hours">{% for h in hl.hours %}<li><span>{{ h.day }}</span><span>{{ h.opens }}–{{ h.closes }} Uhr</span></li>{% endfor %}</ul>
+        {% endif %}
+        <a class="btn btn--light btn--sm" href="/kontakt/">{{ icon('calendar') }}{{ txt('footer.reach_cta') }}</a>
+      </div>
       <div>
         <h2>{{ txt('footer.locations_heading') }}</h2>
         <div class="footer__locations">

@@ -9,12 +9,16 @@ use Mea\Core\Database;
 final class InquiryService
 {
     public const TOPICS = [
+        'bildungszentrum' => 'Bildungszentrum / Lernberatung',
         'pruefung' => 'Prüfung / telc',
         'sprachkurs' => 'Sprachkurs',
         'avgs' => 'Coaching (AVGS)',
         'fachkraefte' => 'Fachkräftegewinnung / Onboarding',
         'sonstiges' => 'Sonstiges',
     ];
+
+    /** Wer fragt an (Auswahl im Kontaktformular); wird der Nachricht vorangestellt. */
+    public const AUDIENCES = ['teilnehmende' => 'Teilnehmende', 'unternehmen' => 'Unternehmen', 'jobcenter' => 'Jobcenter / Partner'];
 
     public function __construct(private Database $db) {}
 
@@ -57,13 +61,14 @@ final class InquiryService
     /** @param array<string,string> $in */
     public function store(array $in): int
     {
+        $who = self::AUDIENCES[$in['audience'] ?? ''] ?? null;
         return $this->db->insert('inquiries', [
             'name' => $in['name'],
             'email' => $in['email'],
             'phone' => ($in['phone'] ?? '') ?: null,
             'topic' => ($in['topic'] ?? '') ?: null,
             'location_id' => ($in['location'] ?? '') === '' ? null : (int) $in['location'],
-            'message' => $in['message'],
+            'message' => ($who !== null ? 'Anfrage als: ' . $who . "\n\n" : '') . $in['message'],
             'privacy_accepted_at' => gmdate('Y-m-d H:i:s'),
         ]);
     }
