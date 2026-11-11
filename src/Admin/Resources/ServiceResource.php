@@ -22,7 +22,7 @@ final class ServiceResource extends Resource
     public ?string $revisionEntity = 'service';
 
     public const ICONS = ['briefcase', 'users', 'languages', 'award', 'graduation-cap', 'user-check', 'handshake', 'house', 'file-text', 'shield-check', 'target',
-        'heart-handshake', 'book-open', 'plane', 'clipboard-check', 'message-circle', 'map', 'sparkles', 'calendar', 'building-2', 'route', 'euro', 'clock', 'star'];
+        'heart-handshake', 'book-open', 'plane', 'clipboard-check', 'message-circle', 'map', 'sparkles', 'calendar', 'building-2', 'route', 'euro', 'clock', 'star', 'badge-check', 'circle-check', 'map-pin'];
 
     /** @var \Closure(array<string,mixed>):string */
     private \Closure $previewer;
