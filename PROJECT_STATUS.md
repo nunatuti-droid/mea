@@ -41,7 +41,8 @@ Nach Version-Updates: `php bin/console migrate` (23 Migrationen), danach `selfte
 - Plesk: Cron einrichten; `upload_max_filesize` ≥ 8M, `post_max_size` ≥ 20M (Bewerbungs-PDFs).
 - Zugänge/Unterlagen von MEA (PayPal, SMTP, Preise, Termine u. a.): Stand nicht belegt.
 - Seitenbaukasten: Datensatzseiten (Leistung/Prüfung/Standort), Buchungsstrecke, Bewerbungsformular und 404-Seite sind nicht im Baukasten; nicht geprüft: Screenreader, Safari/Firefox.
-- Behoben zuletzt: Überlauf auf `/verwaltung/email-vorlagen/4/` bei 375 px (Commit `3c2f7b6`).
+- Behoben (Branch `claude/project-thread-oji744`, nicht gebaut): Mobiles Menü war abgedunkelt und nicht bedienbar, weil `.site-header` (sticky, z-index 50) einen Stapelkontext bildet und der Hintergrund (z 55) über dem Menü lag. Fix: `body.nav-open .site-header { z-index: 60 }` in `app.css`. Update-Paket 0.9.11 noch nicht gebaut.
+- Behoben zuvor: Überlauf auf `/verwaltung/email-vorlagen/4/` bei 375 px (Commit `3c2f7b6`).
 
 ## 6. Nächster sinnvoller Schritt
 Plesk: Cron einrichten und PHP-Limits prüfen (siehe Punkt 5). Release 0.9.5 ist gebaut (`installation/update-0.9.5.zip`, SHA-256 `47286ec6…b6714`) und eingespielt. Ein Git-Tag `v0.9.5` auf `b9edb08` fehlt noch (Push aus der Sitzung nicht erlaubt; manuell auf GitHub setzen).
