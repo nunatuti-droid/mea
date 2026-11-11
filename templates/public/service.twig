@@ -49,7 +49,7 @@
         <div class="box box--brand reveal">
           <h2 class="mb-0">Auf einen Blick</h2>
           <ul class="facts mt-5">
-            {% for f in service.facts.facts %}<li><span>{{ f.label }}</span><strong>{{ f.value }}</strong></li>{% endfor %}
+            {% for f in service.facts.facts %}<li><span>{{ f.label ?? '' }}</span><strong>{{ f.value ?? '' }}</strong></li>{% endfor %}
           </ul>
         </div>
         <div class="prose">
@@ -65,10 +65,10 @@
   {% for sec in service.facts.sections ?? [] %}
     <section class="section{{ (loop.index is even) ? ' section--alt' : '' }}">
       <div class="container">
-        <div class="section-head">{% if sec.eyebrow ?? false %}<span class="eyebrow">{{ sec.eyebrow }}</span>{% endif %}<h2>{{ sec.title }}</h2>{% if sec.text ?? false %}<p>{{ sec.text }}</p>{% endif %}</div>
+        <div class="section-head">{% if sec.eyebrow ?? false %}<span class="eyebrow">{{ sec.eyebrow }}</span>{% endif %}<h2>{{ sec.title ?? '' }}</h2>{% if sec.text ?? false %}<p>{{ sec.text }}</p>{% endif %}</div>
         {% if (sec.cards ?? [])|length %}
           <div class="grid grid--{{ sec.cards|length > 2 ? 3 : 2 }}">
-            {% for c in sec.cards %}<div class="card reveal"><div class="card__body"><h3>{{ c.title }}</h3><p>{{ c.text }}</p></div></div>{% endfor %}
+            {% for c in sec.cards %}<div class="card reveal"><div class="card__body"><h3>{{ c.title ?? '' }}</h3><p>{{ c.text ?? '' }}</p></div></div>{% endfor %}
           </div>
         {% endif %}
       </div>
@@ -81,7 +81,7 @@
         <div class="section-head"><span class="eyebrow">Unser Angebot</span><h2>{{ service.facts.modules_title ?? 'Das gehört dazu' }}</h2></div>
         <div class="grid grid--3">
           {% for m in service.facts.modules %}
-            <div class="card reveal"><div class="card__body"><span class="card__icon">{{ icon(m.icon) }}</span><h3>{{ m.title }}</h3><p>{{ m.text }}</p></div></div>
+            <div class="card reveal"><div class="card__body"><span class="card__icon">{{ icon(m.icon ?? 'sparkles') }}</span><h3>{{ m.title ?? '' }}</h3><p>{{ m.text ?? '' }}</p></div></div>
           {% endfor %}
         </div>
       </div>
@@ -93,7 +93,7 @@
       <div class="container">
         <div class="section-head"><span class="eyebrow">{{ service.facts.process_eyebrow ?? 'Ablauf' }}</span><h2>{{ service.facts.process_title ?? 'Unser Rekrutierungsprozess im Überblick' }}</h2></div>
         <ol class="steps">
-          {% for st in service.facts.process %}<li class="reveal"><h3>{{ st.title }}</h3><p>{{ st.text }}</p></li>{% endfor %}
+          {% for st in service.facts.process %}<li class="reveal"><h3>{{ st.title ?? '' }}</h3><p>{{ st.text ?? '' }}</p></li>{% endfor %}
         </ol>
       </div>
     </section>
@@ -111,7 +111,7 @@
                 <h3><a href="/{{ service.slug }}/{{ c.slug }}/">{{ c.menu_title ?: c.title }}</a></h3>
                 <p>{{ c.teaser }}</p>
                 {% if c.facts.facts is defined %}
-                  <ul class="facts">{% for f in c.facts.facts %}<li><span>{{ f.label }}</span><strong>{{ f.value }}</strong></li>{% endfor %}</ul>
+                  <ul class="facts">{% for f in c.facts.facts %}<li><span>{{ f.label ?? '' }}</span><strong>{{ f.value ?? '' }}</strong></li>{% endfor %}</ul>
                 {% endif %}
                 <span class="link-arrow" aria-hidden="true">Details{{ icon('arrow-right') }}</span>
               </div>
