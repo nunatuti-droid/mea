@@ -180,6 +180,8 @@ a:hover { color: var(--color-link-hover); }
 }
 .nav-backdrop { position: fixed; inset: 0; background: var(--color-overlay); z-index: 55; }
 body.nav-open { overflow: hidden; }
+/* Der Kopf bildet einen eigenen Stapelkontext (sticky + z-index): das Menü darin lag sonst unter dem Hintergrund (55). */
+body.nav-open .site-header { z-index: 60; }
 
 /* ---------- Startbereich ---------- */
 /* Foto über die ganze Breite. Der Verlauf ist nur hinter der Textspalte dunkel:
