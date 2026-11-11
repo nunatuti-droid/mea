@@ -40,8 +40,8 @@ final class View
             $v = is_file($file) ? substr(md5((string) filemtime($file)), 0, 8) : '0';
             return '/assets/' . ltrim($p, '/') . '?v=' . $v;
         }));
-        $this->twig->addFunction(new TwigFunction('icon', function (string $name, string $class = ''): Markup {
-            $n = preg_replace('/[^a-z0-9-]/', '', $name);
+        $this->twig->addFunction(new TwigFunction('icon', function (?string $name, string $class = ''): Markup {
+            $n = preg_replace('/[^a-z0-9-]/', '', (string) $name);
             $c = htmlspecialchars(trim('icon ' . $class), ENT_QUOTES);
             return new Markup("<svg class=\"$c\" aria-hidden=\"true\" focusable=\"false\"><use href=\"#i-$n\"></use></svg>", 'UTF-8');
         }));

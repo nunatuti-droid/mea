@@ -42,7 +42,7 @@
         <div class="section-head"><span class="eyebrow">Unser Angebot</span><h2>Das gehört dazu</h2></div>
         <div class="grid grid--3">
           {% for m in service.facts.modules %}
-            <div class="card reveal"><div class="card__body"><span class="card__icon">{{ icon(m.icon) }}</span><h3>{{ m.title }}</h3><p>{{ m.text }}</p></div></div>
+            <div class="card reveal"><div class="card__body">{% if m.icon %}<span class="card__icon">{{ icon(m.icon) }}</span>{% endif %}<h3>{{ m.title }}</h3><p>{{ m.text }}</p></div></div>
           {% endfor %}
         </div>
       </div>
