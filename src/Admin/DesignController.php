@@ -57,7 +57,7 @@ final class DesignController
             }
         }
         $exam = $this->app->db->value("SELECT slug FROM exam_types WHERE status = 'published' AND is_listed = 1 ORDER BY sort_order, id LIMIT 1");
-        $pages = ['/' => 'Startseite', '/leistungen/' => 'Leistungen', '/telc-pruefungszentrum/' => 'Prüfungsübersicht'];
+        $pages = ['/' => 'Startseite', '/campus/' => 'Campus', '/pruefungen/' => 'Prüfungsübersicht'];
         if ($exam !== null) {
             $pages['/pruefungen/' . $exam . '/'] = 'Prüfungsseite';
         }

@@ -22,7 +22,7 @@ final class ExamController
 
     public function index(Request $req): Response
     {
-        return ($this->page)('telc-pruefungszentrum', ['query' => $req->query], 200) ?? throw HttpException::notFound();
+        return ($this->page)('pruefungen', ['query' => $req->query], 200) ?? throw HttpException::notFound();
     }
 
     public function show(Request $req, string $slug): Response
@@ -30,10 +30,10 @@ final class ExamController
         $exam = $this->exams->bySlug($slug);
         if ($exam === null) {
             if ($this->exams->isArchived($slug)) {
-                return Response::redirect('/telc-pruefungszentrum/', 301);
+                return Response::redirect('/pruefungen/', 301);
             }
             if ($this->exams->isDisabled($slug)) {
-                return Response::redirect('/telc-pruefungszentrum/', 302);
+                return Response::redirect('/pruefungen/', 302);
             }
             throw HttpException::notFound();
         }
@@ -50,6 +50,11 @@ final class ExamController
             'others' => array_slice($others, 0, 3),
         ]));
         return $notice !== null ? $resp->withHeader('Cache-Control', 'no-store') : $resp;
+    }
+
+    public function preparation(Request $req): Response
+    {
+        return ($this->page)('pruefungsvorbereitung', ['query' => $req->query], 200) ?? throw HttpException::notFound();
     }
 
     public function prices(Request $req): Response

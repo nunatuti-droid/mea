@@ -17,7 +17,7 @@ final class TemplateTexts
         $t = fn(string $group, string $label, string $default, string $type = 'text', int $max = 120) => compact('group', 'label', 'default', 'type', 'max');
         return [
             'header.cta_label' => $t('Kopfbereich', 'Button oben rechts: Beschriftung', 'Prüfung buchen', 'text', 40),
-            'header.cta_url' => $t('Kopfbereich', 'Button oben rechts: Ziel', '/telc-pruefungszentrum/', 'url', 300),
+            'header.cta_url' => $t('Kopfbereich', 'Button oben rechts: Ziel', '/pruefungen/', 'url', 300),
             'footer.about' => $t('Fußbereich', 'Text unter dem Logo (nach dem Leitsatz aus den Firmendaten)', 'Wir begleiten Menschen und Unternehmen auf dem Weg in Arbeit, Sprache und Beruf.', 'textarea', 400),
             'footer.contact_label' => $t('Fußbereich', 'Button unter dem Logo: Beschriftung', 'E-Mail schreiben', 'text', 40),
             'footer.contact_url' => $t('Fußbereich', 'Button unter dem Logo: Ziel', '/kontakt/#formular', 'url', 300),
@@ -31,7 +31,7 @@ final class TemplateTexts
             'quickbar.call' => $t('Schnellleiste (Handy, unten)', 'Anrufen', 'Anrufen', 'text', 30),
             'quickbar.contact' => $t('Schnellleiste (Handy, unten)', 'Kontakt (wenn kein WhatsApp eingetragen ist)', 'Kontakt', 'text', 30),
             'quickbar.cta_label' => $t('Schnellleiste (Handy, unten)', 'Hauptbutton: Beschriftung', 'Prüfung buchen', 'text', 30),
-            'quickbar.cta_url' => $t('Schnellleiste (Handy, unten)', 'Hauptbutton: Ziel', '/telc-pruefungszentrum/', 'url', 300),
+            'quickbar.cta_url' => $t('Schnellleiste (Handy, unten)', 'Hauptbutton: Ziel', '/pruefungen/', 'url', 300),
         ];
     }
 

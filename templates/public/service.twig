@@ -6,13 +6,13 @@
 {% set canonical = url %}
 {% set og_image = service.hero_media_id ? media_url(service.hero_media_id, 1440) : null %}
 {% set crumbs = parent
-  ? [{label: 'Leistungen', url: '/leistungen/'}, {label: parent.menu_title ?: parent.title, url: '/' ~ parent.slug ~ '/'}, {label: service.title}]
-  : [{label: 'Leistungen', url: '/leistungen/'}, {label: service.menu_title ?: service.title}] %}
+  ? [{label: 'Campus', url: '/campus/'}, {label: parent.menu_title ?: parent.title, url: '/' ~ parent.slug ~ '/'}, {label: service.title}]
+  : [{label: 'Campus', url: '/campus/'}, {label: service.menu_title ?: service.title}] %}
 
 {% block content %}
   {% include 'partials/page_hero.twig' with {
     title: service.title, intro: service.intro ?: service.teaser, media_id: service.hero_media_id, crumbs: crumbs,
-    eyebrow: parent ? (parent.menu_title ?: parent.title) : 'Leistung',
+    eyebrow: parent ? (parent.menu_title ?: parent.title) : 'MEA Campus',
     cta_url: service.cta_url, cta_label: service.cta_label ?: 'Beratung anfragen',
     cta2_url: 'tel:' ~ (site.company.phone|tel), cta2_label: 'Anrufen: ' ~ site.company.phone_display
   } %}

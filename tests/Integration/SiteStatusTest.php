@@ -9,7 +9,7 @@ final class SiteStatusTest extends IntegrationTestCase
     public function testOfflineShowsMaintenancePageButAdminAndPaymentsStayReachable(): void
     {
         $this->app->siteStatus->save(['online' => false, 'message' => 'Kurze Pause für Umbauten.']);
-        foreach (['/', '/kontakt/', '/telc-pruefungszentrum/'] as $p) {
+        foreach (['/', '/kontakt/', '/pruefungen/'] as $p) {
             $r = $this->get($p);
             self::assertSame(503, $r->status, $p);
             self::assertStringContainsString('Kurze Pause für Umbauten.', $r->body);
