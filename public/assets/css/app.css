@@ -892,3 +892,6 @@ body.offline { min-height: 100vh; display: grid; place-items: center; padding: v
       color-mix(in srgb, var(--color-secondary) 3%, transparent) 100%),
     linear-gradient(0deg, color-mix(in srgb, var(--color-secondary) 45%, transparent) 0%, transparent 35%);
 }
+
+/* Seitenköpfe mit Bild auf dem Computer höher als der Startseiten-Hero */
+@media (min-width: 861px) { .hero--page .hero__inner { min-height: clamp(640px, 90vh, 880px); } }
