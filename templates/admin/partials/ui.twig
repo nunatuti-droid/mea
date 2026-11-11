@@ -17,6 +17,9 @@
     {% else %}
       <label for="{{ id }}">{{ f.label }}{% if f.required is defined and f.required %} <span class="req" aria-hidden="true">*</span>{% endif %}</label>
       {% set common = ' id="' ~ id ~ '" name="' ~ name ~ '"' ~ (f.required is defined and f.required ? ' required aria-required="true"' : '') ~ (err ? ' aria-invalid="true"' : '') ~ (described ? ' aria-describedby="' ~ described|trim ~ '"' : '') ~ (f.readonly is defined and f.readonly ? ' readonly' : '') %}
+      {% if type == 'lines' and f.editor is defined %}
+        <div class="rows-editor" data-rows-editor="{{ f.editor|json_encode }}" data-rows-for="{{ id }}"></div>
+      {% endif %}
       {% if type == 'textarea' or type == 'lines' %}
         <textarea{{ common|raw }} rows="{{ f.rows ?? (type == 'lines' ? 5 : 4) }}"{% if f.max is defined %} maxlength="{{ f.max }}"{% endif %}>{{ val }}</textarea>
       {% elseif type == 'html' %}
