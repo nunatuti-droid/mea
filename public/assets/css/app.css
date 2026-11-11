@@ -155,6 +155,36 @@ a:hover { color: var(--color-link-hover); }
 .nav__dropdown a { display: block; padding: 10px 14px; border-radius: var(--radius-small); text-decoration: none; color: var(--color-heading); font-family: var(--font-family-ui); font-weight: var(--font-weight-ui); font-size: var(--font-size-small); }
 .nav__dropdown a span { display: block; font-weight: var(--font-weight-body); color: var(--color-text-muted); font-size: var(--font-size-caption); margin-top: 2px; }
 .nav__dropdown a:hover { background: var(--color-surface-alt); }
+
+/* Megamenü „Campus“ */
+.site-header .container { position: relative; }
+.nav__item--mega { position: static; }
+.nav__mega { left: 0; right: 0; top: calc(100% + 1px); min-width: 0; padding: 0; overflow: hidden; border-top: 4px solid var(--color-primary); }
+.nav__item--mega.is-open .nav__mega, .nav__item--mega:focus-within .nav__mega { display: block; }
+@media (hover: hover) and (min-width: 1081px) { .nav__item--mega:hover .nav__mega { display: block; } .nav__item--mega:hover::after { content: ""; position: absolute; left: 0; right: 0; top: 100%; height: 12px; } }
+.mega__grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.mega__col { padding: var(--space-4) var(--space-3); border-right: var(--border-width) solid var(--color-border); display: flex; flex-direction: column; gap: var(--space-2); }
+.mega__col:last-child { border-right: 0; }
+.nav__mega .mega__head { display: flex; gap: var(--space-3); align-items: center; padding: var(--space-3); background: var(--color-surface-alt); }
+.mega__head strong { display: block; color: var(--color-heading); }
+.nav__mega .mega__head small { display: block; font-weight: var(--font-weight-body); color: var(--color-text-muted); font-size: var(--font-size-caption); margin-top: 2px; }
+.mega__icon { flex: none; width: 40px; height: 40px; border-radius: var(--radius-small); background: var(--color-surface); color: var(--color-primary-strong, var(--color-primary)); display: grid; place-items: center; }
+.mega__icon .icon { width: 22px; height: 22px; }
+.mega__list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; flex: 1; }
+.nav__mega .mega__list a strong { display: block; }
+.nav__mega .mega__cta { margin-top: auto; padding-top: var(--space-2); }
+.nav__mega .mega__cta a { display: flex; justify-content: space-between; align-items: center; color: var(--color-primary-strong, var(--color-primary)); }
+.nav__mega .mega__cta .icon { width: 18px; height: 18px; }
+.mega__foot { display: flex; justify-content: space-between; align-items: center; gap: var(--space-4); flex-wrap: wrap; padding: var(--space-3) var(--space-5); background: var(--color-secondary); color: var(--color-on-dark-muted); }
+.mega__foot p { margin: 0; font-size: var(--font-size-small); }
+@media (max-width: 1280px) and (min-width: 1081px) { .mega__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .mega__col:nth-child(2) { border-right: 0; } }
+@media (max-width: 1080px) {
+  .site-header .container { position: static; }
+  .nav__mega { border-top: 0; overflow: visible; padding: 0; }
+  .mega__grid { display: block; }
+  .mega__col { border-right: 0; padding: var(--space-3) 0; }
+  .mega__foot { display: none; }
+}
 .header-cta { flex: none; }
 .menu-button { display: none; margin-left: auto; width: 48px; height: 48px; border-radius: var(--radius-small); border: var(--border-width) solid var(--color-border); background: var(--color-surface); color: var(--color-heading); align-items: center; justify-content: center; cursor: pointer; }
 .menu-button .icon { width: 24px; height: 24px; }

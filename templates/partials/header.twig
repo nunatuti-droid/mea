@@ -1,4 +1,5 @@
 {%- set current = canonical ?? '/' -%}
+{%- set mega_icons = {'/bildungszentrum/': 'graduation-cap', '/recruiting/': 'briefcase', '/coaching/': 'user-check', '/sprache-beruf/': 'languages'} -%}
 <div class="topbar">
   <div class="container">
     <div class="topbar__group">
@@ -21,7 +22,33 @@
       <button class="menu-button nav__close" type="button" data-nav-close aria-label="Menü schließen">{{ icon('x') }}</button>
       <ul class="nav__list">
         {% for item in main_menu %}
-          {% if item.children is not empty %}
+          {% if item.children is not empty and (item.children|first).children is not empty %}
+            <li class="nav__item nav__item--mega">
+              <button class="nav__toggle" type="button" aria-expanded="false" aria-controls="sub-{{ item.id }}">{{ item.label }}{{ icon('chevron-down') }}</button>
+              <div class="nav__dropdown nav__mega" id="sub-{{ item.id }}">
+                <div class="mega__grid">
+                  {% for group in item.children %}
+                    <div class="mega__col">
+                      <a class="mega__head" href="{{ group.url }}"{% if group.url == current %} aria-current="page"{% endif %}>
+                        <span class="mega__icon" aria-hidden="true">{{ icon(mega_icons[group.url] ?? 'arrow-right') }}</span>
+                        <span><strong>{{ group.label }}</strong>{% if group.description %}<small>{{ group.description }}</small>{% endif %}</span>
+                      </a>
+                      <ul class="mega__list">
+                        {% for child in group.children %}
+                          {% set is_cta = loop.last and child.url starts with '/kontakt/' %}
+                          <li{% if is_cta %} class="mega__cta"{% endif %}><a href="{{ child.url }}"{% if child.url == current %} aria-current="page"{% endif %}>{{ child.label }}{% if is_cta %}{{ icon('arrow-right') }}{% elseif child.description %}<span>{{ child.description }}</span>{% endif %}</a></li>
+                        {% endfor %}
+                      </ul>
+                    </div>
+                  {% endfor %}
+                </div>
+                <div class="mega__foot">
+                  <p>{{ txt('header.mega_text') }}</p>
+                  <a class="btn btn--sm" href="{{ txt('header.mega_url') }}">{{ txt('header.mega_label') }}</a>
+                </div>
+              </div>
+            </li>
+          {% elseif item.children is not empty %}
             <li class="nav__item">
               <button class="nav__toggle" type="button" aria-expanded="false" aria-controls="sub-{{ item.id }}">{{ item.label }}{{ icon('chevron-down') }}</button>
               <ul class="nav__dropdown" id="sub-{{ item.id }}">

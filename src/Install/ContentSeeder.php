@@ -40,6 +40,8 @@ final class ContentSeeder
             (new \Mea\Module\Builder\LegacyImport($this->db))->run();
             // neue Struktur (Campus, Prüfungen, Menüs)
             (new CampusStructure($this->db))->run();
+            // Struktur nach Vorgabe „Neue Struktur“ (Megamenü, Unterseiten der Bereiche)
+            (new ReferenceStructure($this->db))->run();
         });
     }
 

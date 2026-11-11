@@ -9,6 +9,7 @@ use Mea\Core\Database;
 final class InquiryService
 {
     public const TOPICS = [
+        'bildungszentrum' => 'Bildungszentrum / Lernberatung',
         'pruefung' => 'Prüfung / telc',
         'sprachkurs' => 'Sprachkurs',
         'avgs' => 'Coaching (AVGS)',

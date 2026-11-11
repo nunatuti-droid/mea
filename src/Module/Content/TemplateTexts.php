@@ -18,6 +18,9 @@ final class TemplateTexts
         return [
             'header.cta_label' => $t('Kopfbereich', 'Button oben rechts: Beschriftung', 'Prüfung buchen', 'text', 40),
             'header.cta_url' => $t('Kopfbereich', 'Button oben rechts: Ziel', '/pruefungen/', 'url', 300),
+            'header.mega_text' => $t('Kopfbereich', 'Megamenü Campus: Hinweis in der unteren Leiste', 'Nicht sicher, welcher Bereich zu Ihnen passt? Wir beraten Sie gern.', 'text', 120),
+            'header.mega_label' => $t('Kopfbereich', 'Megamenü Campus: Button, Beschriftung', 'Erstberatung anfragen', 'text', 40),
+            'header.mega_url' => $t('Kopfbereich', 'Megamenü Campus: Button, Ziel', '/kontakt/', 'url', 300),
             'footer.about' => $t('Fußbereich', 'Text unter dem Logo (nach dem Leitsatz aus den Firmendaten)', 'Wir begleiten Menschen und Unternehmen auf dem Weg in Arbeit, Sprache und Beruf.', 'textarea', 400),
             'footer.contact_label' => $t('Fußbereich', 'Button unter dem Logo: Beschriftung', 'E-Mail schreiben', 'text', 40),
             'footer.contact_url' => $t('Fußbereich', 'Button unter dem Logo: Ziel', '/kontakt/#formular', 'url', 300),

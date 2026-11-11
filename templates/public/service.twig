@@ -60,12 +60,12 @@
     </section>
   {% endif %}
 
-  {% if children is not empty %}
+  {% if measures is not empty %}
     <section class="section">
       <div class="container">
         <div class="section-head"><span class="eyebrow">Unsere Maßnahmen</span><h2>Das passende Coaching für Ihre Situation</h2></div>
         <div class="grid grid--3">
-          {% for c in children %}
+          {% for c in measures %}
             <article class="card reveal">
               <div class="card__media">{{ img(c.card_media_id, '(max-width: 700px) 100vw, 380px', {alt: ''}) }}</div>
               <div class="card__body">
@@ -83,10 +83,21 @@
     </section>
   {% endif %}
 
+  {% if topics is not empty %}
+    <section class="section{{ measures is not empty ? ' section--alt' : '' }}">
+      <div class="container">
+        <div class="section-head"><span class="eyebrow">{{ service.facts.topics_eyebrow ?? 'Ihr Einstieg' }}</span><h2>{{ service.facts.topics_title ?? 'Wählen Sie das passende Thema' }}</h2></div>
+        <div class="grid grid--3">
+          {% for c in topics %}{{ ui.service_card(c, '/' ~ service.slug ~ '/' ~ c.slug ~ '/', 'Mehr erfahren') }}{% endfor %}
+        </div>
+      </div>
+    </section>
+  {% endif %}
+
   {% if siblings|length > 1 %}
     <section class="section section--alt">
       <div class="container">
-        <div class="section-head"><h2>Weitere Maßnahmen</h2></div>
+        <div class="section-head"><h2>{{ service.facts.info is defined ? 'Weitere Themen' : 'Weitere Maßnahmen' }}</h2></div>
         <div class="grid grid--3">
           {% for c in siblings|filter(c => c.id != service.id) %}{{ ui.service_card(c, '/' ~ parent.slug ~ '/' ~ c.slug ~ '/') }}{% endfor %}
         </div>
