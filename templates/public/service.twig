@@ -1,5 +1,7 @@
 {% extends 'layout/base.twig' %}
+{% macro pick(text, i) %}{% set k = text|lower %}{% set cyc = ['target', 'users', 'graduation-cap', 'handshake', 'route', 'badge-check'] %}{% if 'sprach' in k or 'hören' in k or 'sprechen' in k or 'lesen' in k %}languages{% elseif 'förder' in k or 'avgs' in k or 'gutschein' in k or 'kosten' in k or 'finanz' in k or 'azav' in k %}file-text{% elseif 'zulassung' in k or 'prüf' in k or 'zertifikat' in k or 'nachweis' in k or 'qualifikation' in k %}badge-check{% elseif 'ausbildung' in k or 'lern' in k or 'grundlagen' in k or 'berufswunsch' in k %}graduation-cap{% elseif 'ort' in k or 'region' in k or 'ruhrgebiet' in k or 'standort' in k %}map-pin{% elseif 'schritt' in k or 'planen' in k or 'ablauf' in k or 'ziel' in k %}route{% elseif 'beratung' in k or 'gespräch' in k or 'persönlich' in k or 'begleit' in k %}handshake{% elseif 'gruppe' in k or 'einzel' in k or 'team' in k or 'unternehm' in k or 'betrieb' in k %}users{% else %}{{ cyc[(i - 1) % 6] }}{% endif %}{% endmacro %}
 {% import 'partials/macros.twig' as ui %}
+{% import _self as m_ %}
 {% set url = (parent ? '/' ~ parent.slug : '') ~ '/' ~ service.slug ~ '/' %}
 {% set seo_title = service.seo_title ?: service.title ~ ' – MEA Bildungszentrum' %}
 {% set seo_description = service.seo_description ?: service.teaser %}
@@ -25,17 +27,7 @@
       <div class="container">
         <ul class="highlights">
           {% for h in service.facts.highlights %}
-            {% set k = h|lower %}
-            {% set ic = 'sparkles' %}
-            {% if 'sprach' in k %}{% set ic = 'languages' %}
-            {% elseif 'gruppe' in k or 'einzel' in k or 'team' in k or 'unternehm' in k %}{% set ic = 'users' %}
-            {% elseif 'förder' in k or 'avgs' in k or 'gutschein' in k or 'kosten' in k or 'finanz' in k %}{% set ic = 'file-text' %}
-            {% elseif 'zulassung' in k or 'prüf' in k or 'zertifikat' in k or 'nachweis' in k or 'qualifikation' in k %}{% set ic = 'badge-check' %}
-            {% elseif 'ausbildung' in k or 'lern' in k or 'grundlagen' in k or 'berufswunsch' in k %}{% set ic = 'graduation-cap' %}
-            {% elseif 'ort' in k or 'region' in k or 'ruhrgebiet' in k or 'standort' in k %}{% set ic = 'map-pin' %}
-            {% elseif 'schritt' in k or 'planen' in k or 'ablauf' in k or 'ziel' in k %}{% set ic = 'route' %}
-            {% elseif 'beratung' in k or 'gespräch' in k or 'persönlich' in k or 'begleit' in k %}{% set ic = 'handshake' %}
-            {% endif %}
+            {% set ic = m_.pick(h, loop.index)|trim %}
             <li class="highlights__item reveal"><span class="card__icon">{{ icon(ic) }}</span><span>{{ h }}</span></li>
           {% endfor %}
         </ul>
@@ -68,7 +60,7 @@
         <div class="section-head">{% if sec.eyebrow ?? false %}<span class="eyebrow">{{ sec.eyebrow }}</span>{% endif %}<h2>{{ sec.title ?? '' }}</h2>{% if sec.text ?? false %}<p>{{ sec.text }}</p>{% endif %}</div>
         {% if (sec.cards ?? [])|length %}
           <div class="grid grid--{{ sec.cards|length > 2 ? 3 : 2 }}">
-            {% for c in sec.cards %}<div class="card reveal"><div class="card__body"><h3>{{ c.title ?? '' }}</h3><p>{{ c.text ?? '' }}</p></div></div>{% endfor %}
+            {% for c in sec.cards %}<div class="card card--feature reveal"><div class="card__body"><span class="card__icon">{{ icon(m_.pick((c.title ?? '') ~ ' ' ~ (c.text ?? ''), loop.index)|trim) }}</span><h3>{{ c.title ?? '' }}</h3><p>{{ c.text ?? '' }}</p></div></div>{% endfor %}
           </div>
         {% endif %}
       </div>
@@ -81,7 +73,7 @@
         <div class="section-head"><span class="eyebrow">Unser Angebot</span><h2>{{ service.facts.modules_title ?? 'Das gehört dazu' }}</h2></div>
         <div class="grid grid--3">
           {% for m in service.facts.modules %}
-            <div class="card reveal"><div class="card__body"><span class="card__icon">{{ icon(m.icon ?? 'sparkles') }}</span><h3>{{ m.title ?? '' }}</h3><p>{{ m.text ?? '' }}</p></div></div>
+            <div class="card card--feature reveal"><div class="card__body"><span class="card__icon">{{ icon(m.icon ?? 'sparkles') }}</span><h3>{{ m.title ?? '' }}</h3><p>{{ m.text ?? '' }}</p></div></div>
           {% endfor %}
         </div>
       </div>

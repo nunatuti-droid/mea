@@ -25,7 +25,9 @@ final class ContentPatches
         $log = [];
         foreach (['hero-2026-10-31' => fn() => $this->heroImage(), 'campus-2026-11-11' => fn() => implode(' ', (new \Mea\Install\CampusStructure($this->db))->run()),
             'referenz-2026-11-11' => fn() => implode(' ', (new \Mea\Install\ReferenceStructure($this->db))->run()),
-            'referenz-inhalte-2026-11-12' => fn() => $this->db->transaction(fn() => (new \Mea\Install\ReferenceStructure($this->db))->content())] as $key => $patch) {
+            'referenz-inhalte-2026-11-12' => fn() => $this->db->transaction(fn() => (new \Mea\Install\ReferenceStructure($this->db))->content()),
+            'referenz-bilder-2026-11-12' => fn() => $this->db->transaction(fn() => (new \Mea\Install\ReferenceStructure($this->db))->images()),
+            'referenz-seiten-2026-11-12' => fn() => $this->db->transaction(fn() => (new \Mea\Install\ReferenceStructure($this->db))->aboutPage() . ' ' . (new \Mea\Install\ReferenceStructure($this->db))->contactPage())] as $key => $patch) {
             if (in_array($key, $done, true)) {
                 continue;
             }

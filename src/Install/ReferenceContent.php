@@ -337,7 +337,7 @@ final class ReferenceContent
                 'cta_text' => 'Erzählen Sie uns, was Sie erreichen möchten. Wir finden gemeinsam das passende Angebot.',
             ],
             [
-                'parent' => 'coaching', 'slug' => 'jobcenter', 'title' => 'Informationen für Jobcenter und Arbeitsvermittlung', 'menu' => 'Für Jobcenter', 'icon' => 'building',
+                'parent' => 'coaching', 'slug' => 'jobcenter', 'title' => 'Informationen für Jobcenter und Arbeitsvermittlung', 'menu' => 'Für Jobcenter', 'icon' => 'building-2',
                 'teaser' => 'Konkrete Coachinginformationen anfragen', 'topic' => 'avgs', 'cta' => 'Konkretes Angebot anfragen',
                 'seo_title' => 'Coaching: Informationen für Jobcenter | MEA',
                 'seo_desc' => 'Konkrete Angebote statt pauschaler Zuweisung: Zugang, Nachweise und Dokumentation für Jobcenter und Arbeitsvermittlung im Einzelfall klären.',

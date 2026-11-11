@@ -29,6 +29,9 @@ final class ReferenceStructure
         $this->db->transaction(function () use (&$log): void {
             $log[] = $this->hubs();
             $log[] = $this->content();
+            $log[] = $this->images();
+            $log[] = $this->aboutPage();
+            $log[] = $this->contactPage();
             $log[] = $this->fundingPage();
             $log[] = $this->menus();
             $log[] = (new LinkRewriter($this->db, self::URLS))->run();
@@ -52,6 +55,36 @@ final class ReferenceStructure
             $this->update('services', (int) $onb['id'], ['facts_json' => json_encode($facts, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR), 'sort_order' => 1]);
         }
         return 'Bereichsadressen angepasst.';
+    }
+
+    /** Eigenes Foto je Unterseite (Original-Dateiname in der Mediathek); innerhalb eines Bereichs wird kein Foto doppelt gezeigt. */
+    private const IMAGES = [
+        'bildungszentrum/ausbildung' => 'hero-gemeinsames-lernen.jpg',
+        'bildungszentrum/sprachtraining' => 'MEA-Sprachkurse-und-telc-pruefungen.webp',
+        'bildungszentrum/pruefungen' => 'telc-Pruefungen.webp',
+        'recruiting/unternehmen' => 'MEA-Leistungen.png',
+        'coaching/foerderung' => 'Onboarding.webp',
+        'coaching/teilnehmende' => 'MEA-Dozentin.jpg',
+        'coaching/jobcenter' => 'MEA-Sprachdozent.webp',
+        'sprache-beruf/berufsdeutsch' => 'telc_Deustch_A2_B1-1024x1024.webp',
+        'sprache-beruf/unternehmen' => 'Coaching_MEA.png',
+    ];
+
+    public function images(): string
+    {
+        $this->db->run("UPDATE services SET icon = 'building-2' WHERE icon = 'building'"); // Symbol „building“ gibt es nicht
+        $n = 0;
+        foreach (self::IMAGES as $path => $file) {
+            [$parent, $slug] = explode('/', $path);
+            $media = $this->db->value('SELECT id FROM media WHERE original_name = ? ORDER BY id LIMIT 1', [$file]);
+            $row = $this->db->one('SELECT s.id FROM services s JOIN services p ON p.id = s.parent_id WHERE p.slug = ? AND s.slug = ?', [$parent, $slug]);
+            if ($media === null || $row === null) {
+                continue;
+            }
+            $this->update('services', (int) $row['id'], ['hero_media_id' => (int) $media, 'card_media_id' => (int) $media]);
+            $n++;
+        }
+        return "$n Unterseiten mit eigenem Foto.";
     }
 
     /**
@@ -114,6 +147,9 @@ final class ReferenceStructure
                 'facts_json' => json_encode($facts, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR),
                 'seo_title' => mb_substr($d['seo_title'], 0, 70), 'seo_description' => mb_substr($d['seo_desc'], 0, 170),
             ];
+            if (isset($d['icon'])) {
+                $set['icon'] = $d['icon'];
+            }
             if ($d['parent'] !== null && empty($d['update_only'])) {
                 $set['cta_label'] = $d['cta'];
                 $set['cta_url'] = '/kontakt/?thema=' . $d['topic'];
@@ -124,6 +160,127 @@ final class ReferenceStructure
         return "$n Seiten mit ausführlichen Inhalten versehen, davon $created neu angelegt.";
     }
 
+
+    // ---------------------------------------------------------------- Seiten „Über uns“ und „Kontakt“ (Update 0.9.17)
+
+    /** Baut „Über uns“ inhaltlich aus (Abschnitte mit Karten); Stimmen, Standorte und Abschluss bleiben erhalten. */
+    public function aboutPage(): string
+    {
+        $page = $this->db->one("SELECT id, blocks_json FROM pages WHERE slug = 'ueber-uns'");
+        if ($page === null || !is_string($page['blocks_json'])) {
+            return 'Seite „Über uns“ nicht vorhanden – übersprungen.';
+        }
+        $old = json_decode($page['blocks_json'], true);
+        if (!is_array($old) || ($old[0]['type'] ?? '') !== 'page_hero') {
+            return 'Seite „Über uns“ angepasst – übersprungen.';
+        }
+        $keep = array_values(array_filter(array_slice($old, 1), function ($n) {
+            $first = $n['c'][0] ?? [];
+            return ($n['f']['anchor'] ?? '') === 'stimmen'
+                || (($first['type'] ?? '') === 'section_head' && ($first['f']['title'] ?? '') === 'Unsere Standorte')
+                || ($first['type'] ?? '') === 'cta';
+        }));
+        $head = fn(string $eyebrow, string $title, string $text) => $this->node('section_head', ['eyebrow' => $eyebrow, 'title' => $title, 'text' => $text, 'link_label' => '', 'link_url' => '', 'layout' => 'stack']);
+        $cards = fn(string $cols, array $items) => $this->node('cards', ['cols' => $cols, 'look' => 'card', 'level' => 'h3', 'items' => array_map(
+            fn($i) => ['icon' => $i[0], 'media' => null, 'title' => $i[1], 'text' => $i[2], 'link_label' => $i[3] ?? '', 'url' => $i[4] ?? ''], $items)]);
+        $hero = $old[0];
+        $hero['f']['intro'] = 'Bildung ist der Schlüssel zu persönlichem und beruflichem Erfolg. Dafür arbeiten wir jeden Tag – mit Sprache, Coaching, Prüfungen und Recruiting für Menschen und Unternehmen im Ruhrgebiet.';
+        $tree = [
+            $hero,
+            $this->node('section', ['bg' => 'none'], [
+                $head('Wer wir sind', 'Bildung, die im Berufsleben ankommt', 'MEA Bildungszentrum begleitet Menschen und Unternehmen im Ruhrgebiet auf dem Weg in Arbeit, Sprache und Beruf. Wir verbinden Sprachtraining, Coaching, Prüfungen und Recruiting unter einem Dach – mit persönlicher Beratung an den Standorten Marl und Herne. Unser Anspruch: Angebote, die verständlich erklärt sind und im Alltag tatsächlich weiterhelfen.'),
+                $cards('2', [
+                    ['target', 'Unsere Vision', 'Wir wollen ein Anbieter hochwertiger Erwachsenenbildung sein. Dahinter steht die Überzeugung, dass Bildung der Schlüssel zu persönlichem und beruflichem Erfolg ist.'],
+                    ['book-open', 'Unsere Mission', 'Wir unterstützen die persönliche und berufliche Entwicklung unserer Teilnehmenden mit wirksamen Angeboten. Drei Grundsätze leiten uns: lebenslanges Lernen, Befähigung und Weiterkommen durch praxisnahe Lernmethoden.'],
+                ]),
+            ]),
+            $this->node('section', ['bg' => 'alt'], [
+                $head('Unsere Werte', 'Woran wir uns messen lassen', 'Unsere Werte sind kein Aushang, sondern die Grundlage unserer täglichen Arbeit im Unterricht, in der Beratung und in der Zusammenarbeit mit Betrieben.'),
+                $cards('3', [
+                    ['badge-check', 'Qualität', 'Hohe Ansprüche an Unterricht und Begleitung: nachvollziehbare Inhalte, erfahrene Lehrkräfte und eine verlässliche Organisation.'],
+                    ['sparkles', 'Innovation', 'Neue Methoden setzen wir dort ein, wo sie Lernenden wirklich helfen – nicht um ihrer selbst willen.'],
+                    ['users', 'Respekt', 'Ein inklusives Lernumfeld, in dem unterschiedliche Erfahrungen, Sprachen und Lebenswege willkommen sind.'],
+                    ['heart-handshake', 'Engagement', 'Persönliche Unterstützung von der ersten Anfrage bis zum nächsten Schritt – auch bei Fragen zu Förderung und Anmeldung.'],
+                    ['route', 'Nachhaltigkeit', 'Lernen, das bleibt: Wir planen Lernschritte so, dass sie im Beruf und im Alltag weitertragen.'],
+                    ['handshake', 'Partnerschaft', 'Wir arbeiten mit Teilnehmenden, Unternehmen, Jobcentern und Agenturen verbindlich und transparent zusammen.'],
+                ]),
+            ]),
+            $this->node('section', ['bg' => 'none'], [
+                $head('Unser Angebot', 'Vier Bereiche, ein Campus', 'Ob Sie lernen, sich beruflich orientieren, Fachkräfte gewinnen oder eine Prüfung ablegen möchten: Wir klären zuerst Ihr Ziel und empfehlen dann den passenden Bereich.'),
+                $cards('2', [
+                    ['graduation-cap', 'Bildungszentrum', 'Berufliche Grundlagen, Ausbildungsvorbereitung, Sprachtraining und Prüfungen.', 'Zum Bildungszentrum', '/bildungszentrum/'],
+                    ['briefcase', 'Recruiting', 'Personalbedarf klären, Qualifikationen prüfen, internationale Fachkräfte beim Ankommen begleiten.', 'Zu Recruiting', '/recruiting/'],
+                    ['user-check', 'Coaching & Beratung', 'Einzelcoaching, Förderung und Beratung für Teilnehmende und Jobcenter.', 'Zu Coaching & Beratung', '/coaching/'],
+                    ['languages', 'Sprache & Beruf', 'Berufsdeutsch, Prüfungsvorbereitung und Sprachtraining für Unternehmen.', 'Zu Sprache & Beruf', '/sprache-beruf/'],
+                ]),
+            ]),
+            $this->node('section', ['bg' => 'alt'], [
+                $head('So arbeiten wir', 'Vom ersten Gespräch zum passenden Angebot', 'Unser Vorgehen ist bewusst einfach, damit Sie jederzeit wissen, woran Sie sind.'),
+                $this->node('steps', ['items' => [
+                    ['title' => 'Zuhören', 'text' => 'Wir lernen Ihr Ziel, Ihre Ausgangslage und Ihre zeitlichen Möglichkeiten kennen.'],
+                    ['title' => 'Einordnen', 'text' => 'Wir besprechen Lernbedarf, mögliche Förderwege und passende Angebote verständlich und ehrlich.'],
+                    ['title' => 'Planen', 'text' => 'Gemeinsam legen wir Ort, Lernform und nächste Schritte fest, bevor Sie sich entscheiden.'],
+                    ['title' => 'Begleiten', 'text' => 'Wir bleiben Ansprechpartner – während des Angebots und darüber hinaus.'],
+                ]]),
+            ]),
+            $this->node('section', ['bg' => 'none'], [
+                $head('Unser Team', 'Menschen, die Fachwissen und Praxis verbinden', 'Unsere Dozentinnen, Dozenten und Coaches verbinden Fachwissen mit Praxiserfahrung und schaffen ein unterstützendes Lernumfeld. Sie kennen die Anforderungen der Betriebe im Ruhrgebiet und die Fragen, die Lernende mitbringen – und nehmen sich Zeit dafür.'),
+            ]),
+            ...$keep,
+        ];
+        $json = json_encode($tree, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+        $this->update('pages', (int) $page['id'], ['blocks_json' => $json, 'draft_json' => $json]);
+        return 'Seite „Über uns“ ausgebaut.';
+    }
+
+    /** Kontaktseite nach Vorgabe: Kontaktdaten links, Formular rechts, Überschrift mit Zielhinweis. */
+    public function contactPage(): string
+    {
+        $page = $this->db->one("SELECT id, blocks_json FROM pages WHERE slug = 'kontakt'");
+        if ($page === null || !is_string($page['blocks_json'])) {
+            return 'Seite „Kontakt“ nicht vorhanden – übersprungen.';
+        }
+        $tree = json_decode($page['blocks_json'], true);
+        if (!is_array($tree)) {
+            return 'Seite „Kontakt“ nicht lesbar – übersprungen.';
+        }
+        $walk = function (array $nodes) use (&$walk): array {
+            foreach ($nodes as $i => $n) {
+                $f = is_array($n['f'] ?? null) ? $n['f'] : [];
+                switch ($n['type'] ?? '') {
+                    case 'page_hero':
+                        $f['eyebrow'] = 'MEA Bildungszentrum';
+                        $f['title'] = 'Ihr Gespräch mit MEA. Ihr Anliegen im Mittelpunkt.';
+                        $f['intro'] = 'Berufliche Grundlagen, Sprache, Coaching und Prüfungen: Wir besprechen Ihren passenden Weg und begleiten den nächsten Schritt. Sie erhalten eine persönliche Antwort, meist am nächsten Werktag.';
+                        break;
+                    case 'columns':
+                        // Kontaktdaten links (schmal), Formular rechts (breit); auf dem Handy bleibt das Formular zuerst
+                        $cols = array_values($n['c'] ?? []);
+                        $infoFirst = ($cols[0]['c'][0]['type'] ?? '') === 'contact_info';
+                        if (!$infoFirst && count($cols) === 2) {
+                            $n['c'] = array_reverse($cols);
+                        }
+                        $f['layout'] = '2-3';
+                        $f['reverse'] = false;
+                        break;
+                    case 'contact_form':
+                        $f['title'] = 'Ihre Anfrage an MEA';
+                        break;
+                    case 'contact_info':
+                        $f['title'] = 'Der direkte Draht zu MEA';
+                        break;
+                }
+                $nodes[$i]['f'] = $f;
+                if (isset($n['c']) && is_array($n['c'])) {
+                    $nodes[$i]['c'] = $walk($n['c']);
+                }
+            }
+            return $nodes;
+        };
+        $json = json_encode($walk($tree), JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+        $this->update('pages', (int) $page['id'], ['blocks_json' => $json, 'draft_json' => $json]);
+        return 'Seite „Kontakt“ angepasst.';
+    }
 
     // ---------------------------------------------------------------- Fördermöglichkeiten (Fußbereich)
 

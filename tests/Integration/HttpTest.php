@@ -95,6 +95,12 @@ final class HttpTest extends IntegrationTestCase
         self::assertStringContainsString('Ziel beschreiben', $bz);
         $f = $this->get('/coaching/foerderung/')->body;
         self::assertStringContainsString('"@type":"FAQPage"', str_replace(' ', '', $f));
+        // 0.9.17: Kontaktformular mit Auswahl, Über uns ausgebaut, Footer mit Erreichbarkeit
+        $k = $this->get('/kontakt/')->body;
+        self::assertStringContainsString('Ich frage an als', $k);
+        self::assertStringContainsString('name="audience"', $k);
+        self::assertStringContainsString('Woran wir uns messen lassen', $this->get('/ueber-uns/')->body);
+        self::assertStringContainsString('So erreichen Sie uns', $k);
         $sitemap = $this->get('/sitemap.xml')->body;
         foreach (['/bildungszentrum/ausbildung/', '/foerderung/'] as $u) {
             self::assertStringContainsString($u, $sitemap);

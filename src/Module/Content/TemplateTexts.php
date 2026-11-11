@@ -25,6 +25,8 @@ final class TemplateTexts
             'footer.contact_label' => $t('Fußbereich', 'Button unter dem Logo: Beschriftung', 'E-Mail schreiben', 'text', 40),
             'footer.contact_url' => $t('Fußbereich', 'Button unter dem Logo: Ziel', '/kontakt/#formular', 'url', 300),
             'footer.company_heading' => $t('Fußbereich', 'Überschrift der Spalte mit dem Fußmenü', 'Unternehmen', 'text', 60),
+            'footer.reach_heading' => $t('Fußbereich', 'Überschrift der Spalte „Erreichbarkeit“', 'So erreichen Sie uns', 'text', 60),
+            'footer.reach_cta' => $t('Fußbereich', 'Spalte „Erreichbarkeit“: Beschriftung des Buttons', 'Termin anfragen', 'text', 40),
             'footer.locations_heading' => $t('Fußbereich', 'Überschrift der Spalte mit den Standorten', 'Standorte', 'text', 60),
             'footer.google_heading' => $t('Fußbereich', 'Überschrift über den Google-Bewertungen', 'Das sagen unsere Teilnehmenden auf Google', 'text', 120),
             'footer.voice_heading' => $t('Fußbereich', 'Überschrift über der Kundenstimme', 'Stimmen unserer Teilnehmenden', 'text', 120),
