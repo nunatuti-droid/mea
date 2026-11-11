@@ -161,7 +161,11 @@ a:hover { color: var(--color-link-hover); }
 .nav__item--mega { position: static; }
 .nav__mega { left: 0; right: 0; top: calc(100% + 1px); min-width: 0; padding: 0; overflow: hidden; border-top: 4px solid var(--color-primary); }
 .nav__item--mega.is-open .nav__mega, .nav__item--mega:focus-within .nav__mega { display: block; }
-@media (hover: hover) and (min-width: 1081px) { .nav__item--mega:hover .nav__mega { display: block; } .nav__item--mega:hover::after { content: ""; position: absolute; left: 0; right: 0; top: 100%; height: 12px; } }
+@media (hover: hover) and (min-width: 1081px) {
+  .nav__item--mega:hover .nav__mega { display: block; }
+  /* unsichtbare Brücke zwischen Button und Panel über die ganze Breite, damit das Menü beim Mausweg zu einem Eintrag offen bleibt */
+  .nav__item--mega:hover::after { inset: auto 0 0 0; height: 26px; }
+}
 .mega__grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .mega__col { padding: var(--space-4) var(--space-3); border-right: var(--border-width) solid var(--color-border); display: flex; flex-direction: column; gap: var(--space-2); }
 .mega__col:last-child { border-right: 0; }
