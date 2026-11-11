@@ -240,7 +240,7 @@ body.nav-open { overflow: hidden; }
 .page-hero__grid--single { grid-template-columns: 1fr; }
 .page-hero h1 { margin-bottom: var(--space-4); }
 .page-hero .lead { margin-bottom: var(--space-5); }
-.page-hero__media img { width: 100%; aspect-ratio: 3 / 2; object-fit: cover; border-radius: var(--radius-shape); box-shadow: var(--shadow-small); }
+.page-hero__media img { display: block; width: 100%; height: auto; border-radius: var(--radius-shape); box-shadow: var(--shadow-small); }
 @media (max-width: 860px) { .page-hero__grid { grid-template-columns: 1fr; gap: var(--space-6); } }
 
 .breadcrumbs { font-size: var(--font-size-small); margin-bottom: var(--space-4); }
