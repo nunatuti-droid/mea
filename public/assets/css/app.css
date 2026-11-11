@@ -873,24 +873,22 @@ body.offline { min-height: 100vh; display: grid; place-items: center; padding: v
 .divider--diamond::after { content: ""; position: absolute; left: 50%; top: -6px; width: 11px; height: 11px; margin-left: -6px; background: var(--color-primary); transform: rotate(45deg); border-radius: 2px; }
 
 /* Seitenkopf mit Hintergrundbild: gleiche Optik wie der Hero der Startseite, niedriger */
-.hero--page .hero__inner { min-height: clamp(380px, 52vh, 520px); }
 .hero--page h1 { font-size: var(--font-size-h1); }
 .hero--page .hero__lead { margin-bottom: var(--space-5); }
 .hero--page .breadcrumbs ol, .hero--page .breadcrumbs a { color: var(--color-on-dark-muted); }
 .hero--page .breadcrumbs li + li::before { color: color-mix(in srgb, var(--color-on-dark) 40%, transparent); }
 .hero--page .breadcrumbs [aria-current] { color: var(--color-on-dark); }
 .hero--page .eyebrow { color: var(--color-on-dark-accent); }
-/* Zusätzlich abdunkeln, damit Logos oder Schrift im Bild den Text nicht stören */
+/* Overlay links transparenter als auf der Startseite, damit Personen im Bild erkennbar bleiben */
 .hero--page::before {
   background:
-    linear-gradient(90deg, color-mix(in srgb, var(--color-secondary) 78%, transparent) 0%, color-mix(in srgb, var(--color-secondary) 70%, transparent) 45%, transparent 85%),
     linear-gradient(90deg,
-      color-mix(in srgb, var(--color-secondary) 38%, transparent) 0%,
-      color-mix(in srgb, var(--color-secondary) 62%, transparent) max(0px, calc(var(--hero-x) - 120px)),
-      color-mix(in srgb, var(--color-secondary) 86%, transparent) calc(var(--hero-x) + 40px),
-      color-mix(in srgb, var(--color-secondary) 84%, transparent) calc(var(--hero-x) + 500px),
-      color-mix(in srgb, var(--color-secondary) 48%, transparent) calc(var(--hero-x) + 760px),
-      color-mix(in srgb, var(--color-secondary) 12%, transparent) calc(var(--hero-x) + 1000px),
-      color-mix(in srgb, var(--color-secondary) 5%, transparent) 100%),
-    linear-gradient(0deg, color-mix(in srgb, var(--color-secondary) 55%, transparent) 0%, transparent 35%);
+      color-mix(in srgb, var(--color-secondary) 30%, transparent) 0%,
+      color-mix(in srgb, var(--color-secondary) 50%, transparent) max(0px, calc(var(--hero-x) - 120px)),
+      color-mix(in srgb, var(--color-secondary) 68%, transparent) calc(var(--hero-x) + 40px),
+      color-mix(in srgb, var(--color-secondary) 62%, transparent) calc(var(--hero-x) + 500px),
+      color-mix(in srgb, var(--color-secondary) 30%, transparent) calc(var(--hero-x) + 760px),
+      color-mix(in srgb, var(--color-secondary) 8%, transparent) calc(var(--hero-x) + 1000px),
+      color-mix(in srgb, var(--color-secondary) 3%, transparent) 100%),
+    linear-gradient(0deg, color-mix(in srgb, var(--color-secondary) 45%, transparent) 0%, transparent 35%);
 }
