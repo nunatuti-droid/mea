@@ -427,4 +427,66 @@
     fit();
     $('[data-ds-page]', ds).addEventListener('change', e => { frame.src = e.target.value + '?designvorschau=1'; });
   }
+  // Zeilen-Editor (Eckdaten, Bausteine, Ablauf): ersetzt die Textzeilen „A | B | C“ durch einzelne Felder.
+  // Das Textfeld bleibt die Datenquelle und wird bei jeder Eingabe neu geschrieben; ohne JavaScript bleibt es bearbeitbar.
+  $$('[data-rows-editor]').forEach(box => {
+    let cfg; try { cfg = JSON.parse(box.dataset.rowsEditor); } catch (e) { return; }
+    const src = document.getElementById(box.dataset.rowsFor);
+    if (!src || !Array.isArray(cfg.cols)) return;
+    const cols = cfg.cols, hasIcon = !!cols[0].icons;
+    const clean = v => String(v).replace(/\s*\r?\n\s*/g, ' ').replace(/\|/g, '/').trim();
+    const parse = line => {
+      const p = line.split('|').map(x => x.trim());
+      if (hasIcon) return p.length >= 3 ? [p[0], p[1], p.slice(2).join(' | ')] : ['', p[0] || '', p[1] || ''];
+      return [p[0] || '', p.slice(1).join(' | ')];
+    };
+    const list = document.createElement('div'); list.className = 'rows-editor__list';
+    const add = document.createElement('button'); add.type = 'button'; add.className = 'btn btn--sm';
+    add.textContent = '+ ' + (cfg.add || 'Zeile hinzufügen');
+    const sync = () => {
+      const lines = $$('.rows-editor__row', list).map(r => $$('[data-col]', r).map(i => clean(i.value))).filter(v => v.some(x => x !== '')).map(v => v.join(' | '));
+      src.value = lines.join('\n');
+      src.dispatchEvent(new Event('input', { bubbles: true }));
+    };
+    const renumber = () => $$('.rows-editor__row', list).forEach((r, n) => {
+      $$('[data-col]', r).forEach((i, k) => i.setAttribute('aria-label', cols[k].label + ' (Zeile ' + (n + 1) + ')'));
+      $('[data-up]', r).disabled = n === 0;
+      $('[data-down]', r).disabled = n === list.children.length - 1;
+    });
+    const mkBtn = (attr, text, label) => { const b = document.createElement('button'); b.type = 'button'; b.setAttribute(attr, ''); b.className = 'rows-editor__btn'; b.textContent = text; b.setAttribute('aria-label', label); b.title = label; return b; };
+    const addRow = (vals, focus) => {
+      const row = document.createElement('div'); row.className = 'rows-editor__row' + (hasIcon ? ' rows-editor__row--icon' : '');
+      cols.forEach((c, k) => {
+        let el;
+        if (c.icons) {
+          el = document.createElement('select');
+          const o0 = document.createElement('option'); o0.value = ''; o0.textContent = '– kein Symbol –'; el.appendChild(o0);
+          c.icons.forEach(n => { const o = document.createElement('option'); o.value = n; o.textContent = n; el.appendChild(o); });
+          if (vals[k] && !c.icons.includes(vals[k])) { const o = document.createElement('option'); o.value = vals[k]; o.textContent = vals[k]; el.appendChild(o); }
+        } else if (c.multiline) {
+          el = document.createElement('textarea'); el.rows = 2;
+        } else {
+          el = document.createElement('input'); el.type = 'text';
+        }
+        if (c.placeholder) el.placeholder = c.placeholder;
+        el.value = vals[k] || ''; el.dataset.col = String(k);
+        el.addEventListener('input', sync); el.addEventListener('change', sync);
+        row.appendChild(el);
+      });
+      const tools = document.createElement('div'); tools.className = 'rows-editor__tools';
+      const up = mkBtn('data-up', '↑', 'Nach oben'), down = mkBtn('data-down', '↓', 'Nach unten'), del = mkBtn('data-del', '×', 'Entfernen');
+      up.addEventListener('click', () => { if (row.previousElementSibling) { list.insertBefore(row, row.previousElementSibling); renumber(); sync(); up.focus(); } });
+      down.addEventListener('click', () => { if (row.nextElementSibling) { list.insertBefore(row.nextElementSibling, row); renumber(); sync(); down.focus(); } });
+      del.addEventListener('click', () => { const next = row.nextElementSibling || row.previousElementSibling; row.parentNode.removeChild(row); renumber(); sync(); (next ? $('[data-col]', next) : add).focus(); });
+      tools.append(up, down, del); row.appendChild(tools);
+      list.appendChild(row); renumber();
+      if (focus) $('[data-col]:not(select)', row)?.focus();
+    };
+    src.value.split(/\r?\n/).map(l => l.trim()).filter(Boolean).forEach(l => addRow(parse(l), false));
+    add.addEventListener('click', () => addRow(cols.map(() => ''), true));
+    box.append(list, add);
+    src.hidden = true;
+    $('label[for="' + src.id + '"]')?.setAttribute('id', src.id + '-lbl');
+    box.setAttribute('role', 'group'); box.setAttribute('aria-labelledby', src.id + '-lbl');
+  });
 })();

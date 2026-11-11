@@ -43,6 +43,7 @@ Nach Version-Updates: `php bin/console migrate` (23 Migrationen), danach `selfte
 - Seitenbaukasten: Datensatzseiten (Leistung/Prüfung/Standort), Buchungsstrecke, Bewerbungsformular und 404-Seite sind nicht im Baukasten; nicht geprüft: Screenreader, Safari/Firefox.
 - Behoben zuletzt: Überlauf auf `/verwaltung/email-vorlagen/4/` bei 375 px (Commit `3c2f7b6`).
 - Behoben (PR Fehler 500 Leistung): Speichern einer Leistung in der Verwaltung setzte Baustein-Symbole außerhalb der Auswahlliste (z. B. `badge-check`, Beispieldaten von „Beschäftigtenqualifizierung“) auf `null`; `icon(null)` löste auf der Seite Fehler 500 aus. Liste ergänzt, `icon()` und Template null-sicher. Auf mea3 nach Merge und Update prüfen; Server-Log nicht eingesehen (Ursache aus Code abgeleitet).
+- Geplant/in PR: Leistungen-Verwaltung mit Zeilen-Editor (Symbol-Auswahl, Titel, Text, Hoch/Runter, Entfernen) statt Textzeilen „A | B | C“. Datenformat unverändert; Textfeld bleibt Datenquelle (ohne JavaScript bedienbar). Nur per JS-Harness getestet, nicht im echten Formular.
 
 ## 6. Nächster sinnvoller Schritt
 Plesk: Cron einrichten und PHP-Limits prüfen (siehe Punkt 5). Release 0.9.5 ist gebaut (`installation/update-0.9.5.zip`, SHA-256 `47286ec6…b6714`) und eingespielt. Ein Git-Tag `v0.9.5` auf `b9edb08` fehlt noch (Push aus der Sitzung nicht erlaubt; manuell auf GitHub setzen).
