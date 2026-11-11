@@ -880,3 +880,17 @@ body.offline { min-height: 100vh; display: grid; place-items: center; padding: v
 .hero--page .breadcrumbs li + li::before { color: color-mix(in srgb, var(--color-on-dark) 40%, transparent); }
 .hero--page .breadcrumbs [aria-current] { color: var(--color-on-dark); }
 .hero--page .eyebrow { color: var(--color-on-dark-accent); }
+/* Zusätzlich abdunkeln, damit Logos oder Schrift im Bild den Text nicht stören */
+.hero--page::before {
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--color-secondary) 78%, transparent) 0%, color-mix(in srgb, var(--color-secondary) 70%, transparent) 45%, transparent 85%),
+    linear-gradient(90deg,
+      color-mix(in srgb, var(--color-secondary) 38%, transparent) 0%,
+      color-mix(in srgb, var(--color-secondary) 62%, transparent) max(0px, calc(var(--hero-x) - 120px)),
+      color-mix(in srgb, var(--color-secondary) 86%, transparent) calc(var(--hero-x) + 40px),
+      color-mix(in srgb, var(--color-secondary) 84%, transparent) calc(var(--hero-x) + 500px),
+      color-mix(in srgb, var(--color-secondary) 48%, transparent) calc(var(--hero-x) + 760px),
+      color-mix(in srgb, var(--color-secondary) 12%, transparent) calc(var(--hero-x) + 1000px),
+      color-mix(in srgb, var(--color-secondary) 5%, transparent) 100%),
+    linear-gradient(0deg, color-mix(in srgb, var(--color-secondary) 55%, transparent) 0%, transparent 35%);
+}
