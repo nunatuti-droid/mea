@@ -9,6 +9,9 @@
   ? [{label: 'Campus', url: '/campus/'}, {label: parent.menu_title ?: parent.title, url: '/' ~ parent.slug ~ '/'}, {label: service.title}]
   : [{label: 'Campus', url: '/campus/'}, {label: service.menu_title ?: service.title}] %}
 
+{% set faq_all = faqs %}
+{% for f in service.facts.faq_items ?? [] %}{% set faq_all = faq_all|merge([{question: f.q, answer_html: '<p>' ~ (f.a|e) ~ '</p>'}]) %}{% endfor %}
+
 {% block content %}
   {% include 'partials/page_hero.twig' with {
     title: service.title, intro: service.intro ?: service.teaser, media_id: service.hero_media_id, crumbs: crumbs,
@@ -16,6 +19,14 @@
     cta_url: service.cta_url, cta_label: service.cta_label ?: 'Beratung anfragen',
     cta2_url: 'tel:' ~ (site.company.phone|tel), cta2_label: 'Anrufen: ' ~ site.company.phone_display
   } %}
+
+  {% if service.facts.highlights is defined %}
+    <section class="section section--tight">
+      <div class="container">
+        <ul class="b-list b-list--check b-list--highlights">{% for h in service.facts.highlights %}<li>{{ icon('check') }}{{ h }}</li>{% endfor %}</ul>
+      </div>
+    </section>
+  {% endif %}
 
   {% if service.facts.facts is defined %}
     <section class="section">
@@ -36,10 +47,23 @@
     <section class="section"><div class="container"><div class="prose">{{ service.body_html|raw }}</div></div></section>
   {% endif %}
 
+  {% for sec in service.facts.sections ?? [] %}
+    <section class="section{{ (loop.index is even) ? ' section--alt' : '' }}">
+      <div class="container">
+        <div class="section-head">{% if sec.eyebrow ?? false %}<span class="eyebrow">{{ sec.eyebrow }}</span>{% endif %}<h2>{{ sec.title }}</h2>{% if sec.text ?? false %}<p>{{ sec.text }}</p>{% endif %}</div>
+        {% if (sec.cards ?? [])|length %}
+          <div class="grid grid--{{ sec.cards|length > 2 ? 3 : 2 }}">
+            {% for c in sec.cards %}<div class="card reveal"><div class="card__body"><h3>{{ c.title }}</h3><p>{{ c.text }}</p></div></div>{% endfor %}
+          </div>
+        {% endif %}
+      </div>
+    </section>
+  {% endfor %}
+
   {% if service.facts.modules is defined %}
     <section class="section {{ service.body_html ? 'section--alt' : '' }}">
       <div class="container">
-        <div class="section-head"><span class="eyebrow">Unser Angebot</span><h2>Das gehört dazu</h2></div>
+        <div class="section-head"><span class="eyebrow">Unser Angebot</span><h2>{{ service.facts.modules_title ?? 'Das gehört dazu' }}</h2></div>
         <div class="grid grid--3">
           {% for m in service.facts.modules %}
             <div class="card reveal"><div class="card__body"><span class="card__icon">{{ icon(m.icon) }}</span><h3>{{ m.title }}</h3><p>{{ m.text }}</p></div></div>
@@ -52,7 +76,7 @@
   {% if service.facts.process is defined %}
     <section class="section section--alt">
       <div class="container">
-        <div class="section-head"><span class="eyebrow">Ablauf</span><h2>Unser Rekrutierungsprozess im Überblick</h2></div>
+        <div class="section-head"><span class="eyebrow">{{ service.facts.process_eyebrow ?? 'Ablauf' }}</span><h2>{{ service.facts.process_title ?? 'Unser Rekrutierungsprozess im Überblick' }}</h2></div>
         <ol class="steps">
           {% for st in service.facts.process %}<li class="reveal"><h3>{{ st.title }}</h3><p>{{ st.text }}</p></li>{% endfor %}
         </ol>
@@ -105,8 +129,8 @@
     </section>
   {% endif %}
 
-  {% if faqs is not empty %}
-    <section class="section"><div class="container"><div class="section-head"><h2>Häufige Fragen</h2></div>{{ ui.faq_list(faqs) }}</div></section>
+  {% if faq_all is not empty %}
+    <section class="section"><div class="container"><div class="section-head"><span class="eyebrow">Gut zu wissen</span><h2>Häufige Fragen</h2></div>{{ ui.faq_list(faq_all) }}</div></section>
   {% endif %}
 
   {% if not parent and other_services is not empty %}
@@ -118,10 +142,10 @@
     </section>
   {% endif %}
 
-  <section class="section"><div class="container">{{ ui.cta_band('Lassen Sie sich persönlich beraten', 'Wir nehmen uns Zeit für Ihre Fragen – am Telefon, per WhatsApp oder vor Ort.', site.company) }}</div></section>
+  <section class="section"><div class="container">{{ ui.cta_band(service.facts.cta_title ?? 'Lassen Sie sich persönlich beraten', service.facts.cta_text ?? 'Wir nehmen uns Zeit für Ihre Fragen – am Telefon, per WhatsApp oder vor Ort.', site.company) }}</div></section>
 {% endblock %}
 
 {% block schema %}
   <script type="application/ld+json">{{ {'@context': 'https://schema.org', '@type': 'Service', name: service.title, description: service.teaser, provider: {'@type': 'EducationalOrganization', name: site.company.legal_name}, areaServed: 'Ruhrgebiet'}|json_ld }}</script>
-  {{ ui.faq_schema(faqs) }}
+  {{ ui.faq_schema(faq_all) }}
 {% endblock %}

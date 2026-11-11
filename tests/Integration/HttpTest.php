@@ -88,6 +88,13 @@ final class HttpTest extends IntegrationTestCase
         self::assertStringContainsString('MEA Plus', $coaching);
         self::assertStringContainsString('/coaching/jobcenter/', $coaching);
         self::assertStringContainsString('thema=bildungszentrum', $this->get('/kontakt/?thema=bildungszentrum')->body);
+        // ausführliche Inhalte: Highlights, Abschnitte, Ablauf, FAQ mit Antworten und Abschluss
+        $bz = $this->get('/bildungszentrum/')->body;
+        self::assertStringContainsString('Nicht alles lernen. Das Richtige lernen.', $bz);
+        self::assertStringContainsString('Muss ich schon wissen, welchen Kurs ich brauche?', $bz);
+        self::assertStringContainsString('Ziel beschreiben', $bz);
+        $f = $this->get('/coaching/foerderung/')->body;
+        self::assertStringContainsString('"@type":"FAQPage"', str_replace(' ', '', $f));
         $sitemap = $this->get('/sitemap.xml')->body;
         foreach (['/bildungszentrum/ausbildung/', '/foerderung/'] as $u) {
             self::assertStringContainsString($u, $sitemap);

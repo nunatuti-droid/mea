@@ -880,6 +880,8 @@ body.offline { min-height: 100vh; display: grid; place-items: center; padding: v
 
 .b-list { margin: 0; padding: 0; list-style: none; display: grid; gap: var(--space-2); }
 .b-list li { position: relative; padding-left: 28px; }
+.section--tight { padding-top: var(--space-6); padding-bottom: 0; }
+.b-list--highlights { grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: var(--space-4); font-weight: var(--font-weight-ui); color: var(--color-heading); }
 .b-list--diamond li::before { content: ""; position: absolute; left: 4px; top: 0.62em; width: 8px; height: 8px; background: var(--color-primary); transform: rotate(45deg); border-radius: 2px; }
 .b-list--check li .icon { position: absolute; left: 0; top: 0.2em; color: var(--color-primary-strong); width: 20px; height: 20px; }
 .b-list--bullet { list-style: disc; padding-left: var(--space-5); }
