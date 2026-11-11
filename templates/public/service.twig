@@ -23,7 +23,22 @@
   {% if service.facts.highlights is defined %}
     <section class="section section--tight">
       <div class="container">
-        <ul class="b-list b-list--check b-list--highlights">{% for h in service.facts.highlights %}<li>{{ icon('check') }}{{ h }}</li>{% endfor %}</ul>
+        <ul class="highlights">
+          {% for h in service.facts.highlights %}
+            {% set k = h|lower %}
+            {% set ic = 'sparkles' %}
+            {% if 'sprach' in k %}{% set ic = 'languages' %}
+            {% elseif 'gruppe' in k or 'einzel' in k or 'team' in k or 'unternehm' in k %}{% set ic = 'users' %}
+            {% elseif 'förder' in k or 'avgs' in k or 'gutschein' in k or 'kosten' in k or 'finanz' in k %}{% set ic = 'file-text' %}
+            {% elseif 'zulassung' in k or 'prüf' in k or 'zertifikat' in k or 'nachweis' in k or 'qualifikation' in k %}{% set ic = 'badge-check' %}
+            {% elseif 'ausbildung' in k or 'lern' in k or 'grundlagen' in k or 'berufswunsch' in k %}{% set ic = 'graduation-cap' %}
+            {% elseif 'ort' in k or 'region' in k or 'ruhrgebiet' in k or 'standort' in k %}{% set ic = 'map-pin' %}
+            {% elseif 'schritt' in k or 'planen' in k or 'ablauf' in k or 'ziel' in k %}{% set ic = 'route' %}
+            {% elseif 'beratung' in k or 'gespräch' in k or 'persönlich' in k or 'begleit' in k %}{% set ic = 'handshake' %}
+            {% endif %}
+            <li class="highlights__item reveal"><span class="card__icon">{{ icon(ic) }}</span><span>{{ h }}</span></li>
+          {% endfor %}
+        </ul>
       </div>
     </section>
   {% endif %}
