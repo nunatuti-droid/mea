@@ -108,6 +108,8 @@ final class App
         $this->view->addFunction('bedit', fn(string $field, string $kind = 'text'): \Twig\Markup => $this->pageRenderer()->editAttr($field, $kind));
         $this->view->addFunction('media_alt', fn(mixed $id): string => (string) ($this->media->find((int) $id)['alt_text'] ?? ''));
         $this->view->addFunction('txt', fn(string $key, array $vars = []): string => \Mea\Module\Content\TemplateTexts::get((array) $this->settings->get(\Mea\Module\Content\TemplateTexts::SETTING, []), $key, $vars));
+        $this->view->addFunction('hero_slogan', fn(string $key): string => \Mea\Module\Content\HeroSlogans::get($key));
+        $this->view->addFunction('section_visual', fn(string $eyebrow): ?array => \Mea\Module\Content\SectionVisuals::get($eyebrow));
         $this->view->addFunction('video_embed', fn(?string $url): ?array => \Mea\Module\Builder\Video::embed((string) $url));
 
         $pageView = fn(string $slug, array $ctx = [], int $status = 200): ?Response => $this->pageView()->respond($slug, $ctx, $status);

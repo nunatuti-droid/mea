@@ -1,12 +1,13 @@
-{# Seitenkopf mit Bild als Hintergrund (wie der Hero der Startseite). Variablen: title, intro, media_id, crumbs, eyebrow, actions (HTML), section_attr, title_attr #}
+{# Seitenkopf mit Bild als Hintergrund (wie der Hero der Startseite). Variablen: title, slogan (grüne Zeile unter der Überschrift), intro, media_id, crumbs, eyebrow, actions (HTML), section_attr, title_attr #}
 {% import 'partials/macros.twig' as ui %}
-<section{{ section_attr ?? ' class="hero hero--page"' }}>
-  <div class="hero__bg">{{ img(media_id, '100vw', {loading: 'eager', fetchpriority: 'high', alt: ''}) }}</div>
+{% set hero_attr = section_attr ?? (' class="hero hero--page' ~ (media_id ? '' : ' hero--plain') ~ '"') %}
+<section{{ hero_attr|raw }}>
+  {% if media_id %}<div class="hero__bg">{{ img(media_id, '100vw', {loading: 'eager', fetchpriority: 'high', alt: ''}) }}</div>{% endif %}
   <div class="container hero__inner">
     <div class="hero__content">
       {{ ui.breadcrumbs(crumbs) }}
       {% if eyebrow ?? false %}<span class="eyebrow">{{ eyebrow }}</span>{% endif %}
-      <h1{{ title_attr ?? '' }}>{{ title }}</h1>
+      <h1>{% if title_attr ?? false %}<span{{ title_attr }}>{{ title }}</span>{% else %}{{ title }}{% endif %}{% if slogan ?? false %}<em>{{ slogan }}</em>{% endif %}</h1>
       {% if intro %}<p class="hero__lead">{{ intro }}</p>{% endif %}
       {% if actions ?? false %}<div class="btn-row">{{ actions }}</div>{% endif %}
     </div>

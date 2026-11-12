@@ -206,7 +206,7 @@ final class BlockTypes
                 $items('benefits', 'Vorteile', [$icon(), $text('title', 'Titel', '', 80, ['required' => true])], [], 4)]];
         $t['page_hero'] = ['label' => 'Seitenkopf', 'icon' => 'panel-top', 'cat' => 'site', 'desc' => 'Überschrift (H1), Einleitung, Brotkrumen und Bild',
             'fields' => [$text('eyebrow', 'Kleine Zeile', '', 100, ['inline' => 'text']), $text('title', 'Überschrift (H1)', '', 200, ['inline' => 'text', 'help' => 'Leer = Titel der Seite.']),
-                $area('intro', 'Einleitung', '', 600), $media(), $bool('crumbs', 'Brotkrumen-Navigation zeigen', true),
+                $text('slogan', 'Spruch (grüne Zeile unter der Überschrift)', '', 80, ['help' => 'Leer = Standard-Spruch der Seite, falls vorhanden.']), $area('intro', 'Einleitung', '', 600), $media(), $bool('crumbs', 'Brotkrumen-Navigation zeigen', true),
                 $text('crumb', 'Name in der Brotkrumen-Navigation', '', 80, ['help' => 'Leer = Überschrift.']),
                 $text('parent_label', 'Übergeordnete Seite (Brotkrumen)', '', 80), $url('parent_url', 'Übergeordnete Seite Adresse'),
                 $text('btn1_label', 'Button 1', '', 60), $url('btn1_url', 'Button 1 Ziel'), $text('btn2_label', 'Button 2', '', 60), $url('btn2_url', 'Button 2 Ziel')]];

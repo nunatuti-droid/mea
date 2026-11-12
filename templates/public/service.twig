@@ -16,24 +16,11 @@
 
 {% block content %}
   {% include 'partials/page_hero.twig' with {
-    title: service.title, intro: service.intro ?: service.teaser, media_id: service.hero_media_id, crumbs: crumbs,
+    title: service.title, slogan: service.facts.slogan ?? (hero_slogan(parent ? parent.slug ~ '/' ~ service.slug : service.slug) ?: hero_slogan(service.slug)), intro: service.intro ?: service.teaser, media_id: service.hero_media_id, crumbs: crumbs,
     eyebrow: parent ? (parent.menu_title ?: parent.title) : 'MEA Campus',
     cta_url: service.cta_url, cta_label: service.cta_label ?: 'Beratung anfragen',
     cta2_url: 'tel:' ~ (site.company.phone|tel), cta2_label: 'Anrufen: ' ~ site.company.phone_display
   } %}
-
-  {% if service.facts.highlights is defined %}
-    <section class="section section--tight">
-      <div class="container">
-        <ul class="highlights">
-          {% for h in service.facts.highlights %}
-            {% set ic = m_.pick(h, loop.index)|trim %}
-            <li class="highlights__item reveal"><span class="card__icon">{{ icon(ic) }}</span><span>{{ h }}</span></li>
-          {% endfor %}
-        </ul>
-      </div>
-    </section>
-  {% endif %}
 
   {% if service.facts.facts is defined %}
     <section class="section">
@@ -55,9 +42,18 @@
   {% endif %}
 
   {% for sec in service.facts.sections ?? [] %}
+    {% set vis = (sec.cards ?? [])|length ? null : (section_visual(sec.eyebrow ?? '') ?? {icon: sec.icon ?? m_.pick((sec.title ?? '') ~ ' ' ~ (sec.text ?? ''), loop.index)|trim, points: sec.points ?? []}) %}
     <section class="section{{ (loop.index is even) ? ' section--alt' : '' }}">
-      <div class="container">
+      <div class="container{{ vis ? ' sec-split' : '' }}">
         <div class="section-head">{% if sec.eyebrow ?? false %}<span class="eyebrow">{{ sec.eyebrow }}</span>{% endif %}<h2>{{ sec.title ?? '' }}</h2>{% if sec.text ?? false %}<p>{{ sec.text }}</p>{% endif %}</div>
+        {% if vis %}
+          <aside class="sec-visual reveal" aria-hidden="true">
+            <div class="sec-visual__medal">{{ icon(sec.icon ?? vis.icon) }}</div>
+            {% if (sec.points ?? vis.points ?? [])|length %}
+              <ul class="sec-visual__list{{ (sec.points ?? vis.points)|length > 3 ? ' sec-visual__list--grid' }}">{% for pt in sec.points ?? vis.points %}<li><span class="card__icon">{{ icon(pt.icon ?? 'check') }}</span><span><b>{{ pt.title }}</b>{% if pt.text ?? false %}<small>{{ pt.text }}</small>{% endif %}</span></li>{% endfor %}</ul>
+            {% endif %}
+          </aside>
+        {% endif %}
         {% if (sec.cards ?? [])|length %}
           <div class="grid grid--{{ sec.cards|length > 2 ? 3 : 2 }}">
             {% for c in sec.cards %}<div class="card card--feature reveal"><div class="card__body"><span class="card__icon">{{ icon(m_.pick((c.title ?? '') ~ ' ' ~ (c.text ?? ''), loop.index)|trim) }}</span><h3>{{ c.title ?? '' }}</h3><p>{{ c.text ?? '' }}</p></div></div>{% endfor %}
