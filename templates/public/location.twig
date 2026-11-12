@@ -5,7 +5,7 @@
 {% set seo_description = 'Adresse, Anfahrt und Kontakt: ' ~ l.name ~ ', ' ~ l.street ~ ', ' ~ l.postal_code ~ ' ' ~ l.city ~ '.' %}
 {% set canonical = '/standorte/' ~ l.slug ~ '/' %}
 {% block content %}
-  {% include 'partials/page_hero.twig' with {title: l.name, intro: l.street ~ (l.address_extra ? ', ' ~ l.address_extra : '') ~ ', ' ~ l.postal_code ~ ' ' ~ l.city, media_id: l.image_media_id, crumbs: [{label: 'Standorte', url: '/standorte/'}, {label: l.short_name}]} %}
+  {% include 'partials/page_hero.twig' with {title: l.name, slogan: hero_slogan('standort'), intro: l.street ~ (l.address_extra ? ', ' ~ l.address_extra : '') ~ ', ' ~ l.postal_code ~ ' ' ~ l.city, media_id: l.image_media_id, crumbs: [{label: 'Standorte', url: '/standorte/'}, {label: l.short_name}]} %}
   <section class="section">
     <div class="container contact-layout">
       <div class="stack">
