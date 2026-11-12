@@ -55,7 +55,7 @@
     </form>
   </section>
 
-  <section class="card mt">
+  <section class="card mt" id="protokoll">
     <div class="row row--between"><h2 class="h3">Sicherheitsprotokoll</h2>
       <form method="get" class="row"><label class="visually-hidden" for="f-art">Art</label>
         <select id="f-art" name="art"><option value="">Alle Ereignisse</option>{% for k, l in types %}<option value="{{ k }}" {{ type == k ? 'selected' }}>{{ l }}</option>{% endfor %}</select>
@@ -73,5 +73,12 @@
       </table></div>
       {{ ui.pager(page, pages, query, '/verwaltung/sicherheit/') }}
     {% endif %}
+    <form method="post" action="/verwaltung/sicherheit/protokoll/loeschen/" class="row mt" data-confirm="Ereignisse im gewählten Zeitraum endgültig löschen?">
+      <input type="hidden" name="_csrf" value="{{ csrf }}">
+      <label for="purge-tage" class="text-sm">Protokoll aufräumen: Ereignisse</label>
+      <select id="purge-tage" name="tage">{% for d, l in purge_days %}<option value="{{ d }}">{{ l }}</option>{% endfor %}</select>
+      <button class="btn btn--ghost btn--sm" type="submit">{{ icon('trash-2') }}Löschen</button>
+    </form>
+    <p class="text-sm text-muted">Die letzten 7 Tage bleiben erhalten, weil die Firewall sie für automatische Sperren braucht. Ereignisse älter als 90 Tage werden ohnehin automatisch gelöscht. Jede Bereinigung steht im Änderungsprotokoll.</p>
   </section>
 {% endblock %}

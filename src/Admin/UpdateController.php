@@ -26,6 +26,7 @@ final class UpdateController
         $k->post('/verwaltung/updates/ausfuehren/', 'system', $this->run(...));
         $k->post('/verwaltung/updates/zuruecknehmen/', 'system', $this->revert(...));
         $k->post('/verwaltung/updates/wartung/', 'system', $this->maintenance(...));
+        $k->post('/verwaltung/updates/verlauf-loeschen/', 'system', $this->purgeHistory(...));
     }
 
     private function needsReauth(AdminContext $ctx): ?Response
@@ -71,10 +72,42 @@ final class UpdateController
             'title' => 'Updates', 'version' => $this->app->version(),
             'fingerprint' => $this->app->fileGuard()->keyFingerprint(),
             'history' => $this->app->db->all('SELECT a.*, u.name AS user_name FROM app_updates a LEFT JOIN users u ON u.id = a.installed_by ORDER BY a.id DESC LIMIT 30'),
+            'purge_options' => self::PURGE_OPTIONS,
             'maintenance' => is_file(App::maintenanceFlag($this->app->root)),
             'info' => $info, 'token' => $token, 'log' => $log, 'chunk_size' => self::chunkSize(),
             'can_revert' => $this->app->db->value("SELECT 1 FROM app_updates WHERE status = 'installed' LIMIT 1") !== null,
         ]));
+    }
+
+    /** Zeiträume für „Verlauf aufräumen“: Schlüssel = Tage (0 = alle außer den geschützten Einträgen). */
+    public const PURGE_OPTIONS = [0 => 'alle (außer dem letzten installierten Update)', 30 => 'älter als 30 Tage', 90 => 'älter als 90 Tage', 365 => 'älter als 1 Jahr'];
+
+    /**
+     * Verlauf aufräumen. Geschützt bleiben das zuletzt installierte Update (nötig für „Letztes Update zurücknehmen“)
+     * und laufende Updates. Die zugehörigen Rücknahme-Ordner der gelöschten Einträge werden mit entfernt.
+     */
+    public function purgeHistory(Request $req, AdminContext $ctx): Response
+    {
+        if ($r = $this->needsReauth($ctx)) {
+            return $r;
+        }
+        $days = (int) $req->input('tage');
+        if (!array_key_exists($days, self::PURGE_OPTIONS)) {
+            AdminKernel::flash('Bitte einen Zeitraum aus der Liste wählen.', 'error');
+            return Response::redirect('/verwaltung/updates/', 303);
+        }
+        $db = $this->app->db;
+        $keep = (int) $db->value("SELECT MAX(id) FROM app_updates WHERE status = 'installed'");
+        $sql = "SELECT id FROM app_updates WHERE status <> 'running' AND id <> ?" . ($days > 0 ? ' AND started_at < UTC_TIMESTAMP() - INTERVAL ' . $days . ' DAY' : '');
+        $ids = array_map('intval', array_column($db->all($sql, [$keep]), 'id'));
+        foreach ($ids as $id) {
+            $db->run('DELETE FROM app_updates WHERE id = ?', [$id]);
+            $this->app->backups()->removeDir($this->app->root . '/storage/updates/rollback-' . $id);
+        }
+        $n = count($ids);
+        $this->app->audit->record('update.history_purged', "Updateverlauf bereinigt: $n Einträge (" . self::PURGE_OPTIONS[$days] . ') gelöscht', 'app_updates', null);
+        AdminKernel::flash($n > 0 ? "$n Einträge gelöscht." : 'Keine passenden Einträge.');
+        return Response::redirect('/verwaltung/updates/', 303);
     }
 
     public function upload(Request $req, AdminContext $ctx): Response

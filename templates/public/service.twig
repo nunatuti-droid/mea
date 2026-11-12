@@ -50,7 +50,7 @@
           <aside class="sec-visual reveal" aria-hidden="true">
             <div class="sec-visual__medal">{{ icon(sec.icon ?? vis.icon) }}</div>
             {% if (sec.points ?? vis.points ?? [])|length %}
-              <ul class="sec-visual__list">{% for pt in sec.points ?? vis.points %}<li><span class="card__icon">{{ icon(pt.icon ?? 'check') }}</span><span><b>{{ pt.title }}</b>{% if pt.text ?? false %}<small>{{ pt.text }}</small>{% endif %}</span></li>{% endfor %}</ul>
+              <ul class="sec-visual__list{{ (sec.points ?? vis.points)|length > 3 ? ' sec-visual__list--grid' }}">{% for pt in sec.points ?? vis.points %}<li><span class="card__icon">{{ icon(pt.icon ?? 'check') }}</span><span><b>{{ pt.title }}</b>{% if pt.text ?? false %}<small>{{ pt.text }}</small>{% endif %}</span></li>{% endfor %}</ul>
             {% endif %}
           </aside>
         {% endif %}

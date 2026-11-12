@@ -28,6 +28,7 @@ final class SecurityController
         $k->post('/verwaltung/sicherheit/regeln/', 'system', $this->addRule(...));
         $k->post('/verwaltung/sicherheit/regeln/{id:\d+}/entfernen/', 'system', $this->removeRule(...));
         $k->post('/verwaltung/sicherheit/verwaltungszugang/', 'system', $this->saveAdminAccess(...));
+        $k->post('/verwaltung/sicherheit/protokoll/loeschen/', 'system', $this->purgeEvents(...));
     }
 
     public function index(Request $req, AdminContext $ctx, array $errors = [], array $values = []): Response
@@ -45,7 +46,7 @@ final class SecurityController
             'bans' => $db->all("SELECT * FROM ip_rules WHERE source = 'auto' AND expires_at > UTC_TIMESTAMP() ORDER BY expires_at DESC"),
             'rules' => $db->all("SELECT r.*, u.name AS user_name FROM ip_rules r LEFT JOIN users u ON u.id = r.created_by WHERE r.source = 'manual' AND (r.expires_at IS NULL OR r.expires_at > UTC_TIMESTAMP()) ORDER BY r.rule, r.id"),
             'stats' => $db->one("SELECT SUM(created_at > UTC_TIMESTAMP() - INTERVAL 1 DAY) AS day, SUM(created_at > UTC_TIMESTAMP() - INTERVAL 7 DAY) AS week FROM security_events") ?? [],
-            'types' => self::TYPES, 'type' => $type, 'page' => $page, 'pages' => $pages, 'query' => $type !== '' ? ['art' => $type] : [],
+            'types' => self::TYPES, 'purge_days' => self::PURGE_DAYS, 'type' => $type, 'page' => $page, 'pages' => $pages, 'query' => $type !== '' ? ['art' => $type] : [],
             'my_ip' => $req->ip(), 'errors' => $errors, 'values' => $values + ['rule' => 'block', 'days' => '', 'admin_ranges' => implode("\n", $this->app->firewall->adminRanges())],
         ]), $errors ? 422 : 200);
     }
@@ -89,6 +90,22 @@ final class SecurityController
             AdminKernel::flash('Regel entfernt.');
         }
         return Response::redirect('/verwaltung/sicherheit/', 303);
+    }
+
+    /** Tage, nach denen Ereignisse gelöscht werden dürfen. Mindestens 8: Die Firewall zählt Punkte der letzten 7 Tage (Wiederholungssperre). */
+    public const PURGE_DAYS = [8 => 'älter als 7 Tage (alles außer der letzten Woche)', 30 => 'älter als 30 Tage', 60 => 'älter als 60 Tage'];
+
+    public function purgeEvents(Request $req, AdminContext $ctx): Response
+    {
+        $days = (int) $req->input('tage');
+        if (!array_key_exists($days, self::PURGE_DAYS)) {
+            AdminKernel::flash('Bitte einen Zeitraum aus der Liste wählen.', 'error');
+            return Response::redirect('/verwaltung/sicherheit/#protokoll', 303);
+        }
+        $n = $this->app->db->run('DELETE FROM security_events WHERE created_at < UTC_TIMESTAMP() - INTERVAL ' . $days . ' DAY');
+        $this->app->audit->record('security.events_purged', "Sicherheitsprotokoll bereinigt: $n Ereignisse " . self::PURGE_DAYS[$days] . ' gelöscht', 'security_events', null);
+        AdminKernel::flash($n > 0 ? "$n Ereignisse gelöscht." : 'Keine Ereignisse in diesem Zeitraum.');
+        return Response::redirect('/verwaltung/sicherheit/#protokoll', 303);
     }
 
     /** Verwaltung nur aus bestimmten Netzen erreichbar machen (leer = keine Einschränkung). */

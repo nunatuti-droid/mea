@@ -58,12 +58,26 @@ final class PagesController
 
     // ---------- Übersicht ----------
 
+    private const PER_PAGE = 50;
+
     public function index(Request $req, AdminContext $ctx): Response
     {
         $db = $this->app->db;
+        // Suche (Titel, Adresse, SEO-Titel) und Seitenaufteilung: bei sehr vielen Seiten bleibt die Liste handlich
+        $q = trim(mb_substr($req->input('q'), 0, 100));
+        $where = '';
+        $params = [];
+        if ($q !== '') {
+            $like = '%' . addcslashes($q, '%_\\') . '%';
+            $where = ' WHERE (p.title LIKE ? OR p.slug LIKE ? OR p.seo_title LIKE ?)';
+            $params = [$like, $like, $like];
+        }
+        $total = (int) $db->value('SELECT COUNT(*) FROM pages p' . $where, $params);
+        $pageCount = max(1, (int) ceil($total / self::PER_PAGE));
+        $page = min($pageCount, max(1, (int) $req->input('seite')));
         $pages = $db->all('SELECT p.id, p.slug, p.title, p.status, p.is_system, p.is_home, p.updated_at, p.draft_json IS NOT NULL AS has_draft,
             p.draft_updated_at, p.seo_title, p.seo_description, u.name AS draft_user
-            FROM pages p LEFT JOIN users u ON u.id = p.draft_by ORDER BY p.is_home IS NULL, p.is_system DESC, p.title');
+            FROM pages p LEFT JOIN users u ON u.id = p.draft_by' . $where . ' ORDER BY p.is_home IS NULL, p.is_system DESC, p.title LIMIT ' . self::PER_PAGE . ' OFFSET ' . (($page - 1) * self::PER_PAGE), $params);
         $special = [
             ['label' => 'Leistungen', 'count' => (int) $db->value("SELECT COUNT(*) FROM services"), 'url' => '/verwaltung/leistungen/', 'icon' => 'briefcase',
                 'note' => 'Eigene Seite je Leistung (z. B. /sprachkurse/) mit Feldern für Text, Bilder, Fakten und FAQ. Vorschau im Formular.'],
@@ -81,6 +95,7 @@ final class PagesController
         ];
         return Response::html($this->app->view->render('admin/builder/pages.twig', [
             'title' => 'Seiten', 'pages' => $pages, 'special' => $special, 'global' => $global,
+            'q' => $q, 'total' => $total, 'page' => $page, 'page_count' => $pageCount, 'query' => $q !== '' ? ['q' => $q] : [],
         ]));
     }
 
