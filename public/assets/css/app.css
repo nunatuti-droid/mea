@@ -177,7 +177,10 @@ a:hover { color: var(--color-link-hover); }
 .mega__list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; flex: 1; }
 .nav__mega .mega__list a strong { display: block; }
 .nav__mega .mega__cta { margin-top: auto; padding-top: var(--space-2); }
-.nav__mega .mega__cta a { display: flex; justify-content: space-between; align-items: center; color: var(--color-primary-strong, var(--color-primary)); }
+.nav__mega .mega__cta a { display: flex; justify-content: space-between; align-items: center; gap: var(--space-3); min-height: calc(var(--button-height) - 4px); padding: var(--space-2) var(--space-4); border: var(--border-width-button) solid var(--color-secondary); border-radius: var(--radius-button); background: transparent; color: var(--color-heading); transition: background-color .2s var(--ease), border-color .2s var(--ease), color .2s var(--ease); }
+.nav__mega .mega__cta a:hover, .nav__mega .mega__cta a:focus-visible { background: var(--color-secondary); border-color: var(--color-secondary); color: var(--color-on-dark); }
+.nav__mega .mega__cta a .icon { transition: transform .2s var(--ease); }
+.nav__mega .mega__cta a:hover .icon { transform: translateX(3px); }
 .nav__mega .mega__cta .icon { width: 18px; height: 18px; }
 .mega__foot { display: flex; justify-content: space-between; align-items: center; gap: var(--space-4); flex-wrap: wrap; padding: var(--space-3) var(--space-5); background: var(--color-secondary); color: var(--color-on-dark-muted); }
 .mega__foot p { margin: 0; font-size: var(--font-size-small); }
