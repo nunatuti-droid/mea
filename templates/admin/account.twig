@@ -35,9 +35,28 @@
     </div>
     <ul class="list-plain">
       {% for s in sessions %}
-        <li><span>{{ s.user_agent|u.truncate(80, '…') ?: 'Unbekannter Browser' }}{% if s.id == current_session %} <span class="badge badge--success">Diese Sitzung</span>{% endif %}</span>
+        <li><span>{{ s.user_agent|u.truncate(80, '…') ?: 'Unbekannter Browser' }}{% if s.id == current_session %} <span class="badge badge--success">Diese Sitzung</span>{% endif %}{% if s.remember %} <span class="badge">Angemeldet bleiben</span>{% endif %}</span>
           <span class="text-muted text-sm">seit {{ s.created_at|utc|date('d.m.Y H:i') }} · zuletzt {{ s.last_seen_at|utc|date('H:i') }}</span></li>
       {% endfor %}
     </ul>
+  </section>
+  <section class="card" id="geraete">
+    <div class="adm-head"><h2>Vertrauenswürdige Geräte</h2>
+      {% if trusted_devices|length > 0 %}
+      <form method="post" action="/verwaltung/konto/geraete/widerrufen/" data-confirm="Alle vertrauenswürdigen Geräte widerrufen? Danach wird überall wieder ein Code verlangt.">
+        <input type="hidden" name="_csrf" value="{{ csrf }}"><button class="btn btn--ghost btn--sm" type="submit">{{ icon('log-out') }}Alle widerrufen</button>
+      </form>{% endif %}
+    </div>
+    <p class="text-sm text-muted">Auf diesen Geräten wird nach dem Passwort kein Code abgefragt (bis zu {{ trust_days }} Tage). Für kritische Aktionen ist weiterhin ein Code nötig.</p>
+    {% if trusted_devices|length == 0 %}<p>Keine Geräte gemerkt.</p>{% else %}
+    <ul class="list-plain">
+      {% for d in trusted_devices %}
+        <li><span>{{ d.user_agent|u.truncate(80, '…') ?: 'Unbekannter Browser' }}{% if d.id == current_trusted %} <span class="badge badge--success">Dieses Gerät</span>{% endif %}</span>
+          <span class="text-muted text-sm">gemerkt am {{ d.created_at|utc|date('d.m.Y') }} · gültig bis {{ d.expires_at|utc|date('d.m.Y') }}{% if d.last_used_at %} · zuletzt genutzt {{ d.last_used_at|utc|date('d.m.Y') }}{% endif %}</span>
+          <form method="post" action="/verwaltung/konto/geraete/widerrufen/" data-confirm="Dieses Gerät widerrufen?">
+            <input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="id" value="{{ d.id }}"><button class="btn btn--ghost btn--sm" type="submit">Widerrufen</button>
+          </form></li>
+      {% endfor %}
+    </ul>{% endif %}
   </section>
 {% endblock %}

@@ -113,7 +113,7 @@ Ausführlich in [`docs/deployment.md`](docs/deployment.md). Vor der Umschaltung:
 - CSP ohne Inline-Skripte, CSRF auf allen Formularen, IP-Adressen nur als Hash.
 - E-Mail-Adresse erscheint nicht im HTML-Quelltext; sie wird erst beim Klick zusammengesetzt.
 - Karte (OpenStreetMap) lädt erst nach Zustimmung per Klick. Keine Tracking-Cookies.
-- Verwaltung: Passwörter mit Argon2id, Zwei-Faktor-Anmeldung (TOTP) Pflicht, Backup-Codes, Kontosperre nach 5 Fehlversuchen, widerrufbare Sitzungen (30 Minuten Inaktivität, 12 Stunden maximal), erneute Bestätigung für kritische Aktionen, Rollen (Administrator, Redaktion, Buchungsverwaltung), Änderungsprotokoll ohne Geheimnisse.
+- Verwaltung: Passwörter mit Argon2id, Zwei-Faktor-Anmeldung (TOTP) Pflicht, Backup-Codes, Kontosperre nach 5 Fehlversuchen, widerrufbare Sitzungen (30 Minuten Inaktivität, 12 Stunden maximal; mit „Angemeldet bleiben“ 14 Tage Inaktivität, 30 Tage maximal), „Diesem Gerät 30 Tage vertrauen“ (Code-Abfrage entfällt, Passwort bleibt Pflicht; Cookie nur als Hash gespeichert, widerrufbar unter „Mein Konto“, erlischt bei Passwortänderung und 2FA-Reset), erneute Bestätigung für kritische Aktionen, Rollen (Administrator, Redaktion, Buchungsverwaltung), Änderungsprotokoll ohne Geheimnisse.
 - Schutzschicht: erkennt Angriffsmuster in Adressen, sperrt auffällige IP-Adressen befristet; Wartungsmodus.
 - Dateiwächter: vergleicht Programmdateien nachts mit einer signierten Referenz.
 - Sicherungen verschlüsselt (libsodium) außerhalb des Webroots, Updates nur als signierte Pakete mit automatischer Rücknahme.

@@ -40,13 +40,14 @@ final class AuthController
         $k->post('/verwaltung/konto/passwort/', 'dashboard', $this->changePassword(...));
         $k->post('/verwaltung/konto/backup-codes/', 'dashboard', $this->newCodes(...));
         $k->post('/verwaltung/konto/sitzungen/abmelden/', 'dashboard', $this->revokeOthers(...));
+        $k->post('/verwaltung/konto/geraete/widerrufen/', 'dashboard', $this->revokeTrusted(...));
         $k->get('/verwaltung/bestaetigen/', 'dashboard', $this->reauthForm(...));
         $k->post('/verwaltung/bestaetigen/', 'dashboard', $this->reauth(...));
     }
 
     private function render(string $tpl, array $data = [], int $status = 200): Response
     {
-        return Response::html($this->view->render('admin/auth/' . $tpl . '.twig', $data), $status);
+        return Response::html($this->view->render('admin/auth/' . $tpl . '.twig', $data + ['remember_days' => AuthService::REMEMBER_ABSOLUTE_DAYS, 'trust_days' => AuthService::TRUST_DAYS]), $status);
     }
 
     private static function safeNext(string $next): string
@@ -59,11 +60,16 @@ final class AuthController
         return $req->isSecure() ? '__Host-mea-device' : 'mea-device';
     }
 
+    private static function trustCookieName(Request $req): string
+    {
+        return $req->isSecure() ? '__Host-mea-trust' : 'mea-trust';
+    }
+
     // ---- Anmeldung ----
 
     public function loginForm(Request $req): Response
     {
-        if ($this->auth->resolveSession((string) Session::get('admin_token', '')) !== null) {
+        if ($this->auth->resolveSession((string) Session::get('admin_token', '') ?: $req->cookie(AdminKernel::rememberCookieName($req))) !== null) {
             return Response::redirect('/verwaltung/', 303);
         }
         return $this->render('login', ['next' => self::safeNext($req->input('weiter')), 'email' => '', 'notice' => Session::flash('auth_notice')]);
@@ -92,7 +98,12 @@ final class AuthController
             Session::set('auth_setup', ['uid' => (int) $user['id'], 'at' => time(), 'next' => $next]);
             return Response::redirect('/verwaltung/einrichten/', 303);
         }
-        Session::set('auth_pending', ['uid' => (int) $user['id'], 'at' => time(), 'next' => $next]);
+        $remember = $req->input('remember') === '1';
+        // Vertrauenswürdiges Gerät: gültiges, an dieses Konto gebundenes Cookie ersetzt den Code (Passwort bleibt Pflicht)
+        if ($this->auth->useTrustedDevice((int) $user['id'], $req->cookie(self::trustCookieName($req)))) {
+            return $this->finishLogin($req, $user, $next, $remember);
+        }
+        Session::set('auth_pending', ['uid' => (int) $user['id'], 'at' => time(), 'next' => $next, 'remember' => $remember]);
         return Response::redirect('/verwaltung/anmelden/code/', 303);
     }
 
@@ -134,17 +145,26 @@ final class AuthController
             return $this->render('code', ['error' => 'Der Code ist ungültig oder wurde schon verwendet.'], 422);
         }
         Session::forget('auth_pending');
-        return $this->finishLogin($req, $p['user'], (string) $p['next']);
+        $resp = $this->finishLogin($req, $p['user'], (string) $p['next'], (bool) ($p['remember'] ?? false));
+        if ($req->input('trust') === '1') {
+            $token = $this->auth->trustDevice($p['user'], $req->userAgent());
+            $resp = $resp->withCookie(self::trustCookieName($req), $token, ['expires' => time() + AuthService::TRUST_DAYS * 86400, 'secure' => $req->isSecure(), 'samesite' => 'Strict']);
+        }
+        return $resp;
     }
 
     /** @param array<string,mixed> $user */
-    private function finishLogin(Request $req, array $user, string $next): Response
+    private function finishLogin(Request $req, array $user, string $next, bool $remember = false): Response
     {
         Session::regenerate();
-        $s = $this->auth->startSession($user, $req->ip(), $req->userAgent(), $req->cookie(self::deviceCookieName($req)));
+        $s = $this->auth->startSession($user, $req->ip(), $req->userAgent(), $req->cookie(self::deviceCookieName($req)), $remember);
         Session::set('admin_token', $s['token']);
-        return Response::redirect(self::safeNext($next), 303)
+        $resp = Response::redirect(self::safeNext($next), 303)
             ->withCookie(self::deviceCookieName($req), $s['device'], ['expires' => time() + 400 * 86400, 'secure' => $req->isSecure(), 'samesite' => 'Strict']);
+        if ($remember) {
+            $resp = $resp->withCookie(AdminKernel::rememberCookieName($req), $s['token'], ['expires' => time() + AuthService::REMEMBER_ABSOLUTE_DAYS * 86400, 'secure' => $req->isSecure(), 'samesite' => 'Strict']);
+        }
+        return $resp;
     }
 
     // ---- Zwei-Faktor einrichten ----
@@ -290,7 +310,7 @@ final class AuthController
         Session::destroy();
         Session::start($req->isSecure(), 'admin');
         Session::flash('auth_notice', 'Sie wurden abgemeldet.');
-        return Response::redirect('/verwaltung/anmelden/', 303);
+        return AdminKernel::clearRememberCookie(Response::redirect('/verwaltung/anmelden/', 303), $req);
     }
 
     public function account(Request $req, AdminContext $ctx, array $extra = [], int $status = 200): Response
@@ -299,6 +319,9 @@ final class AuthController
             'title' => 'Mein Konto',
             'sessions' => $this->auth->sessionsOf($ctx->id()),
             'current_session' => (int) $ctx->session['id'],
+            'trusted_devices' => $this->auth->trustedDevicesOf($ctx->id()),
+            'current_trusted' => $this->auth->trustedDeviceId($ctx->id(), $req->cookie(self::trustCookieName($req))),
+            'trust_days' => AuthService::TRUST_DAYS,
             'codes_left' => $this->auth->backupCodesLeft($ctx->id()),
             'new_codes' => Session::flash('new_codes'),
             'errors' => [],
@@ -339,6 +362,14 @@ final class AuthController
         $n = $this->auth->revokeSessions($ctx->id(), (int) $ctx->session['id']);
         AdminKernel::flash($n === 1 ? 'Eine andere Sitzung wurde abgemeldet.' : "$n andere Sitzungen wurden abgemeldet.");
         return Response::redirect('/verwaltung/konto/', 303);
+    }
+
+    public function revokeTrusted(Request $req, AdminContext $ctx): Response
+    {
+        $id = $req->input('id');
+        $n = $this->auth->revokeTrustedDevices($ctx->id(), ctype_digit($id) && $id !== '' ? (int) $id : null);
+        AdminKernel::flash($n === 0 ? 'Kein Gerät widerrufen.' : ($n === 1 ? 'Gerät widerrufen. Dort wird beim nächsten Anmelden wieder ein Code verlangt.' : "$n Geräte widerrufen. Dort wird beim nächsten Anmelden wieder ein Code verlangt."));
+        return Response::redirect('/verwaltung/konto/', 303)->withCookie(self::trustCookieName($req), '', ['expires' => time() - 86400, 'secure' => $req->isSecure(), 'samesite' => 'Strict']);
     }
 
     // ---- Erneute Bestätigung ----
