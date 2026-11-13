@@ -1,0 +1,11 @@
+<section{{ battr(b, 'section' ~ (f.bg == 'alt' ? ' section--alt')) }}>
+  <div class="container sec-split">
+    <div class="section-head">{% if f.eyebrow %}<span class="eyebrow"{{ bedit('eyebrow') }}>{{ f.eyebrow }}</span>{% endif %}<h2{{ bedit('title') }}>{{ f.title }}</h2>{% if f.text %}<p>{{ f.text }}</p>{% endif %}</div>
+    <aside class="sec-visual reveal" aria-hidden="true">
+      <div class="sec-visual__medal">{{ icon(f.icon ?: 'users') }}</div>
+      {% if f.points|length %}
+        <ul class="sec-visual__list{{ f.points|length > 3 ? ' sec-visual__list--grid' }}">{% for pt in f.points %}<li><span class="card__icon">{{ icon(pt.icon ?: 'check') }}</span><span><b>{{ pt.title }}</b>{% if pt.text %}<small>{{ pt.text }}</small>{% endif %}</span></li>{% endfor %}</ul>
+      {% endif %}
+    </aside>
+  </div>
+</section>

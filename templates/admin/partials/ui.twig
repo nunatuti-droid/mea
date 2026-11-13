@@ -60,7 +60,7 @@
         </div>
       {% else %}
         {% set html_type = {money: 'text', int: 'number', datetime: 'datetime-local', slug: 'text', email: 'email', tel: 'tel', url: 'text', date: 'date', time: 'time'}[type] ?? 'text' %}
-        <input type="{{ html_type }}"{{ common|raw }} value="{{ val }}"{% if f.max is defined %} maxlength="{{ f.max }}"{% endif %}{% if type == 'money' %} inputmode="decimal" placeholder="0,00"{% endif %}{% if f.min is defined %} min="{{ f.min }}"{% endif %}{% if type == 'slug' %} pattern="[a-z0-9]+(-[a-z0-9]+)*" data-slug-from="{{ f.from ?? '' }}"{% endif %}{% if f.counter is defined %} data-counter="{{ f.counter }}"{% endif %}>
+        <input type="{{ html_type }}"{{ common|raw }} value="{{ val }}"{% if f.max is defined %} maxlength="{{ f.max }}"{% endif %}{% if type == 'money' %} inputmode="decimal" placeholder="0,00"{% endif %}{% if f.min is defined %} min="{{ f.min }}"{% endif %}{% if type == 'slug' %} pattern="{{ f.nested is defined and f.nested ? '[a-z0-9]+(-[a-z0-9]+)*(/[a-z0-9]+(-[a-z0-9]+)*)?' : '[a-z0-9]+(-[a-z0-9]+)*' }}" data-slug-from="{{ f.from ?? '' }}"{% endif %}{% if f.counter is defined %} data-counter="{{ f.counter }}"{% endif %}>
       {% endif %}
     {% endif %}
     {% if f.help is defined %}<p class="field__help" id="{{ id }}-help">{{ f.help }}</p>{% endif %}

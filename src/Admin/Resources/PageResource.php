@@ -52,8 +52,8 @@ final class PageResource extends Resource
         $home = (int) ($row['is_home'] ?? 0) === 1;
         return [
             ['name' => 'title', 'label' => 'Titel', 'required' => true, 'max' => 200, 'help' => 'Name der Seite in der Verwaltung, im Browser-Tab und als Überschrift, wenn der Seitenkopf keine eigene hat.'],
-            ['name' => 'slug', 'label' => 'Adresse', 'type' => 'slug', 'required' => true, 'from' => 'title', 'readonly' => $system,
-                'help' => $home ? 'Startseite: immer unter / erreichbar.' : ($system ? 'Systemseite: Die Adresse ist fest.' : 'Ergibt /adresse/. Nach Veröffentlichung möglichst nicht ändern; sonst eine Weiterleitung anlegen.')],
+            ['name' => 'slug', 'label' => 'Adresse', 'type' => 'slug', 'required' => true, 'from' => 'title', 'readonly' => $system, 'nested' => true,
+                'help' => $home ? 'Startseite: immer unter / erreichbar.' : ($system ? 'Systemseite: Die Adresse ist fest.' : 'Ergibt /adresse/. Unterseiten mit „bereich/seite“ (ergibt /bereich/seite/). Nach Veröffentlichung möglichst nicht ändern; sonst eine Weiterleitung anlegen.')],
             ['name' => 'status', 'label' => 'Status', 'type' => 'select', 'required' => true, 'options' => Labels::options('content_status'), 'default' => 'draft', 'readonly' => $system,
                 'help' => 'Entwurf und Archiv sind öffentlich nicht erreichbar. Veröffentlichen im Seitenbaukasten setzt den Status auf „veröffentlicht“.'],
             ['name' => 'seo_title', 'label' => 'SEO-Titel', 'max' => 70, 'counter' => 60, 'group' => 'Suchmaschinen', 'help' => 'Leer = Titel.'],
@@ -66,13 +66,23 @@ final class PageResource extends Resource
         $e = [];
         $slug = $values['slug'] ?? null;
         if ($slug !== null && $slug !== '') {
-            if (in_array($slug, self::RESERVED, true)) {
+            $parts = explode('/', (string) $slug);
+            if (in_array($parts[0], self::RESERVED, true)) {
                 $e['slug'] = 'Diese Adresse ist für das System reserviert.';
-            } elseif ($this->isTaken('slug', $slug, $id) || $this->db->value('SELECT 1 FROM services WHERE slug = ? AND parent_id IS NULL', [$slug]) !== null) {
+            } elseif ($this->isTaken('slug', $slug, $id) || $this->serviceUsesPath($parts)) {
                 $e['slug'] = 'Diese Adresse wird schon verwendet.';
             }
         }
         return $e;
+    }
+
+    /** Adresse gehört schon einer Leistung (/bereich/ oder /bereich/unterseite/). @param list<string> $parts */
+    private function serviceUsesPath(array $parts): bool
+    {
+        if (count($parts) === 1) {
+            return $this->db->value('SELECT 1 FROM services WHERE slug = ? AND parent_id IS NULL', [$parts[0]]) !== null;
+        }
+        return $this->db->value('SELECT 1 FROM services c JOIN services p ON p.id = c.parent_id WHERE p.slug = ? AND c.slug = ?', [$parts[0], $parts[1]]) !== null;
     }
 
     public function beforeSave(array $values, ?array $existing, AdminContext $ctx): array

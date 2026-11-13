@@ -69,14 +69,16 @@ final class PublicController
     public function childService(Request $req, string $parent, string $slug): Response
     {
         $p = $this->content->publishedService($parent);
-        if ($p === null) {
+        $child = $p !== null ? $this->content->publishedService($slug, (int) $p['id']) : null;
+        if ($p !== null && $child !== null) {
+            return $this->renderService($child, $p);
+        }
+        // Unterseite aus dem Seitenbaukasten (Adresse „bereich/seite“)
+        $page = isset(\Mea\Module\Builder\PageService::NESTED[$parent . '/' . $slug]) ? null : ($this->pages)()->published($parent . '/' . $slug);
+        if ($page === null) {
             throw HttpException::notFound();
         }
-        $child = $this->content->publishedService($slug, (int) $p['id']);
-        if ($child === null) {
-            throw HttpException::notFound();
-        }
-        return $this->renderService($child, $p);
+        return Response::html(($this->pageView)()->html($page, ['query' => $req->query]));
     }
 
     /** @param array<string,mixed> $service @param array<string,mixed>|null $parent */
