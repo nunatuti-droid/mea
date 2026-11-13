@@ -871,3 +871,13 @@ body.offline { min-height: 100vh; display: grid; place-items: center; padding: v
 .divider { border: 0; border-top: var(--border-width) solid var(--color-border); margin: 0; }
 .divider--diamond { position: relative; overflow: visible; }
 .divider--diamond::after { content: ""; position: absolute; left: 50%; top: -6px; width: 11px; height: 11px; margin-left: -6px; background: var(--color-primary); transform: rotate(45deg); border-radius: 2px; }
+
+/* Buchung: Prüfschritt vor der Zahlung */
+.review-list { margin: var(--space-4) 0 0; border: var(--border-width) solid var(--color-border); border-radius: var(--radius-shape); background: var(--color-surface); }
+.review-list__row { display: grid; grid-template-columns: minmax(0, 1fr); gap: 2px; padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--color-border); }
+.review-list__row:last-child { border-bottom: 0; }
+.review-list dt { font-size: var(--font-size-small); color: var(--color-text-muted); font-weight: var(--font-weight-ui); }
+.review-list dd { margin: 0; color: var(--color-heading); overflow-wrap: anywhere; }
+.review-list__row--total dd { font-weight: var(--font-weight-heading); }
+.review-actions { display: flex; flex-wrap: wrap; gap: var(--space-3); }
+@media (min-width: 640px) { .review-list__row { grid-template-columns: 14rem minmax(0, 1fr); gap: var(--space-4); } }

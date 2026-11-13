@@ -64,16 +64,43 @@ final class AcceptanceTest extends IntegrationTestCase
         return $this->idFromLocation($r);
     }
 
-    /** Öffentliches Buchungsformular absenden. @return Response */
-    private function submitBooking(string $slug, int $sessionId, string $email = 'lea@example.org'): Response
+    /** @return array<string,string> */
+    private function bookingData(string $email = 'lea@example.org'): array
     {
-        $form = $this->get("/pruefungen/$slug/buchen/$sessionId/");
-        return $this->request('POST', "/pruefungen/$slug/buchen/$sessionId/", [
+        return [
             '_csrf' => Csrf::token(), '_t' => (string) (time() - 30), 'website' => '',
             'salutation' => 'Frau', 'first_name' => 'Lea', 'last_name' => 'Beispiel', 'email' => $email, 'phone' => '0201 123456',
             'birth_date' => '1990-04-12', 'birth_place' => 'Essen', 'street' => 'Musterweg 1', 'postal_code' => '45127', 'city' => 'Essen',
             'terms' => '1', 'privacy' => '1',
-        ], ['REMOTE_ADDR' => '198.51.100.' . random_int(1, 250)]);
+        ];
+    }
+
+    /** Öffentliches Buchungsformular absenden (Prüfschritt) und bestätigen. @return Response */
+    private function submitBooking(string $slug, int $sessionId, string $email = 'lea@example.org'): Response
+    {
+        $this->get("/pruefungen/$slug/buchen/$sessionId/");
+        return $this->request('POST', "/pruefungen/$slug/buchen/$sessionId/", $this->bookingData($email) + ['step' => 'confirm'],
+            ['REMOTE_ADDR' => '198.51.100.' . random_int(1, 250)]);
+    }
+
+    public function test_ReviewStepShowsDataAndDoesNotReserveOrRedirect(): void
+    {
+        $examId = $this->createExamViaAdmin();
+        $this->publish($examId);
+        $slug = (string) self::db()->value('SELECT slug FROM exam_types WHERE id = ?', [$examId]);
+        $sid = $this->createSessionViaAdmin($examId, 5);
+        $before = (int) self::db()->value('SELECT COUNT(*) FROM bookings');
+        $this->get("/pruefungen/$slug/buchen/$sid/");
+        $r = $this->request('POST', "/pruefungen/$slug/buchen/$sid/", $this->bookingData('pruef@example.org'), ['REMOTE_ADDR' => '198.51.100.7']);
+        self::assertSame(200, $r->status, substr($r->body, 0, 1500));
+        self::assertStringContainsString('Bitte prüfen Sie Ihre Angaben', $r->body);
+        self::assertStringContainsString('pruef@example.org', $r->body);
+        self::assertStringContainsString('Daten bestätigen', $r->body);
+        self::assertSame($before, (int) self::db()->value('SELECT COUNT(*) FROM bookings'), 'noch keine Reservierung');
+        self::assertCount(0, $this->gw->orders ?? [], 'noch keine PayPal-Bestellung');
+        $edit = $this->request('POST', "/pruefungen/$slug/buchen/$sid/", $this->bookingData('pruef@example.org') + ['step' => 'edit'], ['REMOTE_ADDR' => '198.51.100.7']);
+        self::assertSame(200, $edit->status);
+        self::assertStringContainsString('value="pruef@example.org"', $edit->body, 'Eingaben bleiben beim Ändern erhalten');
     }
 
     /** Buchen und bei PayPal „bezahlen“. @return array<string,mixed> Buchung */

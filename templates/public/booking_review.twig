@@ -1,0 +1,44 @@
+{% extends 'layout/base.twig' %}
+{% set seo_title = 'Angaben prüfen: ' ~ exam.public_name %}
+{% set canonical = '/pruefungen/' ~ exam.slug ~ '/' %}
+{% set robots_noindex = true %}
+{% block content %}
+  {% include 'partials/page_hero.twig' with {title: 'Angaben prüfen: ' ~ exam.public_name, intro: session.starts_local|format_date(pattern="EEEE, d. MMMM yyyy, HH:mm 'Uhr'", locale='de') ~ ' · ' ~ session.location_name, media_id: null, crumbs: [{label: 'Prüfungen', url: '/telc-pruefungszentrum/'}, {label: exam.public_name, url: '/pruefungen/' ~ exam.slug ~ '/'}, {label: 'Anmeldung'}]} %}
+  <section class="section">
+    <div class="container booking-layout">
+      <div>
+        <ol class="steps-inline" aria-label="Ablauf">
+          <li><span>1</span>Angaben</li><li aria-current="step"><span>2</span>Prüfen</li><li><span>3</span>Zahlung mit PayPal</li><li><span>4</span>Bestätigung per E-Mail</li>
+        </ol>
+        <h2 class="h-sm">Bitte prüfen Sie Ihre Angaben</h2>
+        <p class="text-muted">Diese Angaben erscheinen auf dem Zertifikat. Wenn alles stimmt, bestätigen Sie unten. Danach reservieren wir Ihren Platz {{ rule.reservation_minutes ?? 20 }} Minuten lang und leiten Sie zu PayPal weiter.</p>
+        <dl class="review-list">
+          {% for r in rows %}<div class="review-list__row"><dt>{{ r.label }}</dt><dd>{{ r.value }}</dd></div>{% endfor %}
+          {% if fees is not empty %}<div class="review-list__row"><dt>Zusatzleistungen</dt><dd>{% for f in fees %}{{ f.label }} (+ {{ f.amount_cents|money(exam.currency) }}){{ not loop.last ? ', ' }}{% endfor %}</dd></div>{% endif %}
+          {% if total_cents is not null %}<div class="review-list__row review-list__row--total"><dt>Zu zahlen</dt><dd>{{ total_cents|money(session.price.currency) }}</dd></div>{% endif %}
+        </dl>
+        <form class="form mt-5" method="post" action="/pruefungen/{{ exam.slug }}/buchen/{{ session.id }}/">
+          <input type="hidden" name="_csrf" value="{{ csrf }}">
+          {% for k, v in hidden %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endfor %}
+          {% for fid in chosen_fees %}<input type="hidden" name="fees[]" value="{{ fid }}">{% endfor %}
+          <p class="hint text-muted">Die Anmeldung ist erst nach erfolgreicher Zahlung verbindlich.</p>
+          <div class="review-actions">
+            <button class="btn btn--lg" type="submit" name="step" value="confirm">{{ icon('ticket') }}Daten bestätigen und zu PayPal{% if total_cents is not null %} · {{ total_cents|money(session.price.currency) }}{% endif %}</button>
+            <button class="btn btn--secondary btn--lg" type="submit" name="step" value="edit">Angaben ändern</button>
+          </div>
+        </form>
+      </div>
+      <aside class="booking-summary" aria-labelledby="summary-title">
+        <h2 id="summary-title" class="h-sm">Ihre Auswahl</h2>
+        <p class="booking-summary__exam">{{ exam.public_name }}</p>
+        <ul class="facts">
+          <li>{{ icon('calendar') }}<span>{{ session.starts_local|format_date(pattern="EEEE, d. MMMM yyyy", locale='de') }}<br>{{ session.starts_local|date('H:i') }} Uhr</span></li>
+          <li>{{ icon('map-pin') }}<span>{{ session.location_name }}</span></li>
+        </ul>
+        <div class="pay-badge">
+          <div class="pay-badge__head"><span>Sicher bezahlen mit</span><img src="/assets/img/paypal.svg" width="104" height="29" alt="PayPal" loading="lazy" decoding="async"></div>
+        </div>
+      </aside>
+    </div>
+  </section>
+{% endblock %}

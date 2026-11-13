@@ -43,5 +43,7 @@ Nach Version-Updates: `php bin/console migrate` (23 Migrationen), danach `selfte
 - Seitenbaukasten: Datensatzseiten (Leistung/Prüfung/Standort), Buchungsstrecke, Bewerbungsformular und 404-Seite sind nicht im Baukasten; nicht geprüft: Screenreader, Safari/Firefox.
 - Behoben zuletzt: Überlauf auf `/verwaltung/email-vorlagen/4/` bei 375 px (Commit `3c2f7b6`).
 
+- **Buchung, Prüfschritt (neu, ungetestet gegen DB):** Nach dem Anmeldeformular folgt eine Seite „Angaben prüfen“ (`templates/public/booking_review.twig`); erst „Daten bestätigen“ (`step=confirm`) legt die Reservierung an und leitet zu PayPal. „Angaben ändern“ (`step=edit`) führt mit erhaltenen Eingaben zurück. Zustandslos (Daten als Hidden-Felder, beim Bestätigen erneut validiert, Preis serverseitig). Integrationstest ergänzt, Testhelfer `submitBooking` sendet `step=confirm`. In der Sitzung war keine MySQL verfügbar: PHPUnit dort nicht gelaufen, vor dem Release lokal ausführen.
+
 ## 6. Nächster sinnvoller Schritt
 Plesk: Cron einrichten und PHP-Limits prüfen (siehe Punkt 5). Release 0.9.5 ist gebaut (`installation/update-0.9.5.zip`, SHA-256 `47286ec6…b6714`) und eingespielt. Ein Git-Tag `v0.9.5` auf `b9edb08` fehlt noch (Push aus der Sitzung nicht erlaubt; manuell auf GitHub setzen).
