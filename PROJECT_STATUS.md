@@ -16,7 +16,7 @@ Neuer Chat: zuerst diese Datei lesen, dann `git log` und `git status` prüfen, d
 Neue CMS-freie Website für das MEA Bildungszentrum (PHP 8.3, MySQL/MariaDB, Twig) mit Verwaltung unter `/verwaltung/`.
 
 **Öffentlich:** Startseite, Leistungen/AVGS, telc-Prüfungszentrum Herne (A1 bis C1, C1 Hochschule und C2 als Entwurf), Preise, Standorte (Google Maps nach Klick/Einwilligung), Kontakt, FAQ, Über uns, Karriere mit Bewerbungsformular (verschlüsselter PDF-Upload), Datenschutz-Entwurf, Buchung mit PayPal, Cookie-Banner, Online-/Offline-Schalter.
-**Verwaltung:** Prüfungen/Kategorien/Termine/Kalender, Buchungen, Leistungen, Standorte, Menüs, FAQ, Bewertungen (Google-Bewertung als Link + Sterne, manuell gepflegt, kein API-Abruf), Mediathek, Firmendaten & SEO, E-Mail-Vorlagen, Benutzer mit Pflicht-2FA.
+**Verwaltung:** Prüfungen/Kategorien/Termine/Kalender, Buchungen, Leistungen, Standorte, Menüs, FAQ, Bewertungen (Google-Bewertung als Link + Sterne, manuell gepflegt, kein API-Abruf), Mediathek, Firmendaten & SEO, E-Mail-Vorlagen, Benutzer mit Pflicht-2FA (optional „Angemeldet bleiben“ und „Gerät 30 Tage vertrauen“, widerrufbar unter Mein Konto; Migration 24, noch nicht veröffentlicht/eingespielt).
 **Designsystem (0.8.0):** zentrale CSS-Variablen aus der Datenbank, Live-Vorschau, eigene Schriften.
 **Seitenbaukasten (0.9.0):** alle 12 Seiten als Bausteine, Entwurf/Veröffentlichen, Versionen, globale Bausteine, Kopf-/Fußbereich.
 **Betrieb:** Firewall, Dateiwächter (signiert), verschlüsselte Sicherungen (Vollsicherung, ZIP mit Passwort), signierte Updates direkt in der Verwaltung, Cron (`php bin/console cron`, jede Minute).

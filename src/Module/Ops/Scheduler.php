@@ -150,6 +150,7 @@ final class Scheduler
         $t = $now->format('Y-m-d H:i:s');
         $n = $db->run('DELETE FROM user_tokens WHERE expires_at < ? - INTERVAL 7 DAY OR used_at < ? - INTERVAL 7 DAY OR revoked_at < ? - INTERVAL 7 DAY', [$t, $t, $t]);
         $n += $db->run('DELETE FROM user_sessions WHERE (revoked_at IS NOT NULL AND revoked_at < ? - INTERVAL 30 DAY) OR last_seen_at < ? - INTERVAL 30 DAY', [$t, $t]);
+        $n += $db->run('DELETE FROM user_trusted_devices WHERE expires_at < ? - INTERVAL 7 DAY OR revoked_at < ? - INTERVAL 30 DAY', [$t, $t]);
         $n += $db->run('DELETE FROM rate_limits WHERE window_start < ? - INTERVAL 1 DAY', [$t]);
         $n += $db->run('DELETE FROM ip_rules WHERE expires_at IS NOT NULL AND expires_at < ? - INTERVAL 30 DAY', [$t]);
         $n += $db->run('DELETE FROM security_events WHERE created_at < ? - INTERVAL 90 DAY', [$t]);

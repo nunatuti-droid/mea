@@ -397,3 +397,10 @@ Neue Seite in der Verwaltung für Button-Texte, Überschriften und Links in Kopf
 Neue Rolle „Autor/in“ (Entwürfe, keine Veröffentlichung). Neues Recht „Veröffentlichen“ für Administrator und Redaktion.
 
 **Nach dem Hochladen:** nichts weiter nötig; die Updatefunktion führt die Migration aus und übernimmt die Seiten.
+
+## Anmeldung: „Angemeldet bleiben“ und „Diesem Gerät vertrauen“
+- **Anmeldeseite:** Haken „Angemeldet bleiben (30 Tage)“. Die Sitzung gilt dann bis 14 Tage Inaktivität, höchstens 30 Tage (sonst 30 Minuten / 12 Stunden) und übersteht das Schließen des Browsers.
+- **Code-Seite:** Haken „Diesem Gerät 30 Tage vertrauen“. Auf diesem Gerät entfällt der Bestätigungscode 30 Tage lang; das Passwort wird weiter verlangt. Die Frist wird nicht verlängert.
+- **Sicherheit:** Zufalls-Token im Cookie (HttpOnly, Secure, SameSite=Strict, `__Host-`), in der Datenbank nur als Hash; gebunden an das Konto. Widerruf einzeln oder gesamt unter „Mein Konto → Vertrauenswürdige Geräte“; automatisch widerrufen bei Passwortänderung/-zurücksetzen und 2FA-Zurücksetzen. Beim Merken kommt eine Sicherheits-E-Mail, Merken und Nutzen stehen im Änderungsprotokoll. Kritische Aktionen verlangen weiter Passwort und Code.
+- **Dateien:** `migrations/20261113100024_…` (neu, Tabelle `user_trusted_devices`, Spalte `user_sessions.remember`), `src/Module/Auth/AuthService.php`, `src/Admin/AuthController.php`, `src/Admin/AdminKernel.php`, `src/Module/Ops/Scheduler.php`, `templates/admin/auth/login.twig`, `templates/admin/auth/code.twig`, `templates/admin/account.twig`, `tests/Integration/AdminSecurityTest.php`.
+- **Nach dem Hochladen:** die Updatefunktion führt die Migration aus; nichts weiter nötig.

@@ -49,6 +49,133 @@ final class AdminSecurityTest extends IntegrationTestCase
         self::assertNotNull($u);
     }
 
+    
+    private function passwordStep(string $email, array $cookies = [], array $extra = []): \Mea\Core\Response
+    {
+        $_SESSION = [];
+        return $this->app->handle(new \Mea\Core\Request('POST', '/verwaltung/anmelden/', [], [
+            '_csrf' => Csrf::token(), 'email' => $email, 'password' => 'Lange sichere Passphrase 2026', 'weiter' => '',
+        ] + $extra, ['REMOTE_ADDR' => '203.0.113.7'], $cookies));
+    }
+
+    private static function cookieValue(\Mea\Core\Response $r, string $name): ?string
+    {
+        foreach ($r->cookies as $c) {
+            if (str_starts_with($c, $name . '=')) {
+                return rawurldecode(explode(';', substr($c, strlen($name) + 1))[0]);
+            }
+        }
+        return null;
+    }
+
+    public function testTrustedDeviceSkipsCodeOnlyForThatAccountAndUntilRevoked(): void
+    {
+        $this->loginAs('admin', 'vertraut@example.org');
+        $other = $this->loginAs('admin', 'fremd@example.org');
+        $code = TOTP::createFromSecret('JBSWY3DPEHPK3PXP')->now();
+
+        // Ohne Haken im Code-Formular: kein Cookie, nächster Login verlangt wieder den Code
+        $_SESSION = [];
+        $this->passwordStep('vertraut@example.org');
+        $r = $this->request('POST', '/verwaltung/anmelden/code/', ['_csrf' => Csrf::token(), 'code' => $code]);
+        self::assertSame(303, $r->status);
+        self::assertNull(self::cookieValue($r, 'mea-trust'));
+        self::assertSame(0, (int) self::db()->value('SELECT COUNT(*) FROM user_trusted_devices'));
+
+        // Mit Haken: Cookie (HttpOnly, Strict), nur der Hash liegt in der Datenbank
+        $_SESSION = [];
+        $this->passwordStep('vertraut@example.org');
+        $r = $this->request('POST', '/verwaltung/anmelden/code/', ['_csrf' => Csrf::token(), 'code' => TOTP::createFromSecret('JBSWY3DPEHPK3PXP')->at(time() + 30), 'trust' => '1']);
+        self::assertSame(303, $r->status);
+        $token = self::cookieValue($r, 'mea-trust');
+        self::assertNotNull($token);
+        $cookie = implode('|', array_filter($r->cookies, fn($c) => str_starts_with($c, 'mea-trust=')));
+        self::assertStringContainsString('HttpOnly', $cookie);
+        self::assertStringContainsString('SameSite=Strict', $cookie);
+        self::assertSame(0, (int) self::db()->value('SELECT COUNT(*) FROM user_trusted_devices WHERE token_hash = ?', [$token]));
+        self::assertSame(1, (int) self::db()->value('SELECT COUNT(*) FROM user_trusted_devices'));
+
+        // Passwort richtig + Cookie: direkt angemeldet, ohne Code
+        $r = $this->passwordStep('vertraut@example.org', ['mea-trust' => $token]);
+        self::assertSame('/verwaltung/', $r->headers['Location']);
+        self::assertSame(200, $this->get('/verwaltung/')->status);
+
+        // Cookie gehört zum Konto: bei einem anderen Konto wird weiter der Code verlangt
+        $r = $this->passwordStep('fremd@example.org', ['mea-trust' => $token]);
+        self::assertSame('/verwaltung/anmelden/code/', $r->headers['Location']);
+        self::assertNotNull($other);
+
+        // Falsches Passwort + Cookie: kein Login
+        $_SESSION = [];
+        $bad = $this->app->handle(new \Mea\Core\Request('POST', '/verwaltung/anmelden/', [], ['_csrf' => Csrf::token(), 'email' => 'vertraut@example.org', 'password' => 'falsch falsch falsch', 'weiter' => ''], ['REMOTE_ADDR' => '203.0.113.7'], ['mea-trust' => $token]));
+        self::assertSame(422, $bad->status);
+
+        // Abgelaufen: Code wieder nötig
+        self::db()->run('UPDATE user_trusted_devices SET expires_at = UTC_TIMESTAMP() - INTERVAL 1 MINUTE');
+        self::assertSame('/verwaltung/anmelden/code/', $this->passwordStep('vertraut@example.org', ['mea-trust' => $token])->headers['Location']);
+        self::db()->run('UPDATE user_trusted_devices SET expires_at = UTC_TIMESTAMP() + INTERVAL 1 DAY');
+        self::assertSame('/verwaltung/', $this->passwordStep('vertraut@example.org', ['mea-trust' => $token])->headers['Location']);
+
+        // Widerrufen: Code wieder nötig
+        $uid = (int) self::db()->value("SELECT id FROM users WHERE email = 'vertraut@example.org'");
+        self::assertSame(1, $this->app->auth->revokeTrustedDevices($uid));
+        self::assertSame('/verwaltung/anmelden/code/', $this->passwordStep('vertraut@example.org', ['mea-trust' => $token])->headers['Location']);
+    }
+
+    public function testPasswordChangeAndTotpResetRevokeTrustedDevices(): void
+    {
+        $u = $this->loginAs('admin', 'pw@example.org');
+        $a = $this->app->auth;
+        $t1 = $a->trustDevice($u, 'PHPUnit');
+        self::assertNotNull($a->trustedDeviceId((int) $u['id'], $t1));
+        $a->changePassword((int) $u['id'], 'Noch eine lange Passphrase 2027');
+        self::assertNull($a->trustedDeviceId((int) $u['id'], $t1));
+        $t2 = $a->trustDevice($u, 'PHPUnit');
+        $a->resetTotp((int) $u['id']);
+        self::assertNull($a->trustedDeviceId((int) $u['id'], $t2));
+        self::assertNull($a->trustedDeviceId((int) $u['id'], 'kein-token'));
+    }
+
+    public function testRememberMeExtendsSessionLifetimeAndCookieResumesIt(): void
+    {
+        $u = $this->loginAs('admin', 'bleiben@example.org');
+        $a = $this->app->auth;
+        $normal = $a->startSession($u, '203.0.113.7', 'PHPUnit', '');
+        $kept = $a->startSession($u, '203.0.113.7', 'PHPUnit', '', true);
+
+        // 2 Tage ohne Aktivität: normale Sitzung abgelaufen, „angemeldet bleiben“ noch gültig
+        self::db()->run('UPDATE user_sessions SET last_seen_at = UTC_TIMESTAMP() - INTERVAL 2 DAY, created_at = UTC_TIMESTAMP() - INTERVAL 2 DAY WHERE user_id = ?', [$u['id']]);
+        self::assertNull($a->resolveSession($normal['token']));
+        self::assertNotNull($a->resolveSession($kept['token']));
+
+        // 15 Tage ohne Aktivität: auch diese ist abgelaufen
+        self::db()->run('UPDATE user_sessions SET last_seen_at = UTC_TIMESTAMP() - INTERVAL 15 DAY WHERE user_id = ?', [$u['id']]);
+        self::assertNull($a->resolveSession($kept['token']));
+
+        // 31 Tage seit Anmeldung, aber aktiv: absolute Höchstdauer
+        $again = $a->startSession($u, '203.0.113.7', 'PHPUnit', '', true);
+        self::db()->run('UPDATE user_sessions SET created_at = UTC_TIMESTAMP() - INTERVAL 31 DAY WHERE token_hash = ?', [$this->app->crypto->hash($again['token'], 'session')]);
+        self::assertNull($a->resolveSession($again['token']));
+
+        // Cookie trägt die Sitzung, auch wenn die PHP-Sitzung weg ist
+        $fresh = $a->startSession($u, '203.0.113.7', 'PHPUnit', '', true);
+        $_SESSION = [];
+        $r = $this->app->handle(new \Mea\Core\Request('GET', '/verwaltung/', [], [], ['REMOTE_ADDR' => '203.0.113.7'], ['mea-remember' => $fresh['token']]));
+        self::assertSame(200, $r->status);
+        // ohne Cookie: Weiterleitung zur Anmeldung
+        $_SESSION = [];
+        self::assertSame(303, $this->get('/verwaltung/')->status);
+    }
+
+    public function testLoginFormOffersRememberAndCodeFormOffersTrust(): void
+    {
+        $this->loginAs('admin', 'formular@example.org');
+        $_SESSION = [];
+        self::assertStringContainsString('name="remember"', $this->get('/verwaltung/anmelden/')->body);
+        $this->passwordStep('formular@example.org');
+        self::assertStringContainsString('name="trust"', $this->get('/verwaltung/anmelden/code/')->body);
+    }
+
     public function testWrongPasswordLocksAccount(): void
     {
         $this->loginAs('admin', 'sperre@example.org');

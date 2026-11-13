@@ -22,6 +22,11 @@ final class AuthService
     public const IDLE_MINUTES = 30;
     public const ABSOLUTE_HOURS = 12;
     public const REAUTH_MINUTES = 10;
+    /** „Angemeldet bleiben“: Inaktivität und absolute Höchstdauer in Tagen. */
+    public const REMEMBER_IDLE_DAYS = 14;
+    public const REMEMBER_ABSOLUTE_DAYS = 30;
+    /** „Diesem Gerät vertrauen“: Dauer, in der die Code-Abfrage entfällt (fest, nicht verlängerbar). */
+    public const TRUST_DAYS = 30;
     public const INVITE_HOURS = 48;
     public const RESET_MINUTES = 60;
     private const DUMMY_HASH = '$argon2id$v=19$m=65536,t=4,p=1$OVRlRk9qaExmY1VSN0x0Yg$sBiVlfmbrdxzH29NoAEq0oHHNaKfoLAzN9w1Lfpf4gE';
@@ -145,7 +150,7 @@ final class AuthService
      * @param array<string,mixed> $user
      * @return array{token:string, device:string}
      */
-    public function startSession(array $user, string $ip, string $userAgent, string $deviceCookie): array
+    public function startSession(array $user, string $ip, string $userAgent, string $deviceCookie, bool $remember = false): array
     {
         $uid = (int) $user['id'];
         $token = Crypto::token();
@@ -153,7 +158,7 @@ final class AuthService
         $this->db->insert('user_sessions', [
             'user_id' => $uid, 'token_hash' => $this->crypto->hash($token, 'session'),
             'ip_hash' => $this->crypto->hash($ip, 'ip'), 'user_agent' => mb_substr($userAgent, 0, 255),
-            'created_at' => $now, 'last_seen_at' => $now,
+            'remember' => $remember ? 1 : 0, 'created_at' => $now, 'last_seen_at' => $now,
         ]);
         $device = preg_match('/^[A-Za-z0-9_-]{43}$/', $deviceCookie) ? $deviceCookie : Crypto::token();
         $dHash = $this->crypto->hash($device, 'device');
@@ -186,8 +191,9 @@ final class AuthService
             return null;
         }
         $now = $this->nowTs();
-        $idle = $now - (int) strtotime($s['last_seen_at'] . ' UTC') > self::IDLE_MINUTES * 60;
-        $old = $now - (int) strtotime($s['created_at'] . ' UTC') > self::ABSOLUTE_HOURS * 3600;
+        $remember = (int) $s['remember'] === 1;
+        $idle = $now - (int) strtotime($s['last_seen_at'] . ' UTC') > ($remember ? self::REMEMBER_IDLE_DAYS * 86400 : self::IDLE_MINUTES * 60);
+        $old = $now - (int) strtotime($s['created_at'] . ' UTC') > ($remember ? self::REMEMBER_ABSOLUTE_DAYS * 86400 : self::ABSOLUTE_HOURS * 3600);
         if ($idle || $old) {
             $this->db->run('UPDATE user_sessions SET revoked_at = ? WHERE id = ?', [$this->now(), $s['id']]);
             return null;
@@ -243,8 +249,75 @@ final class AuthService
     public function sessionsOf(int $userId): array
     {
         $since = $this->clock->now()->modify('-' . self::IDLE_MINUTES . ' minutes')->format('Y-m-d H:i:s');
-        return $this->db->all('SELECT id, user_agent, created_at, last_seen_at FROM user_sessions
-            WHERE user_id = ? AND revoked_at IS NULL AND last_seen_at > ? ORDER BY last_seen_at DESC', [$userId, $since]);
+        $sinceRemember = $this->clock->now()->modify('-' . self::REMEMBER_IDLE_DAYS . ' days')->format('Y-m-d H:i:s');
+        return $this->db->all('SELECT id, user_agent, remember, created_at, last_seen_at FROM user_sessions
+            WHERE user_id = ? AND revoked_at IS NULL AND ((remember = 0 AND last_seen_at > ?) OR (remember = 1 AND last_seen_at > ?))
+            ORDER BY last_seen_at DESC', [$userId, $since, $sinceRemember]);
+    }
+
+    // ---- Vertrauenswürdige Geräte (2FA-Abfrage überspringen) ----
+
+    /** Merkt das aktuelle Gerät für TRUST_DAYS Tage. @return string Token für das Cookie (nur der Hash wird gespeichert) */
+    public function trustDevice(array $user, string $userAgent): string
+    {
+        $uid = (int) $user['id'];
+        $token = Crypto::token();
+        $this->db->insert('user_trusted_devices', [
+            'user_id' => $uid, 'token_hash' => $this->crypto->hash($token, 'trust'),
+            'user_agent' => mb_substr($userAgent, 0, 255), 'created_at' => $this->now(),
+            'expires_at' => $this->clock->now()->modify('+' . self::TRUST_DAYS . ' days')->format('Y-m-d H:i:s'),
+        ]);
+        $this->audit->record('auth.device_trusted', 'Gerät für ' . self::TRUST_DAYS . ' Tage als vertrauenswürdig gemerkt', 'user', $uid, [], $uid);
+        $this->securityMail($user, 'Ein Gerät wurde als vertrauenswürdig gemerkt (' . self::browserLabel($userAgent) . '): Dort entfällt die Code-Abfrage für ' . self::TRUST_DAYS . ' Tage. Unter „Mein Konto“ können Sie das jederzeit widerrufen.', 'trust-' . $uid . '-' . $this->crypto->hash($token, 'mailkey'));
+        return $token;
+    }
+
+    /** Id des gültigen vertrauenswürdigen Geräts dieses Kontos (Token gehört zum Konto, nicht abgelaufen, nicht widerrufen). */
+    public function trustedDeviceId(int $userId, string $token): ?int
+    {
+        if (!preg_match('/^[A-Za-z0-9_-]{43}$/', $token)) {
+            return null;
+        }
+        $id = $this->db->value(
+            'SELECT id FROM user_trusted_devices WHERE user_id = ? AND token_hash = ? AND revoked_at IS NULL AND expires_at > ?',
+            [$userId, $this->crypto->hash($token, 'trust'), $this->now()],
+        );
+        return $id === null ? null : (int) $id;
+    }
+
+    /** Prüft das Cookie beim Passwort-Schritt; vermerkt die Nutzung. */
+    public function useTrustedDevice(int $userId, string $token): bool
+    {
+        $id = $this->trustedDeviceId($userId, $token);
+        if ($id === null) {
+            return false;
+        }
+        $this->db->run('UPDATE user_trusted_devices SET last_used_at = ? WHERE id = ?', [$this->now(), $id]);
+        $this->audit->record('auth.trusted_login', 'Anmeldung auf vertrauenswürdigem Gerät (ohne Code)', 'user', $userId, [], $userId);
+        return true;
+    }
+
+    /** @return list<array<string,mixed>> */
+    public function trustedDevicesOf(int $userId): array
+    {
+        return $this->db->all('SELECT id, user_agent, created_at, expires_at, last_used_at FROM user_trusted_devices
+            WHERE user_id = ? AND revoked_at IS NULL AND expires_at > ? ORDER BY created_at DESC', [$userId, $this->now()]);
+    }
+
+    /** Widerruft ein Gerät (oder alle, wenn $deviceId null ist). */
+    public function revokeTrustedDevices(int $userId, ?int $deviceId = null): int
+    {
+        $sql = 'UPDATE user_trusted_devices SET revoked_at = ? WHERE user_id = ? AND revoked_at IS NULL';
+        $params = [$this->now(), $userId];
+        if ($deviceId !== null) {
+            $sql .= ' AND id = ?';
+            $params[] = $deviceId;
+        }
+        $n = $this->db->run($sql, $params);
+        if ($n > 0) {
+            $this->audit->record('auth.device_revoked', $n === 1 ? 'Vertrauenswürdiges Gerät widerrufen' : "$n vertrauenswürdige Geräte widerrufen", 'user', $userId);
+        }
+        return $n;
     }
 
     public function backupCodesLeft(int $userId): int
@@ -309,6 +382,7 @@ final class AuthService
         $this->db->run('UPDATE users SET totp_secret_enc = NULL, totp_enabled_at = NULL, totp_last_step = NULL WHERE id = ?', [$userId]);
         $this->db->run('DELETE FROM user_backup_codes WHERE user_id = ?', [$userId]);
         $this->revokeSessions($userId);
+        $this->revokeTrustedDevices($userId);
     }
 
     // ---- Einladungen und Passwort ----
@@ -422,6 +496,7 @@ final class AuthService
     {
         $this->db->run('UPDATE users SET password_hash = ?, password_changed_at = ? WHERE id = ?', [PasswordPolicy::hash($password), $this->now(), $userId]);
         $this->revokeSessions($userId, $keepSessionId);
+        $this->revokeTrustedDevices($userId);
         $this->audit->record('auth.password_changed', 'Passwort geändert', 'user', $userId);
     }
 
