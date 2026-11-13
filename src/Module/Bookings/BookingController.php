@@ -81,6 +81,21 @@ final class BookingController
         if ($req->input('website') !== '' || time() - (int) $req->input('_t') < 4) {
             return $this->form($req, $slug, $id, ['form_error' => 'Bitte prüfen Sie Ihre Angaben und senden Sie das Formular erneut.', 'values' => $req->post], 422);
         }
+        $step = $req->input('step');
+        if ($step === 'edit') {
+            // Zurück zur Bearbeitung: Eingaben bleiben erhalten
+            return $this->form($req, $slug, $id, ['values' => $req->post, 'chosen_fees' => array_map('intval', $req->inputList('fees'))]);
+        }
+        if ($step !== 'confirm') {
+            $rule = $this->app->bookings()->rule($exam, $session);
+            $custom = (new BookingForm($this->app->db))->customFields((int) $exam['id']);
+            [$participant, $extra, $errors] = BookingForm::validate($req->post, BookingForm::requiredStandard($rule), $custom);
+            $chosen = array_map('intval', $req->inputList('fees'));
+            if ($errors !== []) {
+                return $this->form($req, $slug, $id, ['errors' => $errors, 'values' => $req->post, 'chosen_fees' => $chosen], 422);
+            }
+            return $this->review($req, $exam, $session, $participant, $extra, $chosen);
+        }
         if (!$this->limiter->hit('booking', $req->ip(), 10, 3600)) {
             return $this->form($req, $slug, $id, ['form_error' => 'Zu viele Anmeldeversuche in kurzer Zeit. Bitte versuchen Sie es später erneut oder rufen Sie uns an.', 'values' => $req->post], 429);
         }
@@ -110,6 +125,52 @@ final class BookingController
             return self::noStore(Response::redirect($this->app->bookings()->statusUrl($res['ref'], $res['key']), 303));
         }
         return self::noStore(Response::redirect($url, 303));
+    }
+
+    /**
+     * Zwischenschritt: eingegebene Daten zur Prüfung anzeigen. Erst die Bestätigung
+     * (step=confirm) legt die Reservierung an und leitet zu PayPal weiter.
+     * @param array<string,mixed> $exam @param array<string,mixed> $session
+     * @param array<string,mixed> $p @param array<string,array{label:string,value:mixed}> $extra @param list<int> $chosen
+     */
+    private function review(Request $req, array $exam, array $session, array $p, array $extra, array $chosen): Response
+    {
+        $rows = [];
+        $name = trim(($p['salutation'] ?? '') . ' ' . $p['first_name'] . ' ' . $p['last_name']);
+        $rows[] = ['label' => 'Name', 'value' => $name];
+        if ($p['birth_date']) {
+            $rows[] = ['label' => BookingForm::STANDARD['birth_date']['label'], 'value' => (new \DateTimeImmutable($p['birth_date']))->format('d.m.Y')];
+        }
+        if ($p['birth_place']) {
+            $rows[] = ['label' => BookingForm::STANDARD['birth_place']['label'], 'value' => $p['birth_place']];
+        }
+        $rows[] = ['label' => 'E-Mail-Adresse', 'value' => $p['email']];
+        if ($p['phone']) {
+            $rows[] = ['label' => 'Telefon', 'value' => $p['phone']];
+        }
+        if ($p['street']) {
+            $rows[] = ['label' => 'Anschrift', 'value' => $p['street'] . ', ' . $p['postal_code'] . ' ' . $p['city']];
+        }
+        foreach ($extra as $x) {
+            $v = $x['value'] === true ? 'Ja' : ($x['value'] === false ? 'Nein' : (string) $x['value']);
+            if ($v !== '') {
+                $rows[] = ['label' => $x['label'], 'value' => $v];
+            }
+        }
+        $fees = array_values(array_filter($exam['fees'], fn($f) => (int) $f['is_mandatory'] === 0 && in_array((int) $f['id'], $chosen, true)));
+        $total = ($session['price']['total_cents'] ?? null) === null ? null
+            : (int) $session['price']['total_cents'] + array_sum(array_map(fn($f) => (int) $f['amount_cents'], $fees));
+        $hidden = [];
+        foreach ($req->post as $k => $v) {
+            if (is_string($v) && !in_array($k, ['_csrf', 'step'], true)) {
+                $hidden[$k] = $v;
+            }
+        }
+        return self::noStore(Response::html($this->app->view->render('public/booking_review.twig', [
+            'exam' => $exam, 'session' => $session, 'rows' => $rows, 'fees' => $fees, 'total_cents' => $total,
+            'hidden' => $hidden, 'chosen_fees' => $chosen, 'csrf' => Csrf::token(),
+            'rule' => $this->app->bookings()->rule($exam, $session),
+        ])));
     }
 
     public function status(Request $req, string $ref): Response
