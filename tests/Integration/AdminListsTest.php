@@ -113,4 +113,18 @@ final class AdminListsTest extends IntegrationTestCase
             'facts_sections' => 'Nur Titel', 'facts_cards' => '9 | A | B'];
         self::assertSame(422, $this->adminPost('/verwaltung/leistungen/' . $id . '/', $post)->status);
     }
+
+    public function testReferenceRestoreOnlyFillsServicesWithoutSections(): void
+    {
+        $db = self::db();
+        $lost = (int) $db->value("SELECT id FROM services WHERE slug = 'bildungszentrum' AND parent_id IS NULL");
+        $kept = (int) $db->value("SELECT id FROM services WHERE slug = 'recruiting' AND parent_id IS NULL");
+        $db->run("UPDATE services SET facts_json = '{\"slogan\":\"Alt\"}' WHERE id = ?", [$lost]);
+        $db->run("UPDATE services SET facts_json = JSON_SET(facts_json, '$.sections[0].title', 'Eigene Änderung') WHERE id = ?", [$kept]);
+        (new \Mea\Install\ReferenceStructure($db))->content(true);
+        $a = (array) json_decode((string) $db->value('SELECT facts_json FROM services WHERE id = ?', [$lost]), true);
+        self::assertNotEmpty($a['sections'], 'verlorene Abschnitte kommen zurück');
+        $b = (array) json_decode((string) $db->value('SELECT facts_json FROM services WHERE id = ?', [$kept]), true);
+        self::assertSame('Eigene Änderung', $b['sections'][0]['title'], 'Änderungen der Redaktion bleiben');
+    }
 }
