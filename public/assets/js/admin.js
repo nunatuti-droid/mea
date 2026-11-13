@@ -175,11 +175,79 @@
     inp.addEventListener('input', upd); upd();
   });
 
-  // Bildvorschau bei Medienauswahl
+  // Medienauswahl mit Bildvorschau je Eintrag (das <select> bleibt als Formularfeld erhalten)
+  const openPickers = new Set();
+  const closeAllPickers = except => openPickers.forEach(c => { if (c !== except) c(); });
   $$('[data-media-pick]').forEach(w => {
     const sel = $('select', w), img = $('img', w);
-    const upd = () => { const t = sel.selectedOptions[0]?.dataset.thumb; img.hidden = !t; if (t) img.src = t; };
-    sel.addEventListener('change', upd); upd();
+    const opts = [...sel.options];
+    const mk = (tag, cls) => { const e = document.createElement(tag); e.className = cls; return e; };
+    const txt = o => Object.assign(mk('span', 'media-pick__txt'), { textContent: o.textContent.trim() });
+    const thumbEl = (o, lazy) => {
+      const t = o.dataset.thumb;
+      if (!t) { const ph = mk('span', 'media-pick__ph'); ph.textContent = o.value ? '?' : '–'; return ph; }
+      const i = mk('img', 'media-pick__opt-img'); i.alt = ''; i.width = 64; i.height = 48; i.decoding = 'async';
+      if (lazy) i.loading = 'lazy';
+      i.src = t; return i;
+    };
+
+    sel.classList.add('visually-hidden'); sel.tabIndex = -1; sel.setAttribute('aria-hidden', 'true');
+    if (img) img.remove();
+    const btn = mk('button', 'media-pick__btn'); btn.type = 'button';
+    btn.setAttribute('aria-haspopup', 'listbox'); btn.setAttribute('aria-expanded', 'false');
+    btn.id = sel.id + '-btn';
+    const lab = document.querySelector('label[for="' + sel.id + '"]');
+    if (lab) { if (!lab.id) lab.id = sel.id + '-label'; btn.setAttribute('aria-labelledby', lab.id + ' ' + btn.id); }
+    const cur = mk('span', 'media-pick__cur'); btn.append(cur);
+    const list = mk('ul', 'media-pick__list'); list.setAttribute('role', 'listbox'); list.hidden = true;
+    list.id = sel.id + '-list'; btn.setAttribute('aria-controls', list.id);
+    w.append(btn, list);
+
+    const showCurrent = () => {
+      const o = sel.selectedOptions[0] || opts[0];
+      cur.replaceChildren(thumbEl(o, false), txt(o));
+    };
+    let built = false, active = -1;
+    const items = [];
+    const build = () => {   // Einträge (und damit die Bilder) erst beim ersten Öffnen anlegen
+      if (built) return; built = true;
+      opts.forEach((o, i) => {
+        const li = mk('li', 'media-pick__opt'); li.setAttribute('role', 'option'); li.id = list.id + '-' + i;
+        li.append(thumbEl(o, true), txt(o));
+        li.addEventListener('mousedown', e => e.preventDefault());
+        li.addEventListener('click', () => { choose(i); close(true); });
+        list.append(li); items.push(li);
+      });
+    };
+    const mark = i => {
+      active = i;
+      items.forEach((li, k) => { li.classList.toggle('is-active', k === i); li.setAttribute('aria-selected', String(k === sel.selectedIndex)); });
+      if (items[i]) { btn.setAttribute('aria-activedescendant', items[i].id); items[i].scrollIntoView({ block: 'nearest' }); }
+    };
+    const choose = i => { sel.selectedIndex = i; showCurrent(); sel.dispatchEvent(new Event('change', { bubbles: true })); };
+    const isOpen = () => !list.hidden;
+    function close(focus) {
+      list.hidden = true; btn.setAttribute('aria-expanded', 'false'); btn.removeAttribute('aria-activedescendant'); openPickers.delete(close);
+      if (focus) btn.focus();
+    }
+    const open = () => {
+      closeAllPickers(close); build(); list.hidden = false; btn.setAttribute('aria-expanded', 'true'); openPickers.add(close);
+      mark(Math.max(0, sel.selectedIndex));
+    };
+    btn.addEventListener('click', () => (isOpen() ? close() : open()));
+    btn.addEventListener('keydown', e => {
+      if (!isOpen()) { if (['ArrowDown', 'ArrowUp', 'Enter', ' '].includes(e.key)) { e.preventDefault(); open(); } return; }
+      if (e.key === 'ArrowDown') { e.preventDefault(); mark(Math.min(opts.length - 1, active + 1)); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); mark(Math.max(0, active - 1)); }
+      else if (e.key === 'Home') { e.preventDefault(); mark(0); }
+      else if (e.key === 'End') { e.preventDefault(); mark(opts.length - 1); }
+      else if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); choose(active); close(true); }
+      else if (e.key === 'Escape') { e.preventDefault(); close(true); }
+      else if (e.key === 'Tab') close();
+    });
+    document.addEventListener('click', e => { if (isOpen() && !w.contains(e.target)) close(); });
+    sel.addEventListener('change', showCurrent);
+    showCurrent();
   });
 
   // Rich-Text-Editor
