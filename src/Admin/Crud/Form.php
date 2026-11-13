@@ -92,8 +92,12 @@ final class Form
                     $values[$name] = preg_match('/^\d+$/', $in) ? (int) $in : null;
                     break;
                 case 'slug':
-                    if (!preg_match('/^[a-z0-9]+(?:-[a-z0-9]+)*$/', $in) || strlen($in) > 120) {
-                        $errors[$name] = "„{$label}“ darf nur Kleinbuchstaben, Ziffern und Bindestriche enthalten.";
+                    $seg = '[a-z0-9]+(?:-[a-z0-9]+)*';
+                    $re = ($f['nested'] ?? false) ? '#^' . $seg . '(?:/' . $seg . ')?$#' : '#^' . $seg . '$#';
+                    if (!preg_match($re, $in) || strlen($in) > 120) {
+                        $errors[$name] = ($f['nested'] ?? false)
+                            ? "„{$label}“ darf nur Kleinbuchstaben, Ziffern und Bindestriche enthalten, optional mit einem / für Unterseiten (z. B. bereich/unterseite)."
+                            : "„{$label}“ darf nur Kleinbuchstaben, Ziffern und Bindestriche enthalten.";
                     }
                     $values[$name] = $in;
                     break;

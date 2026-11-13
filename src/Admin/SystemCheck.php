@@ -62,7 +62,15 @@ final class SystemCheck
         $stuck = (int) $this->app->db->value("SELECT COUNT(*) FROM email_outbox WHERE status = 'queued' AND next_attempt_at < UTC_TIMESTAMP() - INTERVAL 30 MINUTE");
         $add('E-Mail', 'Warteschlange', $stuck > 0 ? 'warn' : 'ok', $stuck > 0 ? "$stuck Nachrichten warten länger als 30 Minuten – läuft der Cronjob?" : 'in Ordnung');
 
-        $pp = $this->app->paymentGateway();
+        $st = $this->app->gateways()->get('stripe');
+        if ($st !== null) {
+            $add('Zahlung', 'Stripe', $st->isConfigured() ? 'ok' : 'warn', $st->isConfigured() ? 'eingerichtet (' . $st->mode() . ')' : 'STRIPE_SECRET_KEY fehlt – Stripe wird nicht angeboten');
+            if ($st->isConfigured()) {
+                $add('Zahlung', 'Stripe-Webhook', $c->get('STRIPE_WEBHOOK_SECRET') ? 'ok' : 'warn', $c->get('STRIPE_WEBHOOK_SECRET') ? 'Webhook-Geheimnis hinterlegt' : 'STRIPE_WEBHOOK_SECRET fehlt – Zahlungen werden nur über die Rückleitung bestätigt, SEPA-Lastschriften nicht');
+                $add('Zahlung', 'Stripe-Modus', $env === 'production' && $st->mode() !== 'live' ? 'warn' : 'ok', $st->mode() === 'live' ? 'Live' : 'Test (Testgeld)');
+            }
+        }
+        $pp = $this->app->gateways()->get('paypal') ?? $this->app->paymentGateway();
         $add('Zahlung', 'PayPal', $pp->isConfigured() ? 'ok' : 'warn', $pp->isConfigured() ? 'eingerichtet (' . $pp->mode() . ')' : 'Zugangsdaten fehlen – Online-Buchung ist gesperrt');
         if ($pp->isConfigured()) {
             $add('Zahlung', 'PayPal-Webhook', $c->get('PAYPAL_WEBHOOK_ID') ? 'ok' : 'warn', $c->get('PAYPAL_WEBHOOK_ID') ? 'Webhook-ID hinterlegt' : 'PAYPAL_WEBHOOK_ID fehlt – Zahlungen werden nur über die Rückleitung bestätigt');

@@ -163,7 +163,16 @@ final class PageRenderer
         switch ($type) {
             case 'services_grid':
                 $s = $this->memo['services'] ??= $this->content->topServices();
+                if (($f['exclude'] ?? '') !== '') {
+                    $s = array_values(array_filter($s, fn($x) => $x['slug'] !== $f['exclude']));
+                }
                 return ['services' => $f['limit'] > 0 ? array_slice($s, 0, $f['limit']) : $s];
+            case 'subpage_cards':
+                $parent = $this->content->publishedService((string) $f['parent']);
+                $kids = $parent === null ? [] : $this->content->childServices((int) $parent['id']);
+                $kids = array_values(array_filter($kids, fn($c) => ($f['exclude'] ?? '') !== $c['slug']
+                    && ($f['kind'] === 'all' || (!empty($c['facts']['info'])) === ($f['kind'] === 'info'))));
+                return ['children' => $kids];
             case 'exam_cards':
                 return ['exams' => array_slice($this->memo['exams'] ??= $this->exams->listed(), 0, $f['limit'])];
             case 'price_table':

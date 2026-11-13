@@ -1,4 +1,5 @@
 <article class="card location-card reveal">
+  {% if linked and l.image_media_id %}<div class="card__media location-card__photo">{{ img(l.image_media_id, '(max-width: 700px) 100vw, 380px', {alt: ''}) }}</div>{% endif %}
   <div class="btn-row align-center"><span class="card__icon">{{ icon('map-pin') }}</span>{% if l.is_headquarters %}<span class="pill pill--available">Zentrale</span>{% endif %}</div>
   <h2 class="h3">{% if linked %}<a href="/standorte/{{ l.slug }}/">{{ l.name }}</a>{% else %}{{ l.name }}{% endif %}</h2>
   <address>{{ site.company.legal_name }}<br>{{ l.street }}{% if l.address_extra %}, {{ l.address_extra }}{% endif %}<br>{{ l.postal_code }} {{ l.city }}</address>

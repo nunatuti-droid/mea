@@ -24,7 +24,7 @@ final class AdminModule
             new ExamAdminController($app), new SessionAdminController($app), new MediaController($app),
             new SettingsController($app), new DesignController($app), new BookingAdminController($app), new UserController($app),
             new EmailLogController($app), new AuditController($app), new ConsentAdminController($app), new SystemController($app),
-            new SiteStatusController($app), new ReviewAdminController($app), new GoogleReviewAdminController($app), new ApplicationAdminController($app), new SecurityController($app), new BackupController($app), new UpdateController($app),
+            new SiteStatusController($app), new ReviewAdminController($app), new GoogleReviewAdminController($app), new RedirectAdminController($app), new ServicePageController($app), new ApplicationAdminController($app), new SecurityController($app), new BackupController($app), new UpdateController($app),
         ] as $controller) {
             $controller->register($k);
         }

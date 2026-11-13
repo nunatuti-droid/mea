@@ -1,0 +1,9 @@
+{% import 'partials/macros.twig' as ui %}
+{% if d.children|length >= f.min or ctx.editing %}
+<section{{ battr(b, 'section' ~ (f.bg == 'alt' ? ' section--alt')) }}>
+  <div class="container">
+    <div class="section-head">{% if f.eyebrow %}<span class="eyebrow"{{ bedit('eyebrow') }}>{{ f.eyebrow }}</span>{% endif %}<h2{{ bedit('title') }}>{{ f.title }}</h2></div>
+    <div class="grid grid--3">{% for c in d.children %}{{ ui.service_card(c, '/' ~ f.parent ~ '/' ~ c.slug ~ '/', 'Mehr erfahren') }}{% endfor %}</div>
+  </div>
+</section>
+{% endif %}

@@ -69,7 +69,7 @@ final class EmailTemplateSeeder
                 'description' => 'Geht an Teilnehmende, wenn ein Betrag erstattet wurde.',
                 'subject' => 'Erstattung zu Ihrer Buchung {{ buchung.nummer }}',
                 'body' => '<p>Guten Tag {{ teilnehmer.name }},</p><p>zu Ihrer Buchung wurde eine Erstattung veranlasst.</p>' . $exam
-                    . '{% if hinweis %}<p>{{ hinweis|nl2br }}</p>{% endif %}<p>Die Gutschrift erfolgt über PayPal. Je nach Zahlungsart kann es einige Tage dauern, bis sie sichtbar ist.</p>' . $contact,
+                    . '{% if hinweis %}<p>{{ hinweis|nl2br }}</p>{% endif %}<p>Die Gutschrift erfolgt über den Zahlungsanbieter, mit dem Sie bezahlt haben. Je nach Zahlungsart kann es einige Tage dauern, bis sie sichtbar ist.</p>' . $contact,
                 'vars' => array_merge(self::BOOKING_VARS, ['hinweis']),
             ],
             'session_changed' => [

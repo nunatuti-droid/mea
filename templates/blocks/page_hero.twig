@@ -1,6 +1,7 @@
 {% import 'partials/macros.twig' as ui %}
 {%- set title = f.title ?: (ctx.page.title ?? '') -%}
 {%- set crumbs = f.parent_label ? [{label: f.parent_label, url: f.parent_url ?: null}, {label: f.crumb ?: title}] : [{label: f.crumb ?: title}] -%}
+{%- if f.root_label %}{% set crumbs = [{label: f.root_label, url: f.root_url ?: null}]|merge(crumbs) %}{% endif -%}
 {% set hero_actions %}{% if f.btn1_label and f.btn1_url %}<a class="btn" href="{{ f.btn1_url }}">{{ f.btn1_label }}{{ icon('arrow-right') }}</a>{% if f.btn2_label and f.btn2_url %}<a class="btn btn--ghost-light" href="{{ f.btn2_url }}">{{ f.btn2_label }}</a>{% endif %}{% endif %}{% endset %}
 {% set slogan = f.slogan ?: hero_slogan(ctx.page.slug ?? '') %}
 {% include 'partials/page_hero_image.twig' with {title: title, slogan: slogan, intro: f.intro, media_id: f.media, crumbs: f.crumbs ? crumbs : [], eyebrow: f.eyebrow, actions: hero_actions|trim, section_attr: battr(b, 'hero hero--page' ~ (f.media ? '' : ' hero--plain')), title_attr: bedit('title')} %}
