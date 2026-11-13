@@ -63,11 +63,23 @@ final class AdminKernel
     private function guard(Request $req, string $permission, callable $handler, array $vars): Response
     {
         Session::start($req->isSecure(), 'admin');
-        $resolved = $this->auth->resolveSession((string) Session::get('admin_token', ''));
+        $token = (string) Session::get('admin_token', '');
+        $fromCookie = false;
+        if ($token === '') {
+            // „Angemeldet bleiben“: Die PHP-Sitzung ist weg (Browser geschlossen), das Cookie trägt die Verwaltungssitzung weiter
+            $token = $req->cookie(self::rememberCookieName($req));
+            $fromCookie = $token !== '';
+        }
+        $resolved = $this->auth->resolveSession($token);
         if ($resolved === null) {
             Session::forget('admin_token');
             $next = $req->method === 'GET' ? '?weiter=' . rawurlencode($req->path) : '';
-            return self::noStore(Response::redirect('/verwaltung/anmelden/' . $next, 303));
+            $redirect = Response::redirect('/verwaltung/anmelden/' . $next, 303);
+            return self::noStore($req->cookie(self::rememberCookieName($req)) !== '' ? self::clearRememberCookie($redirect, $req) : $redirect);
+        }
+        if ($fromCookie) {
+            Session::regenerate();
+            Session::set('admin_token', $token);
         }
         $ctx = new AdminContext($resolved['user'], $resolved['session'], Csrf::token());
         $this->audit->setActor($ctx->id(), $req->ip());
@@ -90,6 +102,16 @@ final class AdminKernel
             }
             throw $e;
         }
+    }
+
+    public static function rememberCookieName(Request $req): string
+    {
+        return $req->isSecure() ? '__Host-mea-remember' : 'mea-remember';
+    }
+
+    public static function clearRememberCookie(Response $r, Request $req): Response
+    {
+        return $r->withCookie(self::rememberCookieName($req), '', ['expires' => time() - 86400, 'secure' => $req->isSecure(), 'samesite' => 'Strict']);
     }
 
     public static function noStore(Response $r): Response

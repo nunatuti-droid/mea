@@ -10,6 +10,7 @@
     <div class="field"><label for="email">E-Mail-Adresse</label><input id="email" type="email" name="email" value="{{ email }}" autocomplete="username" required autofocus></div>
     <div class="hp" aria-hidden="true"><label for="website">Website</label><input id="website" type="text" name="website" tabindex="-1" autocomplete="off"></div>
     <div class="field"><label for="password">Passwort</label><input id="password" type="password" name="password" autocomplete="current-password" required></div>
+    <div class="field"><label class="check"><input type="checkbox" name="remember" value="1"> <span>Angemeldet bleiben ({{ remember_days }} Tage)<small class="text-muted"> – nur auf Ihrem eigenen Gerät</small></span></label></div>
     <button class="btn btn--primary" type="submit">Weiter</button>
   </form>
   <p class="text-sm" class="mt"><a href="/verwaltung/passwort-vergessen/">Passwort vergessen?</a></p>
