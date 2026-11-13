@@ -290,4 +290,141 @@ final class AcceptanceTest extends IntegrationTestCase
         $sid = $this->createSessionViaAdmin($b1);
         self::assertSame('confirmed', $this->bookAndPay('telc-deutsch-b1', $sid)['status']);
     }
+
+    // ---------------------------------------------------------------- Stripe (neben PayPal)
+
+    private const STRIPE_KEY = 'sk_test_abcdefgh12345678';
+    private const STRIPE_HOOK = 'whsec_testsecret';
+
+    /** @param list<\GuzzleHttp\Psr7\Response> $responses @param list<array<string,mixed>> $history */
+    private function useStripe(array $responses, array &$history): \Mea\Module\Payments\StripeGateway
+    {
+        $stack = \GuzzleHttp\HandlerStack::create(new \GuzzleHttp\Handler\MockHandler($responses));
+        $stack->push(\GuzzleHttp\Middleware::history($history));
+        $gw = new \Mea\Module\Payments\StripeGateway(new \GuzzleHttp\Client(['handler' => $stack, 'http_errors' => true]), self::STRIPE_KEY, self::STRIPE_HOOK);
+        $this->app->useGateway($gw);
+        return $gw;
+    }
+
+    private static function json(array $data): \GuzzleHttp\Psr7\Response
+    {
+        return new \GuzzleHttp\Psr7\Response(200, ['Content-Type' => 'application/json'], json_encode($data));
+    }
+
+    private function stripeHook(array $event, ?string $secret = null): Response
+    {
+        $body = json_encode($event);
+        $t = time();
+        $sig = 't=' . $t . ',v1=' . hash_hmac('sha256', $t . '.' . $body, $secret ?? self::STRIPE_HOOK);
+        return $this->request('POST', '/zahlung/stripe/webhook/', [], ['_RAW_BODY' => $body, 'HTTP_STRIPE_SIGNATURE' => $sig]);
+    }
+
+    public function test20_StripeBookingPaymentWebhookAndRefund(): void
+    {
+        $id = $this->createExamViaAdmin();
+        $this->publish($id);
+        $slug = 'telc-deutsch-pflege-b1-b2';
+        $sid = $this->createSessionViaAdmin($id);
+        $hist = [];
+        $paidSession = fn(string $ref) => self::json([
+            'id' => 'cs_test_abc123', 'status' => 'complete', 'payment_status' => 'paid', 'amount_total' => 24900, 'currency' => 'eur',
+            'client_reference_id' => $ref, 'customer_details' => ['email' => 'payer@example.org'],
+            'payment_intent' => ['id' => 'pi_1', 'status' => 'succeeded', 'latest_charge' => ['id' => 'ch_test_1']],
+        ]);
+        $this->useStripe([self::json(['id' => 'cs_test_abc123', 'url' => 'https://checkout.stripe.com/c/pay/cs_test_abc123'])], $hist);
+
+        // Formular zeigt Stripe als Zahlungsweg
+        self::assertStringContainsString('Stripe', $this->get("/pruefungen/$slug/buchen/$sid/")->body);
+
+        // Buchung bestätigen: Weiterleitung zu Stripe, Betrag und Rücksprungadresse stimmen
+        $r = $this->request('POST', "/pruefungen/$slug/buchen/$sid/", $this->bookingData() + ['step' => 'confirm', 'provider' => 'stripe'], ['REMOTE_ADDR' => '198.51.100.21']);
+        self::assertSame(303, $r->status, substr($r->body, 0, 1000));
+        self::assertSame('https://checkout.stripe.com/c/pay/cs_test_abc123', $r->headers['Location']);
+        parse_str((string) $hist[0]['request']->getBody(), $form);
+        self::assertSame('24900', $form['line_items'][0]['price_data']['unit_amount']);
+        self::assertSame('eur', $form['line_items'][0]['price_data']['currency']);
+        self::assertStringContainsString('{CHECKOUT_SESSION_ID}', $form['success_url']);
+        self::assertSame('Basic ' . base64_encode(self::STRIPE_KEY . ':'), $hist[0]['request']->getHeaderLine('Authorization'));
+        $p = self::db()->one("SELECT * FROM payments WHERE provider = 'stripe'");
+        self::assertSame('sandbox', $p['mode']);
+        $b = self::db()->one('SELECT * FROM bookings WHERE id = ?', [$p['booking_id']]);
+        self::assertSame('pending_payment', $b['status']);
+
+        // Rückkehr von Stripe: Zahlung wird serverseitig nachgelesen und bestätigt
+        $this->useStripe([$paidSession($b['public_ref'])], $hist);
+        $back = (string) preg_replace('#^https?://[^/]+#', '', str_replace('{CHECKOUT_SESSION_ID}', 'cs_test_abc123', $form['success_url']));
+        self::assertSame(303, $this->get($back)->status);
+        $b = self::db()->one('SELECT * FROM bookings WHERE id = ?', [$b['id']]);
+        self::assertSame('confirmed', $b['status']);
+        self::assertSame('paid', $b['payment_status']);
+        $p = self::db()->one('SELECT * FROM payments WHERE id = ?', [$p['id']]);
+        self::assertSame('captured', $p['status']);
+        self::assertSame('ch_test_1', $p['provider_capture_id']);
+
+        // Webhook: falsche Signatur wird abgelehnt, richtige ist idempotent
+        $done = ['id' => 'evt_1', 'type' => 'checkout.session.completed', 'data' => ['object' => ['id' => 'cs_test_abc123']]];
+        self::assertSame(400, $this->stripeHook($done, 'whsec_falsch')->status);
+        self::assertSame(200, $this->stripeHook($done)->status);
+        self::assertStringContainsString('duplicate', $this->stripeHook($done)->body);
+        self::assertSame(1, (int) self::db()->value("SELECT COUNT(*) FROM email_outbox WHERE template_key = 'booking_confirmation' AND related_id = ?", [$b['id']]));
+
+        // Erstattung im Stripe-Dashboard wird übernommen
+        self::assertSame(200, $this->stripeHook(['id' => 'evt_2', 'type' => 'charge.refunded', 'data' => ['object' => ['id' => 'ch_test_1', 'amount_refunded' => 10000]]])->status);
+        $p = self::db()->one('SELECT * FROM payments WHERE id = ?', [$p['id']]);
+        self::assertSame(10000, (int) $p['refunded_cents']);
+        self::assertSame('partially_refunded', $p['status']);
+
+        // Erstattung aus der Verwaltung läuft über Stripe (Charge) und wird nicht doppelt gezählt
+        $hist = [];
+        $this->useStripe([self::json(['id' => 're_1', 'status' => 'succeeded'])], $hist);
+        self::assertSame(5000, $this->app->bookings()->refund((int) $b['id'], 5000, 'Test', null));
+        parse_str((string) $hist[0]['request']->getBody(), $rf);
+        self::assertSame('ch_test_1', $rf['charge']);
+        self::assertSame('5000', $rf['amount']);
+        self::assertSame(200, $this->stripeHook(['id' => 'evt_3', 'type' => 'charge.refunded', 'data' => ['object' => ['id' => 'ch_test_1', 'amount_refunded' => 15000]]])->status);
+        self::assertSame(15000, (int) self::db()->value('SELECT refunded_cents FROM payments WHERE id = ?', [$p['id']]));
+    }
+
+    public function test21_StripeSepaPaymentStaysPendingUntilWebhook(): void
+    {
+        $id = $this->createExamViaAdmin();
+        $this->publish($id);
+        $slug = 'telc-deutsch-pflege-b1-b2';
+        $sid = $this->createSessionViaAdmin($id);
+        $hist = [];
+        $this->useStripe([self::json(['id' => 'cs_test_sepa1', 'url' => 'https://checkout.stripe.com/c/pay/cs_test_sepa1'])], $hist);
+        $r = $this->request('POST', "/pruefungen/$slug/buchen/$sid/", $this->bookingData('sepa@example.org') + ['step' => 'confirm'], ['REMOTE_ADDR' => '198.51.100.22']);
+        self::assertSame(303, $r->status);
+        $p = self::db()->one("SELECT * FROM payments WHERE provider_order_id = 'cs_test_sepa1'");
+        self::assertNotNull($p, 'ohne Auswahl gilt der eingerichtete Anbieter');
+        $ref = (string) self::db()->value('SELECT public_ref FROM bookings WHERE id = ?', [$p['booking_id']]);
+        $sess = fn(string $pay, array $pi) => self::json(['id' => 'cs_test_sepa1', 'status' => 'complete', 'payment_status' => $pay, 'amount_total' => 24900, 'currency' => 'eur',
+            'client_reference_id' => $ref, 'payment_intent' => $pi]);
+
+        // SEPA: Sitzung abgeschlossen, Geld noch unterwegs -> weiter „in Prüfung“
+        $this->useStripe([$sess('unpaid', ['status' => 'processing', 'latest_charge' => null])], $hist);
+        self::assertSame('pending', $this->app->bookings()->completeReturn($ref, 'cs_test_sepa1'));
+        self::assertSame('pending_payment', self::db()->value('SELECT status FROM bookings WHERE id = ?', [$p['booking_id']]));
+
+        // später meldet Stripe den Zahlungseingang per Webhook
+        $this->useStripe([$sess('paid', ['status' => 'succeeded', 'latest_charge' => ['id' => 'ch_sepa_1']])], $hist);
+        self::assertSame(200, $this->stripeHook(['id' => 'evt_s1', 'type' => 'checkout.session.async_payment_succeeded', 'data' => ['object' => ['id' => 'cs_test_sepa1']]])->status);
+        self::assertSame('confirmed', self::db()->value('SELECT status FROM bookings WHERE id = ?', [$p['booking_id']]));
+    }
+
+    public function test22_StripeWebhookSignatureAndMode(): void
+    {
+        $gw = new \Mea\Module\Payments\StripeGateway(new \GuzzleHttp\Client(), self::STRIPE_KEY, self::STRIPE_HOOK);
+        $t = 1_700_000_000;
+        $body = '{"id":"evt_x"}';
+        $sig = 't=' . $t . ',v1=' . hash_hmac('sha256', $t . '.' . $body, self::STRIPE_HOOK);
+        self::assertTrue($gw->verifyWebhook(['stripe-signature' => $sig], $body, $t + 10));
+        self::assertFalse($gw->verifyWebhook(['stripe-signature' => $sig], $body, $t + 4000), 'zu alt');
+        self::assertFalse($gw->verifyWebhook(['stripe-signature' => $sig], $body . ' ', $t + 10), 'verändert');
+        self::assertFalse($gw->verifyWebhook([], $body, $t));
+        self::assertFalse((new \Mea\Module\Payments\StripeGateway(new \GuzzleHttp\Client(), self::STRIPE_KEY, ''))->verifyWebhook(['stripe-signature' => $sig], $body, $t));
+        self::assertFalse((new \Mea\Module\Payments\StripeGateway(new \GuzzleHttp\Client(), '', ''))->isConfigured());
+        self::assertSame('sandbox', $gw->mode());
+        self::assertSame('live', (new \Mea\Module\Payments\StripeGateway(new \GuzzleHttp\Client(), 'sk_live_abcdefgh12345678', ''))->mode());
+    }
 }

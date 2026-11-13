@@ -63,9 +63,10 @@ final class PrivacyPolicy
             . '<p>Rechtsgrundlage ist die Erfüllung des Vertrags (Art. 6 Abs. 1 lit. b DSGVO) und unsere gesetzlichen Aufbewahrungspflichten (Art. 6 Abs. 1 lit. c DSGVO).</p>'
             . '<p>Speicherdauer: Abgebrochene oder nicht bezahlte Anmeldungen werden nach 30 Tagen anonymisiert. Angaben zu bezahlten Anmeldungen bewahren wir für die Dauer der handels- und steuerrechtlichen Aufbewahrungsfristen auf (bis zu zehn Jahre ab Ende des Prüfungsjahres) und anonymisieren sie danach.</p>'
 
-            . '<h2 id="zahlung">8. Zahlung mit PayPal</h2>'
+            . '<h2 id="zahlung">8. Zahlung mit PayPal und Stripe</h2>'
             . '<p>Für die Zahlung der Prüfungsgebühr leiten wir Sie zu PayPal weiter. Anbieter ist die PayPal (Europe) S.à r.l. et Cie, S.C.A., 22-24 Boulevard Royal, L-2449 Luxemburg. PayPal verarbeitet Ihre Zahlungsdaten in eigener Verantwortung. Wir erhalten von PayPal nur die Angaben, die wir für die Zuordnung der Zahlung brauchen, zum Beispiel Transaktionsnummer, Betrag und Zahlungsstatus.</p>'
             . '<p>Rechtsgrundlage ist die Erfüllung des Vertrags (Art. 6 Abs. 1 lit. b DSGVO). Weitere Informationen finden Sie in der <a href="https://www.paypal.com/de/legalhub/privacy-full">Datenschutzerklärung von PayPal</a>.</p>'
+            . '<p>Alternativ können Sie mit Karte, SEPA-Lastschrift oder weiteren Zahlarten über Stripe bezahlen. Anbieter ist die Stripe Payments Europe, Ltd., 1 Grand Canal Street Lower, Grand Canal Dock, Dublin, D02 H210, Irland. Stripe verarbeitet Ihre Zahlungsdaten in eigener Verantwortung; Karten- und Kontodaten erhalten wir nicht. Wir erhalten nur Transaktionsnummer, Betrag und Zahlungsstatus. Rechtsgrundlage ist die Erfüllung des Vertrags (Art. 6 Abs. 1 lit. b DSGVO). Weitere Informationen finden Sie in der <a href="https://stripe.com/de/privacy">Datenschutzerklärung von Stripe</a>.</p>'
 
             . '<h2 id="e-mails">9. E-Mails zu Ihrer Anmeldung</h2>'
             . '<p>Wir senden Ihnen E-Mails zu Ihrer Anfrage oder Anmeldung, zum Beispiel eine Bestätigung und eine Erinnerung vor dem Prüfungstermin. Die E-Mails werden über den Mailserver unseres Hosters versendet. Eine Kopie des Versandprotokolls wird nach 180 Tagen gelöscht.</p>'

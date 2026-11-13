@@ -9,6 +9,7 @@ use Mea\Module\Audit\AuditLog;
 use Mea\Module\Exams\PriceCalculator;
 use Mea\Module\Mail\Mailer;
 use Mea\Module\Payments\PaymentException;
+use Mea\Module\Payments\GatewayRegistry;
 use Mea\Module\Payments\PaymentGateway;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
@@ -26,7 +27,7 @@ final class BookingService
     public function __construct(
         private Database $db,
         private PriceCalculator $prices,
-        private PaymentGateway $gateway,
+        private GatewayRegistry $gateways,
         private Mailer $mailer,
         private AuditLog $audit,
         private Crypto $crypto,
@@ -40,9 +41,15 @@ final class BookingService
         return $this->clock->now()->format('Y-m-d H:i:s');
     }
 
+    /** Vorgabe-Anbieter. */
     public function gateway(): PaymentGateway
     {
-        return $this->gateway;
+        return $this->gateways->default();
+    }
+
+    public function gateways(): GatewayRegistry
+    {
+        return $this->gateways;
     }
 
     // ------------------------------------------------------------------
@@ -270,10 +277,10 @@ final class BookingService
     // ------------------------------------------------------------------
 
     /**
-     * Zahlungsvorgang anlegen und den Link zu PayPal liefern.
+     * Zahlungsvorgang anlegen und den Link zum gewählten Zahlungsanbieter liefern (ohne Angabe: Vorgabe-Anbieter).
      * Kostenlose Buchungen werden ohne Zahlung bestätigt (Rückgabe null).
      */
-    public function startPayment(int $bookingId, string $key): ?string
+    public function startPayment(int $bookingId, string $key, ?string $provider = null): ?string
     {
         $b = $this->db->one('SELECT * FROM bookings WHERE id = ?', [$bookingId]);
         if ($b === null || !in_array($b['status'], ['reserved', 'pending_payment'], true)) {
@@ -283,7 +290,8 @@ final class BookingService
             $this->confirm($bookingId, null, 'free');
             return null;
         }
-        if (!$this->gateway->isConfigured()) {
+        $gw = $provider === null || $provider === '' ? $this->gateways->default() : $this->gateways->get($provider);
+        if ($gw === null || !$gw->isConfigured()) {
             throw new BookingException('Die Online-Zahlung ist derzeit nicht verfügbar. Bitte melden Sie sich telefonisch oder per Nachricht an.', [], 'no_gateway');
         }
         $existing = $this->db->one("SELECT * FROM payments WHERE booking_id = ? AND status IN ('created','approved') ORDER BY id DESC LIMIT 1", [$bookingId]);
@@ -292,22 +300,22 @@ final class BookingService
         $return = rtrim($this->baseUrl, '/') . '/buchung/' . rawurlencode($ref) . '/zahlung/?k=' . rawurlencode($key);
         $cancel = rtrim($this->baseUrl, '/') . '/buchung/' . rawurlencode($ref) . '/abbruch/?k=' . rawurlencode($key);
         try {
-            $order = $this->gateway->createOrder(
+            $order = $gw->createOrder(
                 (int) $b['total_cents'], (string) $b['currency'], $ref,
                 'Prüfungsgebühr ' . ($snapshot['exam']['public_name'] ?? '') . ' ' . $ref,
-                $return, $cancel, 'order-' . $ref . '-' . ($existing ? $existing['id'] : '0'),
+                $return, $cancel, 'order-' . $ref . '-' . ($existing ? $existing['id'] : '0') . ($gw->name() === 'paypal' ? '' : '-' . $gw->name()),
             );
         } catch (PaymentException $e) {
-            $this->log->error('PayPal createOrder', ['ref' => $ref, 'error' => $e->getMessage()]);
-            throw new BookingException('Die Verbindung zu PayPal ist fehlgeschlagen. Bitte versuchen Sie es in einigen Minuten erneut.', [], 'gateway_error');
+            $this->log->error($gw->name() . ' createOrder', ['ref' => $ref, 'error' => $e->getMessage()]);
+            throw new BookingException('Die Verbindung zu ' . GatewayRegistry::label($gw->name()) . ' ist fehlgeschlagen. Bitte versuchen Sie es in einigen Minuten erneut.', [], 'gateway_error');
         }
-        $this->db->transaction(function () use ($b, $order, $bookingId): void {
+        $this->db->transaction(function () use ($b, $order, $bookingId, $gw): void {
             $this->db->run(
                 'INSERT INTO payments (booking_id, provider, mode, provider_order_id, amount_cents, currency, status)
                  VALUES (?, ?, ?, ?, ?, ?, \'created\') ON DUPLICATE KEY UPDATE updated_at = updated_at',
-                [$bookingId, $this->gateway->name(), $this->gateway->mode(), $order['order_id'], $b['total_cents'], $b['currency']],
+                [$bookingId, $gw->name(), $gw->mode(), $order['order_id'], $b['total_cents'], $b['currency']],
             );
-            // Zeit für die Zahlung bei PayPal; der Platz bleibt so lange reserviert
+            // Zeit für die Zahlung beim Anbieter; der Platz bleibt so lange reserviert
             $minutes = 30;
             $until = $this->clock->now()->modify("+$minutes minutes")->format('Y-m-d H:i:s');
             $this->db->run(
@@ -319,7 +327,7 @@ final class BookingService
     }
 
     /**
-     * Rückkehr von PayPal: Zahlung serverseitig einziehen und prüfen.
+     * Rückkehr vom Zahlungsanbieter: Zahlung serverseitig einziehen und prüfen.
      * @return 'confirmed'|'pending'|'failed'|'refunded_full'
      */
     public function completeReturn(string $ref, string $orderId): string
@@ -338,10 +346,14 @@ final class BookingService
             $b = $this->db->one('SELECT status FROM bookings WHERE id = ?', [$p['booking_id']]);
             return ($b['status'] ?? '') === 'confirmed' ? 'confirmed' : 'refunded_full';
         }
+        $gw = $this->gateways->get((string) $p['provider']);
+        if ($gw === null) {
+            return 'failed';
+        }
         try {
-            $cap = $this->gateway->captureOrder((string) $p['provider_order_id'], 'capture-' . $p['provider_order_id']);
+            $cap = $gw->captureOrder((string) $p['provider_order_id'], 'capture-' . $p['provider_order_id']);
         } catch (PaymentException $e) {
-            $this->log->warning('PayPal capture', ['payment' => $p['id'], 'error' => $e->getMessage()]);
+            $this->log->warning($gw->name() . ' capture', ['payment' => $p['id'], 'error' => $e->getMessage()]);
             $this->db->run("UPDATE payments SET last_error = ? WHERE id = ?", [mb_substr($e->getMessage(), 0, 255), $p['id']]);
             return 'failed';
         }
@@ -427,7 +439,7 @@ final class BookingService
         $this->sendConfirmation($bookingId);
     }
 
-    /** Abbruch bei PayPal durch die Kundin oder den Kunden: Platz freigeben. */
+    /** Abbruch beim Zahlungsanbieter durch die Kundin oder den Kunden: Platz freigeben. */
     public function cancelUnpaid(int $bookingId, string $reason): void
     {
         $n = $this->db->run(
@@ -449,21 +461,26 @@ final class BookingService
      * @param array<string,string> $headers kleingeschriebene Header
      * @return array{status:int, result:string}
      */
-    public function handleWebhook(array $headers, string $raw): array
+    public function handleWebhook(array $headers, string $raw, string $provider = 'paypal'): array
     {
+        $gw = $this->gateways->get($provider);
         $event = json_decode($raw, true);
-        if (!is_array($event) || !isset($event['id'], $event['event_type'])) {
+        if ($gw === null || !is_array($event) || !isset($event['id'])) {
             return ['status' => 400, 'result' => 'invalid'];
         }
-        if (!$this->gateway->verifyWebhook($headers, $raw)) {
-            $this->log->warning('PayPal-Webhook mit ungültiger Signatur', ['event' => mb_substr((string) $event['id'], 0, 100)]);
+        // Stripe: {id, type, data:{object}}; PayPal: {id, event_type, resource}
+        $type = (string) ($provider === 'stripe' ? ($event['type'] ?? '') : ($event['event_type'] ?? ''));
+        $resource = (array) ($provider === 'stripe' ? ($event['data']['object'] ?? []) : ($event['resource'] ?? []));
+        if ($type === '') {
+            return ['status' => 400, 'result' => 'invalid'];
+        }
+        if (!$gw->verifyWebhook($headers, $raw)) {
+            $this->log->warning(GatewayRegistry::label($provider) . '-Webhook mit ungültiger Signatur', ['event' => mb_substr((string) $event['id'], 0, 100)]);
             return ['status' => 400, 'result' => 'signature'];
         }
-        $type = (string) $event['event_type'];
-        $resource = (array) ($event['resource'] ?? []);
         try {
             $eventRow = $this->db->insert('payment_events', [
-                'provider' => $this->gateway->name(), 'event_id' => mb_substr((string) $event['id'], 0, 100),
+                'provider' => $gw->name(), 'event_id' => mb_substr((string) $event['id'], 0, 100),
                 'event_type' => mb_substr($type, 0, 80), 'resource_id' => isset($resource['id']) ? mb_substr((string) $resource['id'], 0, 64) : null,
                 'payload_json' => $raw, 'verified' => 1,
             ]);
@@ -473,9 +490,56 @@ final class BookingService
             }
             throw $e;
         }
-        $result = $this->processEvent($type, $resource);
+        $result = $provider === 'stripe' ? $this->processStripeEvent($type, $resource, (string) $event['id']) : $this->processEvent($type, $resource);
         $this->db->run('UPDATE payment_events SET processed_at = ?, result = ? WHERE id = ?', [$this->now(), $result, $eventRow]);
         return ['status' => 200, 'result' => $result];
+    }
+
+    /** @param array<string,mixed> $r Stripe-Objekt (Checkout-Sitzung oder Charge) */
+    private function processStripeEvent(string $type, array $r, string $eventId): string
+    {
+        switch ($type) {
+            case 'checkout.session.completed':
+            case 'checkout.session.async_payment_succeeded':
+                // Betrag und Status werden nicht aus dem Ereignis übernommen, sondern bei Stripe nachgelesen
+                $p = $this->db->one('SELECT * FROM payments WHERE provider = ? AND provider_order_id = ?', ['stripe', (string) ($r['id'] ?? '')]);
+                return $p === null ? 'unknown_order' : $this->captureAndConfirm($p);
+            case 'checkout.session.async_payment_failed':
+                $id = (string) ($r['id'] ?? '');
+                $n = $this->db->run("UPDATE payments SET status = 'failed', last_error = ? WHERE provider = 'stripe' AND provider_order_id = ? AND status <> 'captured'", [$type, $id]);
+                $this->db->run("UPDATE bookings b JOIN payments p ON p.booking_id = b.id SET b.payment_status = 'failed' WHERE p.provider = 'stripe' AND p.provider_order_id = ? AND b.status = 'pending_payment'", [$id]);
+                return $n > 0 ? 'failed_recorded' : 'ignored';
+            case 'checkout.session.expired':
+                $n = $this->db->run("UPDATE payments SET status = 'cancelled' WHERE provider = 'stripe' AND provider_order_id = ? AND status IN ('created','approved')", [(string) ($r['id'] ?? '')]);
+                return $n > 0 ? 'cancelled_recorded' : 'ignored';
+            case 'charge.refunded':
+                $p = $this->db->one("SELECT * FROM payments WHERE provider = 'stripe' AND provider_capture_id = ?", [(string) ($r['id'] ?? '')]);
+                if ($p === null) {
+                    return 'unknown_capture';
+                }
+                // Gesamtsumme laut Stripe gegen bereits verbuchte Erstattungen (auch noch laufende) abgleichen
+                $total = (int) ($r['amount_refunded'] ?? 0);
+                $known = (int) $this->db->value("SELECT COALESCE(SUM(amount_cents),0) FROM refunds WHERE payment_id = ? AND status IN ('pending','completed')", [$p['id']]);
+                if ($total > $known) {
+                    $this->db->insert('refunds', ['payment_id' => $p['id'], 'provider_refund_id' => mb_substr('evt:' . $eventId, 0, 64), 'amount_cents' => $total - $known,
+                        'reason' => 'Erstattung über Stripe', 'status' => 'completed']);
+                    $this->applyRefundTotals((int) $p['id']);
+                    $this->audit->record('payment.refund_external', 'Erstattung von Stripe gemeldet', 'booking', (int) $p['booking_id']);
+                    return 'refund_recorded';
+                }
+                $this->applyRefundTotals((int) $p['id']);
+                return 'refund_known';
+            case 'charge.dispute.created':
+                $p = $this->db->one("SELECT * FROM payments WHERE provider = 'stripe' AND provider_capture_id = ?", [(string) ($r['charge'] ?? '')]);
+                if ($p === null) {
+                    return 'unknown_capture';
+                }
+                $this->db->run('UPDATE payments SET last_error = ? WHERE id = ?', ['Zahlungsstreit (Rückbuchung) bei Stripe eröffnet', $p['id']]);
+                $this->audit->record('payment.dispute', 'Zahlungsstreit bei Stripe eröffnet – bitte im Stripe-Dashboard beantworten', 'booking', (int) $p['booking_id']);
+                return 'dispute_recorded';
+            default:
+                return 'ignored';
+        }
     }
 
     /** @param array<string,mixed> $r */
@@ -483,11 +547,11 @@ final class BookingService
     {
         switch ($type) {
             case 'CHECKOUT.ORDER.APPROVED':
-                $p = $this->db->one('SELECT * FROM payments WHERE provider = ? AND provider_order_id = ?', [$this->gateway->name(), (string) ($r['id'] ?? '')]);
+                $p = $this->db->one('SELECT * FROM payments WHERE provider = ? AND provider_order_id = ?', ['paypal', (string) ($r['id'] ?? '')]);
                 return $p === null ? 'unknown_order' : $this->captureAndConfirm($p);
             case 'PAYMENT.CAPTURE.COMPLETED':
                 $orderId = (string) ($r['supplementary_data']['related_ids']['order_id'] ?? '');
-                $p = $this->db->one('SELECT * FROM payments WHERE provider = ? AND provider_order_id = ?', [$this->gateway->name(), $orderId]);
+                $p = $this->db->one('SELECT * FROM payments WHERE provider = ? AND provider_order_id = ?', ['paypal', $orderId]);
                 if ($p === null) {
                     return 'unknown_order';
                 }
@@ -537,7 +601,7 @@ final class BookingService
     {
         $p = $this->db->one("SELECT * FROM payments WHERE booking_id = ? AND status IN ('captured','partially_refunded') ORDER BY id DESC LIMIT 1", [$bookingId]);
         if ($p !== null && $p['provider'] === 'extern') {
-            throw new BookingException('Diese Zahlung lief nicht über PayPal auf dieser Website (z. B. alter Shop). Bitte dort erstatten und hier nur stornieren.');
+            throw new BookingException('Diese Zahlung lief nicht über die Online-Zahlung dieser Website (z. B. alter Shop). Bitte dort erstatten und hier nur stornieren.');
         }
         if ($p === null || $p['provider_capture_id'] === null) {
             throw new BookingException('Für diese Buchung gibt es keine eingezogene Zahlung.');
@@ -547,14 +611,18 @@ final class BookingService
         if ($amount <= 0 || $amount > $open) {
             throw new BookingException('Der Erstattungsbetrag muss zwischen 0,01 € und dem noch offenen Betrag liegen.');
         }
+        $gw = $this->gateways->get((string) $p['provider']);
+        if ($gw === null) {
+            throw new BookingException('Der Zahlungsanbieter dieser Zahlung ist nicht eingerichtet.');
+        }
         $count = (int) $this->db->value('SELECT COUNT(*) FROM refunds WHERE payment_id = ?', [$p['id']]);
         $refundRow = $this->db->insert('refunds', ['payment_id' => $p['id'], 'amount_cents' => $amount, 'reason' => mb_substr($reason, 0, 255), 'status' => 'pending', 'created_by' => $actor]);
         try {
-            $res = $this->gateway->refund((string) $p['provider_capture_id'], $amount, (string) $p['currency'], $reason, 'refund-' . $p['id'] . '-' . ($count + 1));
+            $res = $gw->refund((string) $p['provider_capture_id'], $amount, (string) $p['currency'], $reason, 'refund-' . $p['id'] . '-' . ($count + 1));
         } catch (PaymentException $e) {
             $this->db->run("UPDATE refunds SET status = 'failed' WHERE id = ?", [$refundRow]);
             $this->audit->record('payment.refund_failed', 'Erstattung fehlgeschlagen', 'booking', $bookingId, ['fehler' => $e->getMessage()], $actor);
-            throw new BookingException('PayPal hat die Erstattung abgelehnt: ' . $e->getMessage());
+            throw new BookingException(GatewayRegistry::label($gw->name()) . ' hat die Erstattung abgelehnt: ' . $e->getMessage());
         }
         $status = in_array($res['status'], ['COMPLETED', 'PENDING'], true) ? 'completed' : 'failed';
         $this->db->run('UPDATE refunds SET status = ?, provider_refund_id = ? WHERE id = ?', [$status, $res['refund_id'] ?: null, $refundRow]);
@@ -598,7 +666,8 @@ final class BookingService
             // bezahlt, aber ohne Erstattung storniert: Zahlungsstatus bleibt sichtbar „bezahlt“
         }
         if ($notify) {
-            $text = $refunded > 0 ? 'Der Betrag von ' . number_format($refunded / 100, 2, ',', '.') . ' € wird über PayPal erstattet.' : '';
+            $prov = (string) ($this->db->value('SELECT provider FROM payments WHERE booking_id = ? ORDER BY id DESC LIMIT 1', [$bookingId]) ?: 'paypal');
+            $text = $refunded > 0 ? 'Der Betrag von ' . number_format($refunded / 100, 2, ',', '.') . ' € wird über ' . GatewayRegistry::label($prov) . ' erstattet.' : '';
             $this->notifyCustomer($bookingId, 'booking_cancelled', trim($reason . ' ' . $text));
         }
     }

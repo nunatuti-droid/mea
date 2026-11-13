@@ -18,7 +18,7 @@
             <div><h1 class="h2">Platz reserviert – Zahlung offen</h1><p class="mb-0">Ihr Platz ist bis {{ b.reserved_until|utc|date('H:i') }} Uhr reserviert. Die Anmeldung wird erst mit der Zahlung verbindlich.</p></div>
           {% elseif st in ['reserved', 'pending_payment'] %}
             <span class="status-card__icon status-card__icon--warn">{{ icon('clock') }}</span>
-            <div><h1 class="h2">Zahlung wird geprüft</h1><p class="mb-0">Sobald PayPal die Zahlung bestätigt, erhalten Sie eine E-Mail. Falls nicht, melden Sie sich bitte bei uns.</p></div>
+            <div><h1 class="h2">Zahlung wird geprüft</h1><p class="mb-0">Sobald die Zahlung bestätigt ist, erhalten Sie eine E-Mail. Falls nicht, melden Sie sich bitte bei uns.</p></div>
           {% else %}
             <span class="status-card__icon status-card__icon--bad">{{ icon('circle-x') }}</span>
             <div><h1 class="h2">{{ st == 'expired' ? 'Reservierung abgelaufen' : 'Anmeldung storniert' }}</h1><p class="mb-0">{{ b.cancel_reason ?: 'Diese Anmeldung ist nicht mehr aktiv.' }}</p></div>
@@ -34,10 +34,12 @@
         </dl>
         {% if can_pay %}
           <div class="btn-row mt-6">
+            {% for pr in providers %}
             <form method="post" action="/buchung/{{ b.public_ref }}/bezahlen/">
-              <input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="k" value="{{ key }}">
-              <button class="btn" type="submit">{{ icon('euro') }}Jetzt mit PayPal bezahlen</button>
+              <input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="k" value="{{ key }}"><input type="hidden" name="provider" value="{{ pr.name }}">
+              <button class="btn{{ loop.first ? '' : ' btn--secondary' }}" type="submit">{{ icon('euro') }}{{ providers|length > 1 ? 'Mit ' ~ (pr.name == 'stripe' ? 'Karte oder SEPA (Stripe)' : pr.label) ~ ' bezahlen' : 'Jetzt bezahlen' }}</button>
             </form>
+            {% endfor %}
             <form method="post" action="/buchung/{{ b.public_ref }}/bezahlen/">
               <input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="k" value="{{ key }}"><input type="hidden" name="action" value="cancel">
               <button class="btn btn--secondary" type="submit">Reservierung aufheben</button>

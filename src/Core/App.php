@@ -161,7 +161,7 @@ final class App
         $r->get('/{slug:[a-z0-9-]+}/', $pages->slug(...));
     }
 
-    private ?\Mea\Module\Payments\PaymentGateway $gateway = null;
+    private ?\Mea\Module\Payments\GatewayRegistry $gateways = null;
     private ?\Mea\Module\Bookings\BookingService $bookingService = null;
     private ?\Mea\Module\Applications\ApplicationService $applicationService = null;
     private ?\Mea\Module\Content\GoogleReviewSync $googleSync = null;
@@ -277,28 +277,42 @@ final class App
         return $this->applicationService ??= new \Mea\Module\Applications\ApplicationService($this->db, $this->crypto, $this->root . '/storage/applications');
     }
 
-    public function paymentGateway(): \Mea\Module\Payments\PaymentGateway
+    /** Alle Zahlungsanbieter (Stripe, PayPal); eingerichtet sind die mit Zugangsdaten in der .env. */
+    public function gateways(): \Mea\Module\Payments\GatewayRegistry
     {
-        return $this->gateway ??= new \Mea\Module\Payments\PayPalGateway(
-            new \GuzzleHttp\Client(['http_errors' => true]),
-            (string) ($this->config->get('PAYPAL_MODE') ?? 'sandbox'),
-            (string) ($this->config->get('PAYPAL_CLIENT_ID') ?? ''),
-            (string) ($this->config->get('PAYPAL_SECRET') ?? ''),
-            (string) ($this->config->get('PAYPAL_WEBHOOK_ID') ?? ''),
-        );
+        return $this->gateways ??= new \Mea\Module\Payments\GatewayRegistry([
+            new \Mea\Module\Payments\StripeGateway(
+                new \GuzzleHttp\Client(['http_errors' => true]),
+                (string) ($this->config->get('STRIPE_SECRET_KEY') ?? ''),
+                (string) ($this->config->get('STRIPE_WEBHOOK_SECRET') ?? ''),
+            ),
+            new \Mea\Module\Payments\PayPalGateway(
+                new \GuzzleHttp\Client(['http_errors' => true]),
+                (string) ($this->config->get('PAYPAL_MODE') ?? 'sandbox'),
+                (string) ($this->config->get('PAYPAL_CLIENT_ID') ?? ''),
+                (string) ($this->config->get('PAYPAL_SECRET') ?? ''),
+                (string) ($this->config->get('PAYPAL_WEBHOOK_ID') ?? ''),
+            ),
+        ]);
     }
 
-    /** Für Tests: anderen Zahlungsanbieter einsetzen. */
-    public function useGateway(\Mea\Module\Payments\PaymentGateway $g): void
+    /** Vorgabe-Anbieter (der erste eingerichtete). */
+    public function paymentGateway(): \Mea\Module\Payments\PaymentGateway
     {
-        $this->gateway = $g;
+        return $this->gateways()->default();
+    }
+
+    /** Für Tests: einen einzigen anderen Zahlungsanbieter einsetzen. */
+    public function useGateway(\Mea\Module\Payments\PaymentGateway ...$g): void
+    {
+        $this->gateways = new \Mea\Module\Payments\GatewayRegistry(array_values($g));
         $this->bookingService = null;
     }
 
     public function bookings(): \Mea\Module\Bookings\BookingService
     {
         return $this->bookingService ??= new \Mea\Module\Bookings\BookingService(
-            $this->db, new PriceCalculator(), $this->paymentGateway(), $this->mailer, $this->audit,
+            $this->db, new PriceCalculator(), $this->gateways(), $this->mailer, $this->audit,
             $this->crypto, $this->clock, $this->log, $this->baseUrl,
         );
     }
