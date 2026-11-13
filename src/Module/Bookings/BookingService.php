@@ -481,7 +481,7 @@ final class BookingService
         try {
             $eventRow = $this->db->insert('payment_events', [
                 'provider' => $gw->name(), 'event_id' => mb_substr((string) $event['id'], 0, 100),
-                'event_type' => mb_substr($type, 0, 80), 'resource_id' => isset($resource['id']) ? mb_substr((string) $resource['id'], 0, 64) : null,
+                'event_type' => mb_substr($type, 0, 80), 'resource_id' => isset($resource['id']) ? mb_substr((string) $resource['id'], 0, 255) : null,
                 'payload_json' => $raw, 'verified' => 1,
             ]);
         } catch (\PDOException $e) {
@@ -521,7 +521,7 @@ final class BookingService
                 $total = (int) ($r['amount_refunded'] ?? 0);
                 $known = (int) $this->db->value("SELECT COALESCE(SUM(amount_cents),0) FROM refunds WHERE payment_id = ? AND status IN ('pending','completed')", [$p['id']]);
                 if ($total > $known) {
-                    $this->db->insert('refunds', ['payment_id' => $p['id'], 'provider_refund_id' => mb_substr('evt:' . $eventId, 0, 64), 'amount_cents' => $total - $known,
+                    $this->db->insert('refunds', ['payment_id' => $p['id'], 'provider_refund_id' => mb_substr('evt:' . $eventId, 0, 255), 'amount_cents' => $total - $known,
                         'reason' => 'Erstattung über Stripe', 'status' => 'completed']);
                     $this->applyRefundTotals((int) $p['id']);
                     $this->audit->record('payment.refund_external', 'Erstattung von Stripe gemeldet', 'booking', (int) $p['booking_id']);

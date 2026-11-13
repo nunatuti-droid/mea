@@ -327,11 +327,11 @@ final class AcceptanceTest extends IntegrationTestCase
         $sid = $this->createSessionViaAdmin($id);
         $hist = [];
         $paidSession = fn(string $ref) => self::json([
-            'id' => 'cs_test_abc123', 'status' => 'complete', 'payment_status' => 'paid', 'amount_total' => 24900, 'currency' => 'eur',
+            'id' => 'cs_test_a1B2c3D4e5F6g7H8i9J0k1L2m3N4o5P6q7R8s9T0u1V2w3X4y5Z6a7B8c9', 'status' => 'complete', 'payment_status' => 'paid', 'amount_total' => 24900, 'currency' => 'eur',
             'client_reference_id' => $ref, 'customer_details' => ['email' => 'payer@example.org'],
             'payment_intent' => ['id' => 'pi_1', 'status' => 'succeeded', 'latest_charge' => ['id' => 'ch_test_1']],
         ]);
-        $this->useStripe([self::json(['id' => 'cs_test_abc123', 'url' => 'https://checkout.stripe.com/c/pay/cs_test_abc123'])], $hist);
+        $this->useStripe([self::json(['id' => 'cs_test_a1B2c3D4e5F6g7H8i9J0k1L2m3N4o5P6q7R8s9T0u1V2w3X4y5Z6a7B8c9', 'url' => 'https://checkout.stripe.com/c/pay/cs_test_a1B2c3D4e5F6g7H8i9J0k1L2m3N4o5P6q7R8s9T0u1V2w3X4y5Z6a7B8c9'])], $hist);
 
         // Formular zeigt Stripe als Zahlungsweg
         self::assertStringContainsString('Stripe', $this->get("/pruefungen/$slug/buchen/$sid/")->body);
@@ -339,7 +339,7 @@ final class AcceptanceTest extends IntegrationTestCase
         // Buchung bestätigen: Weiterleitung zu Stripe, Betrag und Rücksprungadresse stimmen
         $r = $this->request('POST', "/pruefungen/$slug/buchen/$sid/", $this->bookingData() + ['step' => 'confirm', 'provider' => 'stripe'], ['REMOTE_ADDR' => '198.51.100.21']);
         self::assertSame(303, $r->status, substr($r->body, 0, 1000));
-        self::assertSame('https://checkout.stripe.com/c/pay/cs_test_abc123', $r->headers['Location']);
+        self::assertSame('https://checkout.stripe.com/c/pay/cs_test_a1B2c3D4e5F6g7H8i9J0k1L2m3N4o5P6q7R8s9T0u1V2w3X4y5Z6a7B8c9', $r->headers['Location']);
         parse_str((string) $hist[0]['request']->getBody(), $form);
         self::assertSame('24900', $form['line_items'][0]['price_data']['unit_amount']);
         self::assertSame('eur', $form['line_items'][0]['price_data']['currency']);
@@ -352,7 +352,7 @@ final class AcceptanceTest extends IntegrationTestCase
 
         // Rückkehr von Stripe: Zahlung wird serverseitig nachgelesen und bestätigt
         $this->useStripe([$paidSession($b['public_ref'])], $hist);
-        $back = (string) preg_replace('#^https?://[^/]+#', '', str_replace('{CHECKOUT_SESSION_ID}', 'cs_test_abc123', $form['success_url']));
+        $back = (string) preg_replace('#^https?://[^/]+#', '', str_replace('{CHECKOUT_SESSION_ID}', 'cs_test_a1B2c3D4e5F6g7H8i9J0k1L2m3N4o5P6q7R8s9T0u1V2w3X4y5Z6a7B8c9', $form['success_url']));
         self::assertSame(303, $this->get($back)->status);
         $b = self::db()->one('SELECT * FROM bookings WHERE id = ?', [$b['id']]);
         self::assertSame('confirmed', $b['status']);
@@ -362,7 +362,7 @@ final class AcceptanceTest extends IntegrationTestCase
         self::assertSame('ch_test_1', $p['provider_capture_id']);
 
         // Webhook: falsche Signatur wird abgelehnt, richtige ist idempotent
-        $done = ['id' => 'evt_1', 'type' => 'checkout.session.completed', 'data' => ['object' => ['id' => 'cs_test_abc123']]];
+        $done = ['id' => 'evt_1', 'type' => 'checkout.session.completed', 'data' => ['object' => ['id' => 'cs_test_a1B2c3D4e5F6g7H8i9J0k1L2m3N4o5P6q7R8s9T0u1V2w3X4y5Z6a7B8c9']]];
         self::assertSame(400, $this->stripeHook($done, 'whsec_falsch')->status);
         self::assertSame(200, $this->stripeHook($done)->status);
         self::assertStringContainsString('duplicate', $this->stripeHook($done)->body);
