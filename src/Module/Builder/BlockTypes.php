@@ -201,12 +201,12 @@ final class BlockTypes
         $t['hero_home'] = ['label' => 'Startbereich mit Hintergrundbild', 'icon' => 'house', 'cat' => 'site',
             'fields' => [$media('media', 'Hintergrundbild'), $text('badge', 'Kleine Zeile', '', 100, ['inline' => 'text']),
                 $text('title', 'Überschrift (H1)', 'Überschrift', 160, ['inline' => 'text', 'required' => true, 'help' => 'Text nach einem Doppelpunkt erscheint in der zweiten Zeile hervorgehoben.']),
-                $area('lead', 'Einleitung', '', 400), $text('btn1_label', 'Button 1', 'Unsere Leistungen', 60), $url('btn1_url', 'Button 1 Ziel', '/leistungen/'),
+                $area('lead', 'Einleitung', '', 400), $text('btn1_label', 'Button 1', 'Zum Campus', 60), $url('btn1_url', 'Button 1 Ziel', '/campus/'),
                 $text('btn2_label', 'Button 2', '', 60), $url('btn2_url', 'Button 2 Ziel'), $bool('rating', 'Google-Bewertung zeigen', true),
                 $items('benefits', 'Vorteile', [$icon(), $text('title', 'Titel', '', 80, ['required' => true])], [], 4)]];
         $t['page_hero'] = ['label' => 'Seitenkopf', 'icon' => 'panel-top', 'cat' => 'site', 'desc' => 'Überschrift (H1), Einleitung, Brotkrumen und Bild',
             'fields' => [$text('eyebrow', 'Kleine Zeile', '', 100, ['inline' => 'text']), $text('title', 'Überschrift (H1)', '', 200, ['inline' => 'text', 'help' => 'Leer = Titel der Seite.']),
-                $area('intro', 'Einleitung', '', 600), $media(), $bool('crumbs', 'Brotkrumen-Navigation zeigen', true),
+                $text('slogan', 'Spruch (grüne Zeile unter der Überschrift)', '', 80, ['help' => 'Leer = Standard-Spruch der Seite, falls vorhanden.']), $area('intro', 'Einleitung', '', 600), $media(), $bool('crumbs', 'Brotkrumen-Navigation zeigen', true),
                 $text('crumb', 'Name in der Brotkrumen-Navigation', '', 80, ['help' => 'Leer = Überschrift.']),
                 $text('parent_label', 'Übergeordnete Seite (Brotkrumen)', '', 80), $url('parent_url', 'Übergeordnete Seite Adresse'),
                 $text('btn1_label', 'Button 1', '', 60), $url('btn1_url', 'Button 1 Ziel'), $text('btn2_label', 'Button 2', '', 60), $url('btn2_url', 'Button 2 Ziel')]];
@@ -219,7 +219,7 @@ final class BlockTypes
         $t['exam_list'] = ['label' => 'Prüfungsliste mit Filter', 'icon' => 'list-checks', 'cat' => 'site', 'desc' => 'Alle Prüfungen nach Kategorie, mit Filter',
             'fields' => [$bool('venue', 'Hinweis zum Prüfungsort zeigen', true), $text('other', 'Überschrift für Prüfungen ohne Kategorie', 'Weitere Prüfungen', 80),
                 $rich('empty', 'Text, wenn keine Prüfung eingetragen ist', '<p>Unsere Prüfungen werden gerade eingetragen. <a href="/kontakt/?thema=pruefung">Fragen Sie uns nach Terminen.</a></p>'),
-                $rich('empty_filtered', 'Text, wenn der Filter nichts findet', '<p>Für diese Auswahl gibt es derzeit keine Prüfung. <a href="/telc-pruefungszentrum/">Alle Prüfungen anzeigen</a></p>')]];
+                $rich('empty_filtered', 'Text, wenn der Filter nichts findet', '<p>Für diese Auswahl gibt es derzeit keine Prüfung. <a href="/pruefungen/">Alle Prüfungen anzeigen</a></p>')]];
         $t['next_sessions'] = ['label' => 'Nächste Prüfungstermine', 'icon' => 'calendar-range', 'cat' => 'site',
             'fields' => [$num('limit', 'Höchstens', 6, 1, 20), $text('btn', 'Button-Text', 'Termin wählen', 40), $bool('hide_empty', 'Abschnitt ausblenden, wenn es keine Termine gibt', true)]];
         $t['steps'] = ['label' => 'Schritte', 'icon' => 'list-ordered', 'cat' => 'content', 'desc' => 'Nummerierte Schritte nebeneinander',

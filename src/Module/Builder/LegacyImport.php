@@ -133,7 +133,7 @@ final class LegacyImport
         $tree = [];
         $tree[] = self::n('hero_home', [
             'media' => self::media($h['hero_media_id'] ?? null), 'badge' => (string) ($h['eyebrow'] ?? ''), 'title' => (string) ($h['title'] ?? 'MEA Bildungszentrum'),
-            'lead' => (string) ($h['lead'] ?? ''), 'btn1_label' => 'Unsere Leistungen', 'btn1_url' => '/leistungen/', 'btn2_label' => 'Prüfungstermine', 'btn2_url' => '/telc-pruefungszentrum/',
+            'lead' => (string) ($h['lead'] ?? ''), 'btn1_label' => 'Zum Campus', 'btn1_url' => '/campus/', 'btn2_label' => 'Prüfungstermine', 'btn2_url' => '/pruefungen/',
             'rating' => true,
             'benefits' => array_map(fn($b) => ['icon' => in_array($b['icon'] ?? '', BlockTypes::ICONS, true) ? $b['icon'] : 'check', 'title' => (string) ($b['title'] ?? '')], array_slice((array) ($h['benefits'] ?? []), 0, 4)),
         ]);
@@ -142,7 +142,7 @@ final class LegacyImport
             $tree[] = self::n('partners', ['label' => 'Zulassungen und Partner', 'items' => $partners]);
         }
         $tree[] = self::section([
-            self::head('Unsere Leistungen', 'Bildung, Integration und Fachkräftegewinnung', 'Für Menschen, die beruflich weiterkommen wollen, und für Unternehmen, die Fachkräfte suchen. Wählen Sie einen Bereich und erfahren Sie, wie wir Sie unterstützen.', 'Alle Leistungen', '/leistungen/'),
+            self::head('MEA Campus', 'Ein Campus. Vier Wege nach vorn.', 'Vier Hubs, vier Schwerpunkte. Wählen Sie den passenden Bereich – dort finden Sie Angebote, Informationen und Ihren direkten Kontakt.'),
             self::n('services_grid'),
         ]);
         $tree[] = self::section([
@@ -162,7 +162,7 @@ final class LegacyImport
         $tree[] = self::section([
             self::head('telc-Prüfungszentrum' . ($city !== '' ? ' ' . $city : ''), 'Sprachprüfungen mit anerkanntem Zertifikat',
                 'Wählen Sie Ihre Prüfung, sehen Sie Termine, Preis und freie Plätze und melden Sie sich direkt an.' . ($city !== '' ? ' Alle Prüfungen finden persönlich in unserem zertifizierten Prüfungszentrum in ' . $city . ' statt.' : ''),
-                'Alle Prüfungen und Termine', '/telc-pruefungszentrum/'),
+                'Alle Prüfungen und Termine', '/pruefungen/'),
             self::n('exam_cards', ['limit' => 6]),
         ]);
         $tree[] = self::section([self::head('Aktuelle Termine', 'Die nächsten freien Prüfungstermine'), self::n('next_sessions', ['limit' => 6, 'hide_empty' => true])], 'alt');
@@ -204,7 +204,7 @@ final class LegacyImport
                     self::section([self::cta('Ihre Frage war nicht dabei?', 'Schreiben Sie uns oder rufen Sie an – wir beantworten Ihre Frage persönlich.')], 'alt'),
                 ];
             case 'preise':
-                return [$hero(['media' => null, 'parent_label' => 'Prüfungen', 'parent_url' => '/telc-pruefungszentrum/']), self::section([self::n('price_table')])];
+                return [$hero(['media' => null, 'parent_label' => 'Prüfungen', 'parent_url' => '/pruefungen/']), self::section([self::n('price_table')])];
             case 'standorte':
                 return [$hero(['media' => null, 'crumb' => 'Standorte']), self::section([self::n('locations', ['look' => 'full', 'cols' => '2'])])];
             case 'kontakt':
@@ -217,7 +217,7 @@ final class LegacyImport
                 ];
             case 'telc-pruefungszentrum':
                 $tree = [
-                    $hero(['eyebrow' => 'Zertifiziert. Anerkannt. Zukunftsorientiert.', 'crumb' => 'Prüfungen', 'btn1_label' => 'Prüfung auswählen', 'btn1_url' => '#pruefungen', 'btn2_label' => 'Preise ansehen', 'btn2_url' => '/preise/']),
+                    $hero(['eyebrow' => 'Zertifiziert. Anerkannt. Zukunftsorientiert.', 'crumb' => 'Prüfungen', 'btn1_label' => 'Prüfung auswählen', 'btn1_url' => '#pruefungen', 'btn2_label' => 'Preise ansehen', 'btn2_url' => '/pruefungen/preise/']),
                     self::section([
                         self::head('', 'Unsere Prüfungen', 'Wählen Sie die passende Prüfung. Auf der jeweiligen Seite finden Sie Ablauf, Voraussetzungen, freie Termine und den Preis und können sich direkt online anmelden.'),
                         self::n('exam_list'),

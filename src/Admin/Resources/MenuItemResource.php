@@ -53,7 +53,7 @@ final class MenuItemResource extends Resource
     public function fields(?array $row): array
     {
         $parents = [];
-        foreach ($this->db->all('SELECT i.id, i.label, m.name FROM menu_items i JOIN menus m ON m.id = i.menu_id WHERE i.parent_id IS NULL AND i.id <> ? ORDER BY m.id, i.sort_order', [$row['id'] ?? 0]) as $p) {
+        foreach ($this->db->all('SELECT i.id, i.label, m.name FROM menu_items i JOIN menus m ON m.id = i.menu_id LEFT JOIN menu_items g ON g.id = i.parent_id WHERE (i.parent_id IS NULL OR g.parent_id IS NULL) AND i.id <> ? ORDER BY m.id, COALESCE(g.sort_order, i.sort_order), i.parent_id IS NOT NULL, i.sort_order', [$row['id'] ?? 0]) as $p) {
             $parents[$p['id']] = $p['name'] . ' › ' . $p['label'];
         }
         return [

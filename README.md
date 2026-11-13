@@ -22,7 +22,6 @@ Der Kern ist eine **dynamische Prüfungsverwaltung**: Jede Prüfung (z. B. telc 
 | [`docs/deployment.md`](docs/deployment.md) | Installation auf dem Server (Netcup/Plesk) |
 | [`docs/golive.md`](docs/golive.md) | Go-live-Checkliste und Rollbackplan |
 | [`docs/betrieb.md`](docs/betrieb.md) | Betrieb, Sicherungen, Updates, Notfälle |
-| [`docs/migration/alte-urls.txt`](docs/migration/alte-urls.txt) | alle Adressen der alten WordPress-Sitemap |
 | [`docs/adr/`](docs/adr/README.md), [`DESIGN.md`](DESIGN.md) | Architekturentscheidungen, Designsystem (Variablen, Rollen, Cache, Sicherheit) |
 
 ## Voraussetzungen

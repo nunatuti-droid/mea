@@ -69,9 +69,12 @@ final class PageService
         return is_array($t) ? $t : [];
     }
 
+    /** Seiten, die unter einer festen Adresse unterhalb von /pruefungen/ liegen (Seitenkennung => Adresse). */
+    public const NESTED = ['preise' => '/pruefungen/preise/', 'pruefungsvorbereitung' => '/pruefungen/vorbereitung/'];
+
     public static function url(array $page): string
     {
-        return (int) ($page['is_home'] ?? 0) === 1 ? '/' : '/' . $page['slug'] . '/';
+        return (int) ($page['is_home'] ?? 0) === 1 ? '/' : (self::NESTED[$page['slug']] ?? '/' . $page['slug'] . '/');
     }
 
     /** Globaler Baustein für die Ausgabe. @return array{name:string, tree:list<array<string,mixed>>}|null */

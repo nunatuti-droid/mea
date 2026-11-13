@@ -17,7 +17,7 @@ final class SecurityTest extends IntegrationTestCase
         self::assertStringContainsString('Keine Treffer', $r->body);
         self::assertNotNull(self::db()->value("SHOW TABLES LIKE 'bookings'"));
         // Klassische Muster werden zusätzlich vom Anwendungsschutz abgewiesen
-        self::assertSame(403, $this->get('/telc-pruefungszentrum/?q=' . rawurlencode("1' OR '1'='1"))->status);
+        self::assertSame(403, $this->get('/pruefungen/?q=' . rawurlencode("1' OR '1'='1"))->status);
     }
 
     public function testStoredScriptIsEscapedInBackend(): void

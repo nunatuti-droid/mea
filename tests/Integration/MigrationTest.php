@@ -3,46 +3,13 @@ declare(strict_types=1);
 
 namespace Mea\Tests\Integration;
 
-/** Umzug: Jede Adresse der alten WordPress-Sitemap führt zu einer Seite, einer Weiterleitung oder 410. */
+/** Umzug: Protokoll nicht gefundener Adressen und Weiterleitungen in der Verwaltung. */
 final class MigrationTest extends IntegrationTestCase
 {
-    /** @return list<string> */
-    private static function oldUrls(): array
-    {
-        $lines = file(self::root() . '/docs/migration/alte-urls.txt', FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [];
-        return array_values(array_filter(array_map('trim', $lines), fn($l) => $l !== '' && $l[0] === '/'));
-    }
-
-    public function testEveryOldUrlIsHandled(): void
-    {
-        // Vor dem Go-live werden die Prüfungen mit echten Preisen veröffentlicht (Go-live-Checkliste);
-        // bin/console golive:check prüft dieselbe Liste gegen die echte Installation.
-        self::db()->run("UPDATE exam_types SET status = 'published'");
-        $urls = self::oldUrls();
-        self::assertGreaterThan(80, count($urls));
-        $problems = [];
-        foreach ($urls as $u) {
-            $r = $this->get($u);
-            if ($r->status === 301) {
-                $target = (string) parse_url((string) $r->headers['Location'], PHP_URL_PATH);
-                $t = $this->get($target);
-                if ($t->status !== 200) {
-                    $problems[] = "$u → $target liefert {$t->status}";
-                }
-            } elseif (!in_array($r->status, [200, 410], true)) {
-                $problems[] = "$u liefert {$r->status}";
-            }
-        }
-        self::assertSame([], $problems);
-    }
-
     public function testWildcardRulesAndNotFoundLog(): void
     {
-        self::assertSame(410, $this->get('/edublink_footer/irgendwas/')->status);
-        self::assertSame(301, $this->get('/product/neues-produkt/')->status);
-        // Genaue Regel geht vor Platzhalter
-        self::assertSame(410, $this->get('/courses/grow-personal-financial-security-thinking-principles-2/')->status);
-
+        // Die Weiterleitungen der alten WordPress-Seite gibt es nicht mehr
+        self::assertSame(0, (int) self::db()->value("SELECT COUNT(*) FROM redirects WHERE source_path LIKE '%*'"));
         self::assertSame(404, $this->get('/wirklich-unbekannt/')->status);
         $this->get('/wirklich-unbekannt/');
         self::assertSame(2, (int) self::db()->value("SELECT hits FROM not_found_log WHERE path = '/wirklich-unbekannt/'"));
@@ -128,7 +95,6 @@ final class MigrationTest extends IntegrationTestCase
         self::assertSame('error', $rows['Livegang/AGB']);
         self::assertSame('ok', $rows['Livegang/Datenschutzerklärung']);
         self::assertSame('error', $rows['Livegang/PayPal-Modus']);
-        self::assertArrayHasKey('Livegang/Alte Adressen', $rows);
     }
 
     public function testLoopbackAddressIsNeverBanned(): void

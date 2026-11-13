@@ -108,6 +108,8 @@ final class App
         $this->view->addFunction('bedit', fn(string $field, string $kind = 'text'): \Twig\Markup => $this->pageRenderer()->editAttr($field, $kind));
         $this->view->addFunction('media_alt', fn(mixed $id): string => (string) ($this->media->find((int) $id)['alt_text'] ?? ''));
         $this->view->addFunction('txt', fn(string $key, array $vars = []): string => \Mea\Module\Content\TemplateTexts::get((array) $this->settings->get(\Mea\Module\Content\TemplateTexts::SETTING, []), $key, $vars));
+        $this->view->addFunction('hero_slogan', fn(string $key): string => \Mea\Module\Content\HeroSlogans::get($key));
+        $this->view->addFunction('section_visual', fn(string $eyebrow): ?array => \Mea\Module\Content\SectionVisuals::get($eyebrow));
         $this->view->addFunction('video_embed', fn(?string $url): ?array => \Mea\Module\Builder\Video::embed((string) $url));
 
         $pageView = fn(string $slug, array $ctx = [], int $status = 200): ?Response => $this->pageView()->respond($slug, $ctx, $status);
@@ -134,14 +136,13 @@ final class App
         }
         (new AdminModule($this))->register(new AdminKernel($r, $this->auth, $this->view, $this->audit));
         $r->get('/', $pages->home(...));
-        $r->get('/leistungen/', $pages->servicesIndex(...));
         $r->get('/faq/', $pages->faq(...));
-        $r->get('/telc-pruefungszentrum/', $examCtl->index(...));
-        $r->get('/pruefungen/', fn() => Response::redirect('/telc-pruefungszentrum/', 301));
+        $r->get('/pruefungen/', $examCtl->index(...));
+        $r->get('/pruefungen/vorbereitung/', $examCtl->preparation(...));
+        $r->get('/pruefungen/preise/', $examCtl->prices(...));
         $r->get('/pruefungen/{slug:[a-z0-9-]+}/', $examCtl->show(...));
         $booking = new \Mea\Module\Bookings\BookingController($this, $limiter);
         $booking->register($r);
-        $r->get('/preise/', $examCtl->prices(...));
         $r->get('/standorte/', $locCtl->index(...));
         $r->get('/standorte/{slug:[a-z0-9-]+}/', $locCtl->show(...));
         $isTesting = $this->config->get('APP_ENV') === 'testing';

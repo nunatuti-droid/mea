@@ -14,6 +14,14 @@
       <input type="hidden" name="_csrf" value="{{ d.csrf }}">
       <input type="hidden" name="_t" value="{{ d.form_started }}">
       <div class="hp" aria-hidden="true"><label for="website">Website (bitte leer lassen)</label><input id="website" name="website" type="text" tabindex="-1" autocomplete="off"></div>
+      <fieldset class="chips">
+        <legend>Ich frage an als</legend>
+        <div class="chips__row">
+          {% for k, label in {teilnehmende: 'Teilnehmende', unternehmen: 'Unternehmen', jobcenter: 'Jobcenter / Partner'} %}
+            <label class="chip"><input type="radio" name="audience" value="{{ k }}"{% if (values.audience ?? 'teilnehmende') == k %} checked{% endif %}><span>{{ k == 'teilnehmende' ? icon('user-check') : (k == 'unternehmen' ? icon('briefcase') : icon('building-2')) }}{{ label }}</span></label>
+          {% endfor %}
+        </div>
+      </fieldset>
       <div class="form__row">
         <div class="field{{ errors.name is defined ? ' field--error' }}">
           <label for="name">{{ f.l_name }}<span class="req" aria-hidden="true">*</span></label>
@@ -60,6 +68,7 @@
         <label class="check"><input type="checkbox" name="privacy" value="1"{% if (values.privacy ?? '') == '1' %} checked{% endif %}{% if errors.privacy is defined %} aria-invalid="true" aria-describedby="privacy-error"{% endif %}><span>{{ f.privacy|replace({'<p>': '', '</p>': ' '})|trim|raw }}<span class="req" aria-hidden="true">*</span></span></label>
         {{ fm.err(errors, 'privacy') }}
       </div>
+      <p class="form__note">{{ icon('circle-check') }}<span>Kein passendes Angebot ausgewählt? Kein Problem. Genau dafür ist das erste Gespräch da.</span></p>
       <p class="hint text-muted mb-0">Felder mit <span class="req" aria-hidden="true">*</span> sind Pflichtfelder.</p>
       <div><button class="btn" type="submit"{% if d.preview ?? false %} disabled{% endif %}>{{ icon('mail') }}{{ f.submit }}</button></div>
     </form>

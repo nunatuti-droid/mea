@@ -5,7 +5,7 @@
 {% macro err(errors, name) %}{% if errors[name] is defined %}<p class="field__error" id="{{ name }}-error">{{ icon('circle-alert') }}{{ errors[name] }}</p>{% endif %}{% endmacro %}
 {% import _self as f %}
 {% block content %}
-  {% include 'partials/page_hero.twig' with {title: 'Jetzt bewerben', intro: 'Laden Sie Ihre Unterlagen hier sicher hoch. Wir melden uns persönlich bei Ihnen.', media_id: null, crumbs: [{label: 'Karriere', url: '/karriere/'}, {label: 'Bewerbung'}]} %}
+  {% include 'partials/page_hero.twig' with {title: 'Jetzt bewerben', slogan: hero_slogan('bewerbung'), intro: 'Laden Sie Ihre Unterlagen hier sicher hoch. Wir melden uns persönlich bei Ihnen.', media_id: null, crumbs: [{label: 'Karriere', url: '/karriere/'}, {label: 'Bewerbung'}]} %}
   <section class="section">
     <div class="container contact-layout">
       <div id="formular">

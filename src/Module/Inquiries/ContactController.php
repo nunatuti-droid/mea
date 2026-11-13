@@ -39,7 +39,7 @@ final class ContactController
     {
         Session::start($req->isSecure());
         $in = [];
-        foreach (['name', 'email', 'phone', 'topic', 'location', 'message', 'privacy'] as $k) {
+        foreach (['name', 'email', 'phone', 'topic', 'location', 'message', 'privacy', 'audience'] as $k) {
             $in[$k] = $req->input($k);
         }
         if (!Csrf::check($req->input('_csrf'))) {

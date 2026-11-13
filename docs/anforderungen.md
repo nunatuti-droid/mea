@@ -120,7 +120,7 @@ Die Löschfristen (z. B. 10 Jahre für bezahlte Buchungen) sind Voreinstellungen
 |---|---|---|
 | Inhalte übernommen und redaktionell überarbeitet | ◐ | In Phase 3 aus der alten Website übernommen (`ContentSeeder`). Redaktionelle Freigabe durch MEA offen. |
 | Medien übertragen | ◐ | 24 Fotos und Logos ✓. Die 3 PDF-Downloads der alten Seite (`/hier-herunterladen/`) ⛔: Dateien fehlen noch. |
-| Alte URLs mit neuen Zielen abgeglichen, Weiterleitungen getestet | ✓ | `docs/migration/alte-urls.txt`, `MigrationTest::testEveryOldUrlIsHandled`, `golive:check` |
+| Alte WordPress-Adressen | entfällt | bewusst keine Weiterleitungen (Website nicht indexiert, Entscheidung 11.11.2026, ADR-20) |
 | Weiterleitungen in der Verwaltung pflegbar, Protokoll nicht gefundener Adressen | ✓ | `MigrationTest::testRedirectsAreManagedInBackend`, `testWildcardRulesAndNotFoundLog` |
 | Laufende Buchungen aus dem alten Shop übernehmen | ✓ | Verwaltung → Buchungen → „Buchung übernehmen“, `MigrationTest::testBookingsFromOldShopCanBeTakenOver` |
 | Datenbankmigrationen getestet (hoch, zurück, hoch) | ✓ | jede Migration lokal geprüft; Testdatenbank wird bei jedem Lauf neu aufgebaut |

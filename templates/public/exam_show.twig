@@ -8,26 +8,26 @@
 {% set price = exam.next_session.price ?? exam.from_price %}
 
 {% block content %}
-<section class="page-hero">
-  <div class="container page-hero__grid">
-    <div>
-      {{ ui.breadcrumbs([{label: 'Prüfungen', url: '/telc-pruefungszentrum/'}, {label: exam.public_name}]) }}
+<section class="hero hero--page">
+  <div class="hero__bg">{{ img(exam.hero_media_id ?: exam.card_media_id, '100vw', {loading: 'eager', fetchpriority: 'high', alt: ''}) }}</div>
+  <div class="container hero__inner">
+    <div class="hero__content">
+      {{ ui.breadcrumbs([{label: 'Prüfungen', url: '/pruefungen/'}, {label: exam.public_name}]) }}
       <div class="btn-row mb-0 align-center">
         {% if exam.level_label %}<span class="level level--lg" aria-hidden="true">{{ exam.level_label }}</span>{% endif %}
         {% set cat = exam.category_short ?? exam.category %}{% if exam.provider_name %}<span class="eyebrow mb-0">{{ exam.provider_name }}{% if cat %} · {{ cat }}{% endif %}</span>{% endif %}
       </div>
       <h1 class="mt-5">{{ exam.public_name }}</h1>
-      <p class="lead">{{ exam.short_text }}</p>
+      <p class="hero__lead">{{ exam.short_text }}</p>
       <div class="btn-row">
         {% if exam.session_count > 0 %}
           <a class="btn" href="#termine">{{ icon('calendar') }}{{ exam.session_count }} {{ exam.session_count == 1 ? 'Termin' : 'Termine' }} ansehen</a>
         {% else %}
           <a class="btn" href="/kontakt/?pruefung={{ exam.public_name|url_encode }}">Nach Terminen fragen</a>
         {% endif %}
-        <a class="btn btn--secondary" href="#ablauf">Ablauf und Voraussetzungen</a>
+        <a class="btn btn--ghost-light" href="#ablauf">Ablauf und Voraussetzungen</a>
       </div>
     </div>
-    <div class="page-hero__media">{{ img(exam.hero_media_id ?: exam.card_media_id, '(max-width: 860px) 100vw, 520px', {loading: 'eager', fetchpriority: 'high'}) }}</div>
   </div>
 </section>
 
@@ -125,6 +125,6 @@
   {% endfor %}
   <script type="application/ld+json">{{ {'@context': 'https://schema.org', '@type': 'Course', name: exam.public_name, description: exam.short_text, provider: {'@type': 'Organization', name: site.company.legal_name, url: base_url}}|json_ld }}</script>
   {% if events is not empty %}<script type="application/ld+json">{{ {'@context': 'https://schema.org', '@graph': events}|json_ld }}</script>{% endif %}
-  <script type="application/ld+json">{{ {'@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: [{'@type': 'ListItem', position: 1, name: 'Startseite', item: base_url ~ '/'}, {'@type': 'ListItem', position: 2, name: 'Prüfungen', item: base_url ~ '/telc-pruefungszentrum/'}, {'@type': 'ListItem', position: 3, name: exam.public_name, item: base_url ~ url}]}|json_ld }}</script>
+  <script type="application/ld+json">{{ {'@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: [{'@type': 'ListItem', position: 1, name: 'Startseite', item: base_url ~ '/'}, {'@type': 'ListItem', position: 2, name: 'Prüfungen', item: base_url ~ '/pruefungen/'}, {'@type': 'ListItem', position: 3, name: exam.public_name, item: base_url ~ url}]}|json_ld }}</script>
   {{ ui.faq_schema(faqs) }}
 {% endblock %}

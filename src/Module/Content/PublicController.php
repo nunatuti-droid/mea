@@ -35,11 +35,6 @@ final class PublicController
         return Response::html(($this->pageView)()->html($home, ['query' => $req->query]));
     }
 
-    public function servicesIndex(Request $req): Response
-    {
-        return ($this->pageView)()->respond('leistungen', ['query' => $req->query]) ?? throw HttpException::notFound();
-    }
-
     public function faq(Request $req): Response
     {
         return ($this->pageView)()->respond('faq', ['query' => $req->query]) ?? throw HttpException::notFound();
@@ -52,7 +47,8 @@ final class PublicController
         if ($service !== null) {
             return $this->renderService($service, null);
         }
-        $page = ($this->pages)()->published($slug);
+        // Preise und Prüfungsvorbereitung gehören zu /pruefungen/ und sind nur dort erreichbar
+        $page = isset(\Mea\Module\Builder\PageService::NESTED[$slug]) ? null : ($this->pages)()->published($slug);
         if ($page === null) {
             throw HttpException::notFound();
         }
@@ -89,8 +85,14 @@ final class PublicController
         return Response::html($this->view->render('public/service.twig', [
             'service' => $service,
             'parent' => $parent,
-            'children' => $this->content->childServices((int) $service['id']),
-            'siblings' => $parent ? $this->content->childServices((int) $parent['id']) : [],
+            'children' => $children = $this->content->childServices((int) $service['id']),
+            // Coaching-Maßnahmen (mit Kennzahlen) und Informationsseiten (facts.info) werden getrennt gezeigt
+            'measures' => array_values(array_filter($children, fn($c) => empty($c['facts']['info']))),
+            'topics' => array_values(array_filter($children, fn($c) => !empty($c['facts']['info']))),
+            'siblings' => $parent ? array_values(array_filter(
+                $this->content->childServices((int) $parent['id']),
+                fn($c) => !empty($c['facts']['info']) === !empty($service['facts']['info']),
+            )) : [],
             'faqs' => $this->content->faqsFor('service', (int) $service['id']),
             'other_services' => array_values(array_filter(
                 $this->content->topServices(),

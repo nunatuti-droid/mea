@@ -35,10 +35,13 @@ final class ContentSeeder
             $this->faqs();
             $this->reviews();
             $this->menus();
-            $this->redirects();
             (new EmailTemplateSeeder($this->db))->run();
             // Seiten und Startseite in den Seitenbaukasten übernehmen
             (new \Mea\Module\Builder\LegacyImport($this->db))->run();
+            // neue Struktur (Campus, Prüfungen, Menüs)
+            (new CampusStructure($this->db))->run();
+            // Struktur nach Vorgabe „Neue Struktur“ (Megamenü, Unterseiten der Bereiche)
+            (new ReferenceStructure($this->db))->run();
         });
     }
 
@@ -466,39 +469,6 @@ final class ContentSeeder
         $legal = $this->db->insert('menus', ['menu_key' => 'legal', 'name' => 'Rechtliches']);
         foreach ([['Impressum', '/impressum/'], ['Datenschutz', '/datenschutz/'], ['AGB', '/agb/']] as $i => [$a, $b]) {
             $add($legal, $a, $b, $i + 1);
-        }
-    }
-
-    private function redirects(): void
-    {
-        $map = [
-            '/unser-leitbild/' => '/ueber-uns/', '/karriere-dozenten/' => '/karriere/', '/hier-herunterladen/' => '/avgs/',
-            '/product/telc-sprachpruefung-deutsch-a2-b1/' => '/pruefungen/telc-deutsch-a2-b1/',
-            '/cookie-richtlinie-eu/' => '/datenschutz/', '/telc/' => '/telc-pruefungszentrum/',
-            '/weiterbildungen/' => '/leistungen/', '/bewerberprofile/' => '/fachkraeftegewinnung/',
-            '/courses/' => '/telc-pruefungszentrum/', '/shop-2/' => '/telc-pruefungszentrum/', '/cart/' => '/telc-pruefungszentrum/',
-            '/checkout/' => '/telc-pruefungszentrum/', '/my-account/' => '/', '/product-category/a2-b1/' => '/telc-pruefungszentrum/',
-            '/product-category/booking/' => '/telc-pruefungszentrum/', '/faqs/' => '/faq/', '/contact-me/' => '/kontakt/',
-            '/privacy-policy-2/' => '/datenschutz/', '/terms-condition/' => '/agb/',
-            '/courses/starting-seo-as-your-home-based-business/' => '/kontakt/',
-        ];
-        foreach ($map as $from => $to) {
-            $this->db->insert('redirects', ['source_path' => $from, 'target_url' => $to, 'status_code' => 301]);
-        }
-        $gone = ['/sample-page/', '/lp-checkout/', '/lp-checkout-2/', '/lp-profile/', '/lp-profile-2/', '/instructors/', '/instructors-2/',
-            '/instructor/', '/instructor-1/', '/instructor-2-2/', '/instructor-3/', '/instructor-4/', '/lp-become-a-teacher/',
-            '/lp-become-a-teacher-2/', '/lp-term-conditions/', '/lp-term-conditions-2/', '/user-register/', '/user-register-2/',
-            '/user-login/', '/user-login-2/', '/forgot-password/', '/forgot-password-2/', '/reset-password/', '/reset-password-2/',
-            '/user-account/', '/user-account-2/', '/component/', '/component/footer/', '/component/brand/', '/component/cta/',
-            '/component/counterup/', '/component/accordion/', '/component/video-popup/', '/component/features/',
-            '/component/why-choose/', '/component/services/', '/component/other-sections/', '/coming-soon/', '/purchase-guide/',
-            '/pricing-table/', '/gallery-grid/', '/gallery-masonry/', '/cart-2/', '/checkout-2/', '/blog/', '/event-style-1/',
-            '/courses-2/', '/my-account-2/', '/elementor-18013/', '/course-category/business/', '/course-category/motivation/',
-            '/course-category/programming/', '/course-category/online-art/', '/course-category/fitness/',
-            '/course-category/digital-marketing/', '/course-category/photography/', '/course-tag/development/',
-            '/courses/grow-personal-financial-security-thinking-principles-2/'];
-        foreach ($gone as $g) {
-            $this->db->insert('redirects', ['source_path' => $g, 'target_url' => null, 'status_code' => 410]);
         }
     }
 

@@ -71,7 +71,7 @@ final class PageBuilderTest extends IntegrationTestCase
     public function testAllFormerPagesAreBuilderPagesAndKeepTheirUrls(): void
     {
         self::assertSame(0, (int) self::db()->value('SELECT COUNT(*) FROM pages WHERE blocks_json IS NULL'), 'jede Seite hat einen Aufbau');
-        foreach (['/', '/leistungen/', '/telc-pruefungszentrum/', '/preise/', '/standorte/', '/kontakt/', '/faq/', '/ueber-uns/', '/impressum/', '/datenschutz/', '/agb/', '/karriere/'] as $url) {
+        foreach (['/', '/campus/', '/pruefungen/', '/pruefungen/preise/', '/standorte/', '/kontakt/', '/faq/', '/ueber-uns/', '/impressum/', '/datenschutz/', '/agb/', '/karriere/'] as $url) {
             $r = $this->get($url);
             self::assertSame(200, $r->status, $url);
             self::assertStringNotContainsString('data-b=', $r->body, 'keine Editor-Markierungen auf der Website: ' . $url);
@@ -328,7 +328,7 @@ final class PageBuilderTest extends IntegrationTestCase
         copy(self::root() . '/migrations/media/hero-gemeinsames-lernen.jpg', $root . '/migrations/media/hero-gemeinsames-lernen.jpg');
         $patches = new \Mea\Module\Builder\ContentPatches(self::db(), new \Mea\Module\Content\SettingsRepository(self::db()), $root);
 
-        self::assertCount(1, $patches->apply());
+        self::assertCount(6, $patches->apply()); // Startbild, Campus-Struktur, Struktur nach Vorgabe, Inhalte, Fotos, Seiten
         $media = (int) self::db()->value("SELECT id FROM media WHERE original_name = 'hero-gemeinsames-lernen.jpg'");
         self::assertGreaterThan(0, $media);
         self::assertNotEmpty(self::db()->value('SELECT alt_text FROM media WHERE id = ?', [$media]));

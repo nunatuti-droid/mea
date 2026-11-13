@@ -5,8 +5,8 @@ const fs = require('fs');
 const axeSource = fs.readFileSync(require.resolve('axe-core/axe.min.js'), 'utf8');
 
 const BASE = process.env.BASE_URL || 'http://127.0.0.1:8080';
-const PAGES = ['/', '/leistungen/', '/avgs/', '/avgs/mea-plus/', '/telc-pruefungszentrum/', '/pruefungen/telc-deutsch-b1/',
-  '/preise/', '/standorte/', '/standorte/marl/', '/kontakt/', '/faq/', '/ueber-uns/', '/impressum/'];
+const PAGES = ['/', '/campus/', '/coaching/', '/coaching/mea-plus/', '/bildungszentrum/ausbildung/', '/sprache-beruf/berufsdeutsch/', '/foerderung/', '/pruefungen/', '/pruefungen/telc-deutsch-b1/',
+  '/pruefungen/preise/', '/pruefungen/vorbereitung/', '/standorte/', '/standorte/marl/', '/kontakt/', '/faq/', '/ueber-uns/', '/impressum/'];
 const VIEWPORTS = [{ width: 1366, height: 900 }, { width: 375, height: 800 }];
 
 (async () => {
@@ -41,7 +41,7 @@ const VIEWPORTS = [{ width: 1366, height: 900 }, { width: 375, height: 800 }];
 
   // Ablauf: Prüfung finden → Termin wählen → Buchungshinweis
   const page = await browser.newPage();
-  await page.goto(BASE + '/telc-pruefungszentrum/');
+  await page.goto(BASE + '/pruefungen/');
   await page.click('a[href="/pruefungen/telc-deutsch-b1/"]');
   const book = page.locator('a[href*="/buchen/"]').first();
   if (await book.count()) {

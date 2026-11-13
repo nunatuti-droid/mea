@@ -66,16 +66,27 @@ final class ContentRepository
              WHERE m.menu_key = ? ORDER BY mi.sort_order, mi.id',
             [$key],
         );
+        // Verweise auf Entwurfsseiten unterhalb von /pruefungen/ (z. B. Prüfungsvorbereitung) erscheinen erst nach der Veröffentlichung
+        $hidden = [];
+        foreach ($this->db->all("SELECT slug FROM pages WHERE status <> 'published' AND slug IN ('preise', 'pruefungsvorbereitung')") as $d) {
+            $hidden[] = \Mea\Module\Builder\PageService::NESTED[$d['slug']];
+        }
         $byParent = [];
         foreach ($rows as $r) {
-            $byParent[(int) ($r['parent_id'] ?? 0)][] = $r;
+            if (!in_array($r['url'], $hidden, true)) {
+                $byParent[(int) ($r['parent_id'] ?? 0)][] = $r;
+            }
         }
-        $tree = [];
-        foreach ($byParent[0] ?? [] as $r) {
-            $r['children'] = $byParent[(int) $r['id']] ?? [];
-            $tree[] = $r;
-        }
-        return $tree;
+        // bis zu drei Ebenen: Menüpunkt › Gruppe › Eintrag (Megamenü)
+        $build = function (int $parent, int $depth) use (&$build, $byParent): array {
+            $out = [];
+            foreach ($byParent[$parent] ?? [] as $r) {
+                $r['children'] = $depth < 3 ? $build((int) $r['id'], $depth + 1) : [];
+                $out[] = $r;
+            }
+            return $out;
+        };
+        return $build(0, 1);
     }
 
     /** @return list<array<string,mixed>> */

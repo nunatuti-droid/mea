@@ -64,38 +64,8 @@ final class GoLiveCheck
         $add('Administratoren', count($admins) >= 2 && $without === [] ? 'ok' : (count($admins) >= 1 && $without === [] ? 'warn' : 'error'),
             count($admins) . ' aktiv' . ($without !== [] ? ', ohne 2FA: ' . count($without) : '') . (count($admins) < 2 ? ' – zweite Person als Vertretung empfohlen' : ''));
 
-        $problems = $this->checkOldUrls();
-        $add('Alte Adressen', $problems === [] ? 'ok' : 'error', $problems === [] ? 'alle ' . count($this->oldUrls()) . ' führen zu Seite, Weiterleitung oder 410' : implode('; ', array_slice($problems, 0, 5)));
-
         $missing = (int) $db->value('SELECT COUNT(*) FROM not_found_log WHERE resolved_at IS NULL AND hits >= 3');
         $add('Nicht gefundene Adressen', $missing === 0 ? 'ok' : 'warn', $missing === 0 ? 'keine häufigen' : "$missing Adressen mit 3+ Aufrufen ohne Weiterleitung (Verwaltung → Weiterleitungen)");
         return $out;
-    }
-
-    /** @return list<string> */
-    private function oldUrls(): array
-    {
-        $lines = @file($this->app->root . '/docs/migration/alte-urls.txt', FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [];
-        return array_values(array_filter(array_map('trim', $lines), fn($l) => $l !== '' && $l[0] === '/'));
-    }
-
-    /** Alte Adressen intern aufrufen (ohne Netzwerk). @return list<string> */
-    private function checkOldUrls(): array
-    {
-        $problems = [];
-        $server = ['REMOTE_ADDR' => '127.0.0.1', 'HTTP_USER_AGENT' => 'MEA-Golive-Check'];
-        foreach ($this->oldUrls() as $u) {
-            $r = $this->app->handle(new Request('GET', $u, [], [], $server));
-            if (in_array($r->status, [301, 302], true)) {
-                $target = (string) parse_url((string) ($r->headers['Location'] ?? ''), PHP_URL_PATH);
-                $t = $this->app->handle(new Request('GET', $target, [], [], $server));
-                if ($t->status !== 200) {
-                    $problems[] = "$u → $target ({$t->status})";
-                }
-            } elseif (!in_array($r->status, [200, 410], true)) {
-                $problems[] = "$u ({$r->status})";
-            }
-        }
-        return $problems;
     }
 }

@@ -18,17 +18,17 @@ final class DynamicExamTest extends IntegrationTestCase
         self::assertStringContainsString('Testprüfung TESTPRUEFUNG-Z9', $detail->body);
         self::assertStringContainsString('99,00', $detail->body, 'Terminpreis geht vor Grundpreis');
 
-        self::assertStringContainsString('/pruefungen/testpruefung-z9/', $this->get('/telc-pruefungszentrum/')->body);
-        self::assertStringContainsString('Testprüfung TESTPRUEFUNG-Z9', $this->get('/preise/')->body);
+        self::assertStringContainsString('/pruefungen/testpruefung-z9/', $this->get('/pruefungen/')->body);
+        self::assertStringContainsString('Testprüfung TESTPRUEFUNG-Z9', $this->get('/pruefungen/preise/')->body);
         self::assertStringContainsString('https://mea.test/pruefungen/testpruefung-z9/', $this->get('/sitemap.xml')->body);
-        self::assertStringContainsString('Z9', $this->get('/telc-pruefungszentrum/')->body, 'neues Niveau im Filter');
+        self::assertStringContainsString('Z9', $this->get('/pruefungen/')->body, 'neues Niveau im Filter');
     }
 
     public function testDraftIsHiddenEverywhere(): void
     {
         $this->createExam('entwurf-z9', 'draft');
         self::assertSame(404, $this->get('/pruefungen/entwurf-z9/')->status);
-        self::assertStringNotContainsString('entwurf-z9', $this->get('/telc-pruefungszentrum/')->body);
+        self::assertStringNotContainsString('entwurf-z9', $this->get('/pruefungen/')->body);
         self::assertStringNotContainsString('entwurf-z9', $this->get('/sitemap.xml')->body);
     }
 
@@ -38,8 +38,8 @@ final class DynamicExamTest extends IntegrationTestCase
         $sid = $this->createSession($id);
         $r = $this->get('/pruefungen/deaktiviert-z9/');
         self::assertSame(302, $r->status);
-        self::assertSame('/telc-pruefungszentrum/', $r->headers['Location']);
-        self::assertStringNotContainsString('deaktiviert-z9', $this->get('/telc-pruefungszentrum/')->body);
+        self::assertSame('/pruefungen/', $r->headers['Location']);
+        self::assertStringNotContainsString('deaktiviert-z9', $this->get('/pruefungen/')->body);
         self::assertStringNotContainsString('deaktiviert-z9', $this->get('/sitemap.xml')->body);
         self::assertNotSame(200, $this->get("/pruefungen/deaktiviert-z9/buchen/$sid/")->status);
     }
@@ -65,10 +65,10 @@ final class DynamicExamTest extends IntegrationTestCase
         self::db()->run('UPDATE exam_types SET category_id = ? WHERE id = ?', [$cat, $id]);
         $general = $this->createExam('allgemein-z9');
         self::db()->run("UPDATE exam_types SET category_id = (SELECT id FROM exam_categories WHERE slug = 'allgemeinsprachlich') WHERE id = ?", [$general]);
-        $body = $this->get('/telc-pruefungszentrum/')->body;
+        $body = $this->get('/pruefungen/')->body;
         self::assertStringContainsString('Deutschprüfungen für Pflege und Medizin', $body);
         self::assertStringContainsString('Allgemeinsprachliche Deutschprüfungen', $body);
-        $f = $this->get('/telc-pruefungszentrum/?kategorie=pflege-medizin')->body;
+        $f = $this->get('/pruefungen/?kategorie=pflege-medizin')->body;
         self::assertStringContainsString('pflege-z9', $f);
         self::assertStringNotContainsString('/pruefungen/allgemein-z9/', $f);
     }
@@ -78,7 +78,7 @@ final class DynamicExamTest extends IntegrationTestCase
         $this->createExam('archiv-z9', 'archived');
         $r = $this->get('/pruefungen/archiv-z9/');
         self::assertSame(301, $r->status);
-        self::assertSame('/telc-pruefungszentrum/', $r->headers['Location']);
+        self::assertSame('/pruefungen/', $r->headers['Location']);
         self::assertStringNotContainsString('archiv-z9', $this->get('/sitemap.xml')->body);
     }
 

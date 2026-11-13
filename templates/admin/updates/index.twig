@@ -53,6 +53,13 @@
           <td>{% if u.log %}<details><summary class="text-sm">anzeigen</summary><pre class="pre">{{ u.log }}</pre></details>{% endif %}</td>
         </tr>{% endfor %}</tbody>
       </table></div>
+      <form method="post" action="/verwaltung/updates/verlauf-loeschen/" class="row mt" data-confirm="Einträge im gewählten Zeitraum endgültig aus dem Verlauf löschen?">
+        <input type="hidden" name="_csrf" value="{{ csrf }}">
+        <label for="purge-tage" class="text-sm">Verlauf aufräumen: Einträge</label>
+        <select id="purge-tage" name="tage">{% for d, l in purge_options %}<option value="{{ d }}">{{ l }}</option>{% endfor %}</select>
+        <button class="btn btn--ghost btn--sm" type="submit">{{ icon('trash-2') }}Löschen</button>
+      </form>
+      <p class="text-sm text-muted">Das zuletzt installierte Update und laufende Updates bleiben erhalten, damit „Letztes Update zurücknehmen“ funktioniert. Jede Bereinigung steht im Änderungsprotokoll.</p>
       {% if can_revert %}<div class="mt">{{ ui.confirm_post('/verwaltung/updates/zuruecknehmen/', 'Letztes Update zurücknehmen', 'Letztes Update zurücknehmen? Programmdateien und Datenbank gehen auf den Stand vor dem Update zurück. Daten seit dem Update gehen verloren.', csrf, 'danger', 'history') }}</div>{% endif %}
     {% endif %}
   </section>
