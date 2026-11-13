@@ -182,14 +182,17 @@ a:hover { color: var(--color-link-hover); }
 .nav__mega .mega__cta a .icon { transition: transform .2s var(--ease); }
 .nav__mega .mega__cta a:hover .icon { transform: translateX(3px); }
 .nav__mega .mega__cta .icon { width: 18px; height: 18px; }
-.mega__foot { display: flex; justify-content: space-between; align-items: center; gap: var(--space-4); flex-wrap: wrap; padding: var(--space-3) var(--space-5); background: var(--color-secondary); color: var(--color-on-dark-muted); }
+.mega__foot { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); align-items: center; padding: var(--space-3) 0; background: var(--color-secondary); color: var(--color-on-dark-muted); }
+.mega__foot p { grid-column: 1 / 4; padding: 0 var(--space-5); }
+/* Button wie „Beratung anfragen“ oben: gleiche Breite (letzte Spalte), gleiche Höhe und Rundung */
+.nav__mega .mega__foot .btn { grid-column: 4; margin: 0 var(--space-3); width: auto; min-height: calc(var(--button-height) - 4px); padding: var(--space-2) var(--space-4); border-radius: var(--radius-button); }
 .mega__foot p { margin: 0; font-size: var(--font-size-small); }
 /* Button auf dunklem Grund: helles Grün mit dunkelblauer Schrift (Kontrast über 8:1) */
 .nav__mega .mega__foot .btn { --btn-bg: var(--color-on-dark-accent); --btn-bd: var(--color-on-dark-accent); --btn-fg: var(--color-secondary); color: var(--color-secondary); font-weight: var(--font-weight-strong); }
 .nav__mega .mega__foot .btn:hover, .nav__mega .mega__foot .btn:focus-visible { --btn-bg: var(--color-on-dark); --btn-bd: var(--color-on-dark); color: var(--color-secondary); }
 /* Aufmerksamkeit für den Beratungs-Button: Lichtstreifen, grüner Ring und leichtes Anheben im Wechsel (nur transform/opacity/box-shadow, startet beim Öffnen des Menüs; bei reduzierter Bewegung global abgeschaltet) */
 .nav__mega .mega__foot .btn { position: relative; overflow: hidden; isolation: isolate; animation: mega-cta-pulse 3s var(--ease) .6s infinite; }
-.nav__mega .mega__foot .btn::after { content: ""; position: absolute; inset: 0 auto 0 0; width: 50%; z-index: -1; pointer-events: none; background: linear-gradient(105deg, transparent 0%, rgba(255,255,255,.95) 50%, transparent 100%); transform: translateX(-160%) skewX(-20deg); animation: mega-cta-shine 3s ease-in-out .6s infinite; }
+.nav__mega .mega__foot .btn::after { content: ""; position: absolute; inset: 0 auto 0 0; width: 50%; z-index: -1; pointer-events: none; background: linear-gradient(105deg, transparent 0%, color-mix(in srgb, var(--color-on-dark) 95%, transparent) 50%, transparent 100%); transform: translateX(-160%) skewX(-20deg); animation: mega-cta-shine 3s ease-in-out .6s infinite; }
 .nav__mega .mega__foot .btn:hover, .nav__mega .mega__foot .btn:focus-visible { animation: none; }
 .nav__mega .mega__foot .btn:hover::after, .nav__mega .mega__foot .btn:focus-visible::after { animation: none; opacity: 0; }
 @keyframes mega-cta-shine { 0% { transform: translateX(-160%) skewX(-20deg); } 30%, 100% { transform: translateX(340%) skewX(-20deg); } }
@@ -197,9 +200,9 @@ a:hover { color: var(--color-link-hover); }
   0%, 35% { transform: none; box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-on-dark-accent) 70%, transparent); }
   45% { transform: translateY(-2px) scale(1.04); }
   65% { transform: none; box-shadow: 0 0 0 14px color-mix(in srgb, var(--color-on-dark-accent) 0%, transparent); }
-  100% { transform: none; box-shadow: 0 0 0 0 transparent; }
+  100% { transform: none; box-shadow: none; }
 }
-@media (max-width: 1280px) and (min-width: 1081px) { .mega__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .mega__col:nth-child(2) { border-right: 0; } }
+@media (max-width: 1280px) and (min-width: 1081px) { .mega__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .mega__col:nth-child(2) { border-right: 0; } .mega__foot { grid-template-columns: repeat(2, minmax(0, 1fr)); } .mega__foot p { grid-column: 1; } .nav__mega .mega__foot .btn { grid-column: 2; } }
 @media (max-width: 1080px) {
   .site-header .container { position: static; }
   .nav__mega { border-top: 0; overflow: visible; padding: 0; }
@@ -497,6 +500,7 @@ body.nav-open .site-header { z-index: 60; }
 
 /* Standorte */
 .location-card { padding: var(--space-6); gap: var(--space-4); }
+.location-card__photo { margin: calc(-1 * var(--space-6)) calc(-1 * var(--space-6)) 0; }
 .location-card address { font-style: normal; line-height: 1.6; }
 .location-card h2 a { color: var(--color-heading); }
 .location-card h2 a:hover { color: var(--color-link-hover); }

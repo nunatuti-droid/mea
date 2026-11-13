@@ -31,8 +31,56 @@ abstract class Resource
     public ?string $indexPanel = null;
     /** Eigene Übersicht statt der Standardliste (z. B. Seitenverwaltung) */
     public bool $customIndex = false;
+    /** Liste hierarchisch darstellen (Untereinträge eingerückt unter dem Haupteintrag, ohne Seitenaufteilung) */
+    public bool $tree = false;
 
     public function __construct(protected Database $db) {}
+
+    /**
+     * Reihenfolge und Einrückung für Baum-Listen. Ergänzt je Zeile `_depth` (0, 1, 2 …) und optional `_group` (Überschrift).
+     * @param list<array<string,mixed>> $rows @return list<array<string,mixed>>
+     */
+    public function treeRows(array $rows): array
+    {
+        return self::nest($rows);
+    }
+
+    /**
+     * Zeilen so ordnen, dass Untereinträge direkt unter ihrem Haupteintrag stehen (Reihenfolge der Geschwister bleibt erhalten).
+     * Fehlt der Haupteintrag in der Liste (z. B. bei einem Filter), gilt die Zeile als oberste Ebene.
+     * @param list<array<string,mixed>> $rows @return list<array<string,mixed>>
+     */
+    protected static function nest(array $rows, string $parentKey = 'parent_id', int $maxDepth = 5): array
+    {
+        $ids = [];
+        foreach ($rows as $r) {
+            $ids[(int) $r['id']] = true;
+        }
+        $kids = [];
+        $roots = [];
+        foreach ($rows as $r) {
+            $p = $r[$parentKey] ?? null;
+            if ($p !== null && $p !== '' && isset($ids[(int) $p]) && (int) $p !== (int) $r['id']) {
+                $kids[(int) $p][] = $r;
+            } else {
+                $roots[] = $r;
+            }
+        }
+        $out = [];
+        $walk = function (array $r, int $d) use (&$walk, &$out, $kids, $maxDepth): void {
+            $r['_depth'] = $d;
+            $out[] = $r;
+            if ($d < $maxDepth) {
+                foreach ($kids[(int) $r['id']] ?? [] as $c) {
+                    $walk($c, $d + 1);
+                }
+            }
+        };
+        foreach ($roots as $r) {
+            $walk($r, 0);
+        }
+        return $out;
+    }
 
     /** @param array<string,mixed>|null $row @return list<array<string,mixed>> */
     abstract public function fields(?array $row): array;

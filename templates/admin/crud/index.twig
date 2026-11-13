@@ -37,11 +37,12 @@
         <thead><tr>{% for c in r.columns() %}<th scope="col"{% if c.format is defined and c.format in ['money', 'int'] %} class="num"{% endif %}>{{ c.label }}</th>{% endfor %}{% if has_row_actions %}<th scope="col"><span class="visually-hidden">Schnellaktion</span></th>{% endif %}</tr></thead>
         <tbody>
           {% for row in rows %}
-            <tr>
+            {% if row._group is defined and row._group != '' %}<tr class="tbl__group"><th colspan="{{ r.columns()|length + (has_row_actions ? 1 : 0) }}" scope="colgroup">{{ row._group }}</th></tr>{% endif %}
+            <tr{% if row._depth is defined and row._depth == 0 and r.tree %} class="tbl__root"{% endif %}>
               {% for c in r.columns() %}
                 {% set v = row[c.key] ?? null %}
                 {% set fmt = c.format ?? 'text' %}
-                {% if loop.first %}<th scope="row"><a href="/verwaltung/{{ r.key }}/{{ row.id }}/">{{ v ?: '(ohne Titel)' }}</a></th>
+                {% if loop.first %}<th scope="row"{% if row._depth is defined and row._depth > 0 %} style="padding-left: {{ 14 + row._depth * 26 }}px"{% endif %}>{% if row._depth is defined and row._depth > 0 %}<span class="tbl__branch" aria-hidden="true">↳</span> {% endif %}<a href="/verwaltung/{{ r.key }}/{{ row.id }}/">{{ v ?: '(ohne Titel)' }}</a></th>
                 {% else %}
                   <td{% if fmt in ['money', 'int'] %} class="num"{% endif %}>
                     {% if fmt == 'money' %}{{ v is null ? '–' : v|money }}
