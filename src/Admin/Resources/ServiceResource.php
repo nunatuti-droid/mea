@@ -263,6 +263,12 @@ final class ServiceResource extends Resource
         return $facts;
     }
 
+    public function actions(array $row, AdminContext $ctx): array
+    {
+        return [['label' => 'Als Seite im Seitenbaukasten bearbeiten', 'url' => '/verwaltung/leistungen/' . $row['id'] . '/als-seite/', 'icon' => 'layout-template', 'post' => true,
+            'confirm' => 'Eine Entwurfsseite mit denselben Inhalten anlegen? Die Leistungsseite bleibt unverändert online, bis Sie die neue Seite veröffentlichen.']];
+    }
+
     public function deleteBlocker(int $id): ?string
     {
         return $this->db->value('SELECT 1 FROM services WHERE parent_id = ? LIMIT 1', [$id]) !== null

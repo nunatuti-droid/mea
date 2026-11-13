@@ -214,12 +214,19 @@ final class BlockTypes
             'fields' => [$text('eyebrow', 'Kleine Zeile', '', 100, ['inline' => 'text']), $text('title', 'Überschrift (H1)', '', 200, ['inline' => 'text', 'help' => 'Leer = Titel der Seite.']),
                 $text('slogan', 'Spruch (grüne Zeile unter der Überschrift)', '', 80, ['help' => 'Leer = Standard-Spruch der Seite, falls vorhanden.']), $area('intro', 'Einleitung', '', 600), $media(), $bool('crumbs', 'Brotkrumen-Navigation zeigen', true),
                 $text('crumb', 'Name in der Brotkrumen-Navigation', '', 80, ['help' => 'Leer = Überschrift.']),
+                $text('root_label', 'Oberste Ebene (Brotkrumen, z. B. Campus)', '', 80), $url('root_url', 'Oberste Ebene Adresse'),
                 $text('parent_label', 'Übergeordnete Seite (Brotkrumen)', '', 80), $url('parent_url', 'Übergeordnete Seite Adresse'),
                 $text('btn1_label', 'Button 1', '', 60), $url('btn1_url', 'Button 1 Ziel'), $text('btn2_label', 'Button 2', '', 60), $url('btn2_url', 'Button 2 Ziel')]];
         $t['partners'] = ['label' => 'Partnerlogos', 'icon' => 'badge-check', 'cat' => 'site',
             'fields' => [$text('label', 'Überschrift', 'Zulassungen und Partner', 80), $items('items', 'Logos', [$media(), $text('label', 'Name (nur für Screenreader und Suchmaschinen)', '', 120, ['required' => true])], [], 18, 'label')]];
         $t['services_grid'] = ['label' => 'Leistungen (Karten)', 'icon' => 'briefcase', 'cat' => 'site', 'desc' => 'Alle veröffentlichten Leistungen aus der Verwaltung',
-            'fields' => [$num('limit', 'Höchstens (0 = alle)', 0, 0, 24), $text('more', 'Link-Text auf den Karten', 'Mehr erfahren', 40)]];
+            'fields' => [$num('limit', 'Höchstens (0 = alle)', 0, 0, 24), $text('more', 'Link-Text auf den Karten', 'Mehr erfahren', 40),
+                $text('exclude', 'Diese Leistung nicht zeigen (Adresse, z. B. bildungszentrum)', '', 80)]];
+        $t['subpage_cards'] = ['label' => 'Unterseiten (Karten)', 'icon' => 'layout-grid', 'cat' => 'site', 'desc' => 'Ganzer Abschnitt mit den Unterseiten eines Bereichs als Karten',
+            'fields' => [$text('eyebrow', 'Kleine Zeile', '', 100, ['inline' => 'text']), $text('title', 'Überschrift', 'Wählen Sie das passende Thema', 200, ['inline' => 'text']),
+                $text('parent', 'Bereich (Adresse, z. B. bildungszentrum)', '', 80, ['required' => true]), $text('exclude', 'Diese Unterseite nicht zeigen (Adresse)', '', 80),
+                $sel('kind', 'Welche', ['info' => 'Informationsseiten', 'measure' => 'Maßnahmen', 'all' => 'Alle'], 'info'), $num('min', 'Nur zeigen, wenn mindestens so viele (nach Ausschluss + 1)', 1, 1, 12),
+                $sel('bg', 'Hintergrund', ['none' => 'Weiß', 'alt' => 'Getönt'], 'none')]];
         $t['exam_cards'] = ['label' => 'Prüfungen (Karten)', 'icon' => 'award', 'cat' => 'site', 'desc' => 'Prüfungskarten mit Preis und nächstem Termin',
             'fields' => [$num('limit', 'Höchstens', 6, 1, 24), $rich('empty', 'Text, wenn keine Prüfung eingetragen ist', '<p>Unsere Prüfungen werden gerade eingetragen. Fragen Sie gerne direkt nach Terminen: <a href="/kontakt/?thema=pruefung">Kontakt aufnehmen</a>.</p>')]];
         $t['exam_list'] = ['label' => 'Prüfungsliste mit Filter', 'icon' => 'list-checks', 'cat' => 'site', 'desc' => 'Alle Prüfungen nach Kategorie, mit Filter',

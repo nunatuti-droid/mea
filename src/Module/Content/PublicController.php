@@ -43,8 +43,9 @@ final class PublicController
     /** /{slug}/ – zuerst Leistung, dann Seite. */
     public function slug(Request $req, string $slug): Response
     {
+        // Eine veröffentlichte Seite aus dem Seitenbaukasten ersetzt die gleichnamige Leistungsseite
         $service = $this->content->publishedService($slug);
-        if ($service !== null) {
+        if ($service !== null && ($this->pages)()->published($slug) === null) {
             return $this->renderService($service, null);
         }
         // Preise und Prüfungsvorbereitung gehören zu /pruefungen/ und sind nur dort erreichbar
@@ -70,7 +71,7 @@ final class PublicController
     {
         $p = $this->content->publishedService($parent);
         $child = $p !== null ? $this->content->publishedService($slug, (int) $p['id']) : null;
-        if ($p !== null && $child !== null) {
+        if ($p !== null && $child !== null && ($this->pages)()->published($parent . '/' . $slug) === null) {
             return $this->renderService($child, $p);
         }
         // Unterseite aus dem Seitenbaukasten (Adresse „bereich/seite“)
