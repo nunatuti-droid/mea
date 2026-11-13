@@ -184,6 +184,13 @@ a:hover { color: var(--color-link-hover); }
 /* Button auf dunklem Grund: helles Grün mit dunkelblauer Schrift (Kontrast über 8:1) */
 .nav__mega .mega__foot .btn { --btn-bg: var(--color-on-dark-accent); --btn-bd: var(--color-on-dark-accent); --btn-fg: var(--color-secondary); color: var(--color-secondary); font-weight: var(--font-weight-strong); }
 .nav__mega .mega__foot .btn:hover, .nav__mega .mega__foot .btn:focus-visible { --btn-bg: var(--color-on-dark); --btn-bd: var(--color-on-dark); color: var(--color-secondary); }
+/* Aufmerksamkeit für den Beratungs-Button: sanfter Lichtstreifen und ein weicher Ring im Wechsel (nur transform/opacity/box-shadow, startet beim Öffnen des Menüs; bei reduzierter Bewegung global abgeschaltet) */
+.nav__mega .mega__foot .btn { position: relative; overflow: hidden; isolation: isolate; animation: mega-cta-ring 3.6s var(--ease) 1s infinite; }
+.nav__mega .mega__foot .btn::after { content: ""; position: absolute; inset: 0 auto 0 0; width: 45%; z-index: -1; pointer-events: none; background: linear-gradient(105deg, transparent 0%, color-mix(in srgb, #fff 70%, transparent) 50%, transparent 100%); transform: translateX(-160%) skewX(-20deg); animation: mega-cta-shine 3.6s ease-in-out 1s infinite; }
+.nav__mega .mega__foot .btn:hover, .nav__mega .mega__foot .btn:focus-visible { animation: none; }
+.nav__mega .mega__foot .btn:hover::after, .nav__mega .mega__foot .btn:focus-visible::after { animation: none; opacity: 0; }
+@keyframes mega-cta-shine { 0% { transform: translateX(-160%) skewX(-20deg); } 35%, 100% { transform: translateX(380%) skewX(-20deg); } }
+@keyframes mega-cta-ring { 0%, 55% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-on-dark-accent) 55%, transparent); } 85%, 100% { box-shadow: 0 0 0 12px color-mix(in srgb, var(--color-on-dark-accent) 0%, transparent); } }
 @media (max-width: 1280px) and (min-width: 1081px) { .mega__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .mega__col:nth-child(2) { border-right: 0; } }
 @media (max-width: 1080px) {
   .site-header .container { position: static; }
