@@ -1003,3 +1003,13 @@ body.offline { min-height: 100vh; display: grid; place-items: center; padding: v
 .sec-visual__list .card__icon { width: 34px; height: 34px; flex: none; }
 .sec-visual__list .card__icon .icon { width: 20px; height: 20px; }
 @media (max-width: 900px) { .sec-split { grid-template-columns: 1fr; gap: 28px; } }
+
+/* Buchung: Prüfschritt vor der Zahlung */
+.review-list { margin: var(--space-4) 0 0; border: var(--border-width) solid var(--color-border); border-radius: var(--radius-shape); background: var(--color-surface); }
+.review-list__row { display: grid; grid-template-columns: minmax(0, 1fr); gap: 2px; padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--color-border); }
+.review-list__row:last-child { border-bottom: 0; }
+.review-list dt { font-size: var(--font-size-small); color: var(--color-text-muted); font-weight: var(--font-weight-ui); }
+.review-list dd { margin: 0; color: var(--color-heading); overflow-wrap: anywhere; }
+.review-list__row--total dd { font-weight: var(--font-weight-heading); }
+.review-actions { display: flex; flex-wrap: wrap; gap: var(--space-3); }
+@media (min-width: 640px) { .review-list__row { grid-template-columns: 14rem minmax(0, 1fr); gap: var(--space-4); } }

@@ -26,7 +26,7 @@
     <div class="container booking-layout">
       <div>
         <ol class="steps-inline" aria-label="Ablauf">
-          <li aria-current="step"><span>1</span>Angaben</li><li><span>2</span>Zahlung mit PayPal</li><li><span>3</span>Bestätigung per E-Mail</li>
+          <li aria-current="step"><span>1</span>Angaben</li><li><span>2</span>Prüfen</li><li><span>3</span>Zahlung mit PayPal</li><li><span>4</span>Bestätigung per E-Mail</li>
         </ol>
         {% if not payment_available %}
           <div class="notice notice--warning">{{ icon('circle-alert') }}<p><strong>Die Online-Zahlung ist gerade nicht verfügbar.</strong> Bitte melden Sie sich <a href="/kontakt/?pruefung={{ exam.public_name|url_encode }}">per Nachricht</a> oder telefonisch unter <a href="tel:{{ site.company.phone|tel }}">{{ site.company.phone_display }}</a> an.</p></div>
@@ -115,8 +115,8 @@
               {{ f.err(errors, 'privacy') }}
             </div>
           </fieldset>
-          <p class="hint text-muted mb-0">Felder mit <span class="req" aria-hidden="true">*</span> sind Pflichtfelder. Nach dem Klick reservieren wir Ihren Platz {{ rule.reservation_minutes ?? 20 }} Minuten lang und leiten Sie zu PayPal weiter. Die Anmeldung ist erst nach erfolgreicher Zahlung verbindlich.</p>
-          <div><button class="btn btn--lg" type="submit">{{ icon('ticket') }}Zahlungspflichtig anmelden{% if session.price %} · {{ session.price.total_cents|money(session.price.currency) }}{% endif %}</button></div>
+          <p class="hint text-muted mb-0">Felder mit <span class="req" aria-hidden="true">*</span> sind Pflichtfelder. Im nächsten Schritt können Sie Ihre Angaben noch einmal prüfen. Erst danach reservieren wir Ihren Platz {{ rule.reservation_minutes ?? 20 }} Minuten lang und leiten Sie zu PayPal weiter. Die Anmeldung ist erst nach erfolgreicher Zahlung verbindlich.</p>
+          <div><button class="btn btn--lg" type="submit">{{ icon('arrow-right') }}Angaben prüfen</button></div>
         </form>
         {% endif %}
       </div>
