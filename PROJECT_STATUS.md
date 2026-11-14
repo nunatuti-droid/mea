@@ -68,7 +68,6 @@ Plesk: Cron einrichten und PHP-Limits prüfen (siehe Punkt 5). Release 0.9.5 ist
 
 ## 7. Änderungen Branch `claude/project-thread-hpfsu9` (14.11.2026, noch nicht installiert, nicht im Browser/PHPUnit getestet)
 - Onboarding: sechste Box „Start im Betrieb“ (Seeder + einmaliger Content-Patch `onboarding-sechste-box-2026-11-14`).
-- Medaillon-Icons ca. +30 % (`--medal: 110px`, Ring und Icon skalieren mit); Footer: Logo 66 px, Öffnungszeiten entfernt, „Gebäude …“ in eigener Zeile (nur Footer); Telefonfeld: `.field { align-content: start }`; Megamenü-Button zentriert.
-- Verwaltung → Weiterleitungen: „Ausblenden“ / „Alle ausblenden“ für nicht gefundene Adressen (`RedirectLogController`).
-- Schon vorher im Code: Icon-Boxen 4:3, Abschnittstext `max-width: none`, Seitensuche, Löschen im Update-/Sicherheitsverlauf.
-- Noch offen (gesammelt): Vorschau in Bilder-/Farben-Dropdowns, Menüs-/Leistungen-Übersicht gruppieren, Stripe (inkl. Logo), Seiten und Leistungen vereinen.
+- Footer: Logo 66 px, Öffnungszeiten entfernt, „Gebäude …“ in eigener Zeile (nur Footer). Telefonfeld im Buchungsformular: `.field { align-content: start }`.
+- Medaillon-Vergrößerung, Megamenü-Button und Weiterleitungen ausblenden stehen in PR #29 bzw. #28.
+- Noch offen (gesammelt): Vorschau in Bilder-/Farben-Dropdowns, Stripe (inkl. Logo), Seiten und Leistungen vereinen (Stufe 2).

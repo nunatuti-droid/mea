@@ -4,8 +4,7 @@
   {% if missing is empty %}
     <p class="text-muted">Zurzeit keine offenen Einträge. Hier erscheinen Adressen, die Besucher oder Suchmaschinen vergeblich aufgerufen haben – nach dem Umzug ein guter Hinweis auf fehlende Weiterleitungen.</p>
   {% else %}
-    <p class="text-muted">Besucher oder Suchmaschinen haben diese Adressen vergeblich aufgerufen. Legen Sie für wichtige Adressen eine Weiterleitung an. Einträge werden nach 180 Tagen ohne Aufruf gelöscht. Mit „Ausblenden“ verschwinden Bot-Abfragen aus der Liste; ruft jemand die Adresse erneut auf, erscheint sie wieder.</p>
-    <form method="post" action="/verwaltung/weiterleitungen/nicht-gefunden/ausblenden/" class="mb" data-confirm="Alle offenen Einträge ausblenden?"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="alle" value="1"><button class="btn btn--ghost btn--sm" type="submit">{{ icon('eye-off') }}Alle ausblenden</button></form>
+    <p class="text-muted">Besucher oder Suchmaschinen haben diese Adressen vergeblich aufgerufen. Legen Sie für wichtige Adressen eine Weiterleitung an. Einträge werden nach 180 Tagen ohne Aufruf gelöscht.</p>
     <div class="table-wrap" tabindex="0"><table class="tbl tbl--compact"><caption class="visually-hidden">Nicht gefundene Adressen</caption>
       <thead><tr><th scope="col">Adresse</th><th scope="col">Aufrufe</th><th scope="col">Herkunft</th><th scope="col">Zuletzt</th><th scope="col"><span class="visually-hidden">Aktion</span></th></tr></thead>
       <tbody>
@@ -15,8 +14,7 @@
             <td class="num">{{ m.hits }}</td>
             <td>{{ m.referrer_host ?: '–' }}</td>
             <td class="nowrap">{{ m.last_seen_at|utc|date('d.m.Y H:i') }}</td>
-            <td><a class="btn btn--ghost btn--sm" href="/verwaltung/weiterleitungen/neu/?quelle={{ m.path|url_encode }}">{{ icon('plus') }}Weiterleitung<span class="visually-hidden"> für {{ m.path }}</span></a>
-              <form method="post" action="/verwaltung/weiterleitungen/nicht-gefunden/ausblenden/" class="inline"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="path" value="{{ m.path }}"><button class="btn btn--ghost btn--sm" type="submit">Ausblenden<span class="visually-hidden"> {{ m.path }}</span></button></form></td>
+            <td><a class="btn btn--ghost btn--sm" href="/verwaltung/weiterleitungen/neu/?quelle={{ m.path|url_encode }}">{{ icon('plus') }}Weiterleitung<span class="visually-hidden"> für {{ m.path }}</span></a></td>
           </tr>
         {% endfor %}
       </tbody>
