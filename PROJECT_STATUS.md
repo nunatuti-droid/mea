@@ -70,4 +70,5 @@ Plesk: Cron einrichten und PHP-Limits prüfen (siehe Punkt 5). Release 0.9.5 ist
 - Onboarding: sechste Box „Start im Betrieb“ (Seeder + einmaliger Content-Patch `onboarding-sechste-box-2026-11-14`).
 - Footer: Logo 66 px, Öffnungszeiten entfernt, „Gebäude …“ in eigener Zeile (nur Footer). Telefonfeld im Buchungsformular: `.field { align-content: start }`.
 - Medaillon-Vergrößerung, Megamenü-Button und Weiterleitungen ausblenden stehen in PR #29 bzw. #28.
-- Noch offen (gesammelt): Vorschau in Bilder-/Farben-Dropdowns, Stripe (inkl. Logo), Seiten und Leistungen vereinen (Stufe 2).
+- Seitenbaukasten: Farbliste mit Farbfeld je Eintrag und Vorschau-Feld (Bilder-Dropdown hatte die Vorschau schon).
+- Noch offen (gesammelt): Stripe (inkl. Logo), Seiten und Leistungen vereinen (Stufe 2).

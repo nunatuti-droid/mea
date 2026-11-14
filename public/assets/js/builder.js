@@ -864,13 +864,21 @@
           h('p', { class: 'bld-field__help' }, 'Im Editor bleibt das Element sichtbar, damit es weiter bearbeitet werden kann.'));
       case 'color': {
         const sel = h('select', { id }, h('option', { value: '' }, '– Design –'),
-          h('optgroup', { label: 'Farben aus dem Designsystem' }, cfg.style.tokens.map((t) => h('option', { value: 'var:' + t.key, selected: val === 'var:' + t.key }, t.label + ' (' + t.value + ')'))),
+          h('optgroup', { label: 'Farben aus dem Designsystem' }, cfg.style.tokens.map((t) => optionColor(h('option', { value: 'var:' + t.key, selected: val === 'var:' + t.key }, '\u25A0 ' + t.label + ' (' + t.value + ')'), t.value))),
           h('option', { value: 'custom', selected: typeof val === 'string' && val.startsWith('#') }, 'Eigene Farbe …'));
         const pickr = h('input', { type: 'color', value: typeof val === 'string' && val.startsWith('#') ? val : '#317566', 'aria-label': p.label + ': eigene Farbe' });
         pickr.hidden = !(typeof val === 'string' && val.startsWith('#'));
-        sel.addEventListener('change', () => { if (sel.value === 'custom') { pickr.hidden = false; set(pickr.value, null); } else set(sel.value, null); });
-        pickr.addEventListener('input', () => set(pickr.value, key));
-        ctl = h('div', { class: 'bld-sprop__row' }, sel, pickr);
+        const swatch = h('span', { class: 'bld-swatch', 'aria-hidden': 'true' });
+        const paintSwatch = () => {
+          const tok = sel.value.startsWith('var:') ? cfg.style.tokens.find((t) => 'var:' + t.key === sel.value) : null;
+          const c = tok ? tok.value : (sel.value === 'custom' ? pickr.value : '');
+          swatch.style.background = /^#[0-9a-f]{3,8}$/i.test(c) ? c : '';
+          swatch.classList.toggle('is-empty', !swatch.style.background);
+        };
+        sel.addEventListener('change', () => { if (sel.value === 'custom') { pickr.hidden = false; set(pickr.value, null); } else set(sel.value, null); paintSwatch(); });
+        pickr.addEventListener('input', () => { set(pickr.value, key); paintSwatch(); });
+        paintSwatch();
+        ctl = h('div', { class: 'bld-sprop__row' }, swatch, sel, pickr);
         wrap.append(h('label', { for: id }, p.label), h('div', { class: 'bld-sprop__row' }, ctl, reset));
         return wrap;
       }
@@ -880,6 +888,15 @@
     }
     wrap.append(h('label', { for: id }, p.label), h('div', { class: 'bld-sprop__row' }, ctl, reset));
     return wrap;
+  };
+
+  /** Hintergrund und lesbare Schriftfarbe für einen Eintrag der Farbliste (nur gültige HEX-Werte). Über CSSOM, weil die CSP Inline-Attribute sperrt. */
+  const optionColor = (opt, hex) => {
+    if (!/^#[0-9a-f]{6}$/i.test(hex || '')) return opt;
+    const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+    opt.style.backgroundColor = hex;
+    opt.style.color = (r * 299 + g * 587 + b * 114) / 1000 > 150 ? '#111' : '#fff';
+    return opt;
   };
 
   const advancedPanel = (n) => {
