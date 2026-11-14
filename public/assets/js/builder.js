@@ -642,7 +642,14 @@
       case 'select': {
         const sel = h('select', { id }, Object.entries(fd.options).map(([k, l]) => h('option', { value: k, selected: String(val) === String(k) }, l)));
         sel.addEventListener('change', () => set(sel.value, null));
-        wrap.append(lab, sel, help(fd.help));
+        // Hintergrund-Auswahl mit Farbfeld (Werte aus dem Designsystem)
+        if (fd.name === 'bg') {
+          const tok = (k) => (cfg.style.tokens.find((x) => x.key === k) || {}).value || null;
+          const map = { none: tok('color-background'), alt: tok('color-surface-alt'), surface: tok('color-surface'), ink: tok('color-secondary') };
+          const pk = swatchSelect(sel, (o) => map[o.value] || null);
+          pk.querySelector('.bld-cpick__btn').setAttribute('aria-label', fd.label);
+          wrap.append(lab, pk, help(fd.help));
+        } else wrap.append(lab, sel, help(fd.help));
         break;
       }
       case 'bool': {
