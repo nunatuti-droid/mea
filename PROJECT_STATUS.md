@@ -71,5 +71,4 @@ Plesk: Cron einrichten und PHP-Limits prüfen (siehe Punkt 5). Release 0.9.5 ist
 - Footer: Logo 66 px, Öffnungszeiten entfernt, „Gebäude …“ in eigener Zeile (nur Footer). Telefonfeld im Buchungsformular: `.field { align-content: start }`.
 - Medaillon-Vergrößerung, Megamenü-Button und Weiterleitungen ausblenden stehen in PR #29 bzw. #28.
 - Seitenbaukasten: Farbliste mit Farbfeld je Eintrag und Vorschau-Feld (Bilder-Dropdown hatte die Vorschau schon).
-- Stripe: `StripeGateway` (Checkout) mit Unit-Tests vorhanden, noch nicht in die Buchung eingebunden (Zahlart-Auswahl, Rückkehr, Webhook, Erstattung, Logo). Außerdem: `hasResponse()`-Aufruf aus PayPalGateway entfernt (fehlt in der installierten Guzzle-Version).
 - Noch offen (gesammelt): Seiten und Leistungen vereinen (Stufe 2).

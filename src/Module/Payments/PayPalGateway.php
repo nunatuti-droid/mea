@@ -77,7 +77,7 @@ final class PayPalGateway implements PaymentGateway
         try {
             $res = $this->http->request($method, self::baseUrl($this->mode) . $path, $options);
         } catch (RequestException $e) {
-            $body = (string) $e->getResponse()?->getBody();
+            $body = $e->hasResponse() ? (string) $e->getResponse()?->getBody() : '';
             $data = json_decode($body, true);
             $issue = is_array($data) ? (string) ($data['details'][0]['issue'] ?? $data['name'] ?? $data['error'] ?? '') : '';
             throw new PaymentException('PayPal-Fehler' . ($issue !== '' ? ": $issue" : '') . ' (HTTP ' . ($e->getResponse()?->getStatusCode() ?? 0) . ')', 0, $e);
