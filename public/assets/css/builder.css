@@ -115,8 +115,6 @@ body.bld { height: 100vh; overflow: hidden; display: flex; flex-direction: colum
 .bld-sprop.is-inherited > label::after { content: "geerbt"; font-size: .66rem; color: var(--c-muted); }
 .bld-sprop__row { display: flex; gap: 4px; align-items: center; }
 .bld-sprop__row > :first-child { flex: 1; min-width: 0; }
-.bld-sprop__row > .bld-swatch:first-child { flex: none; }
-.bld-sprop__row > .bld-swatch + select { flex: 1; min-width: 0; }
 .bld-sprop__reset { border: 0; background: none; cursor: pointer; padding: 3px; color: var(--c-muted); border-radius: 4px; }
 .bld-sprop__reset:hover { background: var(--c-danger-soft); color: var(--c-danger); }
 .bld-sprop input[type=color] { width: 34px; height: 30px; padding: 1px; border: 1px solid var(--c-border-strong); border-radius: 6px; background: #fff; flex: none !important; }
@@ -175,5 +173,3 @@ body.bld { height: 100vh; overflow: hidden; display: flex; flex-direction: colum
 }
 @media (prefers-reduced-motion: reduce) { .bld-frame { transition: none; } }
 .bld-field > label.bld-check { justify-content: flex-start; font-weight: 600; }
-.bld-swatch { flex: none; width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--bld-border, #c9d3cf); background: repeating-conic-gradient(#e4e9e7 0 25%, #fff 0 50%) 0 0 / 10px 10px; }
-.bld-swatch:not(.is-empty) { background-clip: padding-box; }

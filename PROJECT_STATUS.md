@@ -66,9 +66,5 @@ Plesk: Cron einrichten und PHP-Limits prüfen (siehe Punkt 5). Release 0.9.5 ist
 
 - **Bildauswahl mit Vorschau (ohne Versionssprung):** Medienfelder der Verwaltung (`type: media`, z. B. „Bild für Karten“, „Bild oben auf der Seite“ bei Prüfungen/Leistungen, Standort-Bild, Logo) zeigen im geöffneten Dropdown zu jedem Eintrag ein Vorschaubild (kleinste Bildvariante, 64×48). Umsetzung rein im Frontend (`public/assets/js/admin.js`, `.media-pick__*` in `admin.css`): das `<select>` bleibt als versteckte Formularquelle erhalten, Einträge und Bilder werden erst beim ersten Öffnen erzeugt (`loading=lazy`), Tastaturbedienung (Pfeile, Enter, Esc). Ohne JavaScript bleibt das normale Dropdown. Geprüft: Sichtprüfung im Browser mit Testseite; nicht geprüft: echte Verwaltung (keine Datenbank in der Umgebung), Screenreader.
 
-## 7. Änderungen Branch `claude/project-thread-hpfsu9` (14.11.2026, noch nicht installiert, nicht im Browser/PHPUnit getestet)
-- Onboarding: sechste Box „Start im Betrieb“ (Seeder + einmaliger Content-Patch `onboarding-sechste-box-2026-11-14`).
-- Footer: Logo 66 px, Öffnungszeiten entfernt, „Gebäude …“ in eigener Zeile (nur Footer). Telefonfeld im Buchungsformular: `.field { align-content: start }`.
-- Medaillon-Vergrößerung, Megamenü-Button und Weiterleitungen ausblenden stehen in PR #29 bzw. #28.
-- Seitenbaukasten: Farbliste mit Farbfeld je Eintrag und Vorschau-Feld (Bilder-Dropdown hatte die Vorschau schon).
-- Noch offen (gesammelt): Seiten und Leistungen vereinen (Stufe 2).
+## 8. Onboarding: sechste Box (Branch `claude/project-thread-hpfsu9`, PR #30, 14.11.2026)
+Box „Start im Betrieb“ im Abschnitt „Was zum Onboarding gehören kann“ (Seeder + einmaliger Content-Patch `onboarding-sechste-box-2026-11-14`). Nur PHP-Syntax und CSS-Vorschau geprüft.
