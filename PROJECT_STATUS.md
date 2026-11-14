@@ -65,3 +65,10 @@ Nach Version-Updates: `php bin/console migrate` (23 Migrationen), danach `selfte
 Plesk: Cron einrichten und PHP-Limits prüfen (siehe Punkt 5). Release 0.9.5 ist gebaut (`installation/update-0.9.5.zip`, SHA-256 `47286ec6…b6714`) und eingespielt. Ein Git-Tag `v0.9.5` auf `b9edb08` fehlt noch (Push aus der Sitzung nicht erlaubt; manuell auf GitHub setzen).
 
 - **Bildauswahl mit Vorschau (ohne Versionssprung):** Medienfelder der Verwaltung (`type: media`, z. B. „Bild für Karten“, „Bild oben auf der Seite“ bei Prüfungen/Leistungen, Standort-Bild, Logo) zeigen im geöffneten Dropdown zu jedem Eintrag ein Vorschaubild (kleinste Bildvariante, 64×48). Umsetzung rein im Frontend (`public/assets/js/admin.js`, `.media-pick__*` in `admin.css`): das `<select>` bleibt als versteckte Formularquelle erhalten, Einträge und Bilder werden erst beim ersten Öffnen erzeugt (`loading=lazy`), Tastaturbedienung (Pfeile, Enter, Esc). Ohne JavaScript bleibt das normale Dropdown. Geprüft: Sichtprüfung im Browser mit Testseite; nicht geprüft: echte Verwaltung (keine Datenbank in der Umgebung), Screenreader.
+
+## 7. Änderungen Branch `claude/project-thread-hpfsu9` (14.11.2026, noch nicht installiert, nicht im Browser/PHPUnit getestet)
+- Onboarding: sechste Box „Start im Betrieb“ (Seeder + einmaliger Content-Patch `onboarding-sechste-box-2026-11-14`).
+- Medaillon-Icons ca. +30 % (`--medal: 110px`, Ring und Icon skalieren mit); Footer: Logo 66 px, Öffnungszeiten entfernt, „Gebäude …“ in eigener Zeile (nur Footer); Telefonfeld: `.field { align-content: start }`; Megamenü-Button zentriert.
+- Verwaltung → Weiterleitungen: „Ausblenden“ / „Alle ausblenden“ für nicht gefundene Adressen (`RedirectLogController`).
+- Schon vorher im Code: Icon-Boxen 4:3, Abschnittstext `max-width: none`, Seitensuche, Löschen im Update-/Sicherheitsverlauf.
+- Noch offen (gesammelt): Vorschau in Bilder-/Farben-Dropdowns, Menüs-/Leistungen-Übersicht gruppieren, Stripe (inkl. Logo), Seiten und Leistungen vereinen.
