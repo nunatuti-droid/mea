@@ -27,7 +27,8 @@ final class ContentPatches
             'referenz-2026-11-11' => fn() => implode(' ', (new \Mea\Install\ReferenceStructure($this->db))->run()),
             'referenz-inhalte-2026-11-12' => fn() => $this->db->transaction(fn() => (new \Mea\Install\ReferenceStructure($this->db))->content()),
             'referenz-bilder-2026-11-12' => fn() => $this->db->transaction(fn() => (new \Mea\Install\ReferenceStructure($this->db))->images()),
-            'referenz-seiten-2026-11-12' => fn() => $this->db->transaction(fn() => (new \Mea\Install\ReferenceStructure($this->db))->aboutPage() . ' ' . (new \Mea\Install\ReferenceStructure($this->db))->contactPage())] as $key => $patch) {
+            'referenz-seiten-2026-11-12' => fn() => $this->db->transaction(fn() => (new \Mea\Install\ReferenceStructure($this->db))->aboutPage() . ' ' . (new \Mea\Install\ReferenceStructure($this->db))->contactPage()),
+            'onboarding-sechste-box-2026-11-14' => fn() => $this->onboardingSixthModule()] as $key => $patch) {
             if (in_array($key, $done, true)) {
                 continue;
             }
@@ -70,5 +71,23 @@ final class ContentPatches
             }
         }
         return 'Neues Bild im Startbereich der Startseite.';
+    }
+
+    /** Sechste Box „Start im Betrieb“ im Abschnitt „Was zum Onboarding gehören kann“ (nur wenn noch nicht vorhanden). */
+    private function onboardingSixthModule(): string
+    {
+        $row = $this->db->one("SELECT id, facts_json FROM services WHERE slug = 'onboarding' AND parent_id = (SELECT id FROM services WHERE slug = 'recruiting' AND parent_id IS NULL)");
+        $facts = $row !== null ? json_decode((string) $row['facts_json'], true) : null;
+        if (!is_array($facts) || !is_array($facts['modules'] ?? null)) {
+            return 'Onboarding-Box übersprungen (Seite oder Bausteine fehlen).';
+        }
+        foreach ($facts['modules'] as $m) {
+            if (($m['title'] ?? '') === 'Start im Betrieb') {
+                return 'Onboarding-Box war bereits vorhanden.';
+            }
+        }
+        $facts['modules'][] = ['icon' => 'briefcase', 'title' => 'Start im Betrieb', 'text' => 'Abstimmung von Abläufen, Ansprechpersonen und nächsten Schritten, damit der Arbeitsstart gut vorbereitet ist.'];
+        $this->db->run('UPDATE services SET facts_json = ? WHERE id = ?', [json_encode($facts, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR), (int) $row['id']]);
+        return 'Sechste Box im Onboarding ergänzt.';
     }
 }
