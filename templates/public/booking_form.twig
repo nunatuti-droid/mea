@@ -141,7 +141,7 @@
         {% if exam_center %}<p class="hint">Die Prüfung findet vor Ort und auf Papier im telc-Prüfungszentrum {{ exam_center.city }} statt, nicht online.</p>{% endif %}
         {% if session.notes_public %}<p class="hint">{{ session.notes_public }}</p>{% endif %}
         <div class="pay-badge">
-          <div class="pay-badge__head"><span>Sicher bezahlen mit</span>{% for pr in providers %}{% if pr.name == 'paypal' %}<img src="/assets/img/paypal.svg" width="104" height="29" alt="PayPal" loading="lazy" decoding="async">{% else %}<strong>{{ pr.label }}</strong>{% endif %}{% endfor %}</div>
+          <div class="pay-badge__head"><span>Sicher bezahlen mit</span><span class="pay-badge__logos">{% for pr in providers %}{% if pr.name == 'paypal' %}<img src="/assets/img/paypal.svg" width="104" height="29" alt="PayPal" loading="lazy" decoding="async">{% elseif pr.name == 'stripe' %}<img src="/assets/img/stripe.png" width="67" height="28" alt="Stripe" loading="lazy" decoding="async">{% else %}<strong>{{ pr.label }}</strong>{% endif %}{% endfor %}</span></div>
           <p class="hint">{{ icon('shield-check') }} Kartendaten werden nicht bei uns gespeichert.</p>
         </div>
       </aside>

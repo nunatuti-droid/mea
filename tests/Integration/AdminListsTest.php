@@ -127,4 +127,12 @@ final class AdminListsTest extends IntegrationTestCase
         $b = (array) json_decode((string) $db->value('SELECT facts_json FROM services WHERE id = ?', [$kept]), true);
         self::assertSame('Eigene Änderung', $b['sections'][0]['title'], 'Änderungen der Redaktion bleiben');
     }
+
+    public function testFooterHasNoOpeningHoursAndBreaksBuildingOntoOwnLine(): void
+    {
+        $html = $this->get('/')->body;
+        $footer = substr($html, (int) strpos($html, '<footer'));
+        self::assertStringNotContainsString('Öffnungszeiten', $footer);
+        self::assertMatchesRegularExpression('#Wilhelmstraße 98b<br><span class="nowrap">Gebäude 012</span><br>44649 Herne#', $footer);
+    }
 }

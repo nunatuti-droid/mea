@@ -834,6 +834,83 @@
     if (v.startsWith('var:')) { const t = cfg.style.tokens.find((x) => x.key === v.slice(4)); return t ? t.label : v; }
     return v;
   };
+  // Auswahlliste mit Farbfeld vor jedem Eintrag (statt des normalen Dropdowns). Das echte <select> bleibt versteckt erhalten und liefert den Wert.
+  const openColorLists = new Set();
+  const swatchSelect = (sel, colorOf) => {
+    const opts = [...sel.options];
+    const selId = sel.id;
+    sel.id = selId + '-native';
+    const wrap = h('div', { class: 'bld-cpick' });
+    const swatch = (o) => {
+      const c = colorOf(o);
+      const e = h('span', { class: 'bld-cpick__sw' + (c ? '' : ' is-none'), 'aria-hidden': 'true' });
+      if (c) e.style.background = c;
+      return e;
+    };
+    const txt = (o) => h('span', { class: 'bld-cpick__txt' }, o.textContent.trim());
+    const btn = h('button', { type: 'button', id: selId, class: 'bld-cpick__btn', 'aria-haspopup': 'listbox', 'aria-expanded': 'false' });
+    const lab = document.querySelector('label[for="' + selId + '"]');
+    if (lab) { if (!lab.id) lab.id = selId + '-label'; btn.setAttribute('aria-labelledby', lab.id + ' ' + selId); }
+    const list = h('ul', { class: 'bld-cpick__list', role: 'listbox', id: selId + '-list' });
+    list.hidden = true;
+    btn.setAttribute('aria-controls', list.id);
+    const showCurrent = () => { const o = sel.selectedOptions[0] || opts[0]; btn.replaceChildren(swatch(o), txt(o)); };
+    const items = [];
+    let lastGroup = null;
+    opts.forEach((o, i) => {
+      const g = o.parentElement.tagName === 'OPTGROUP' ? o.parentElement.label : null;
+      if (g !== lastGroup) { if (g) list.append(h('li', { class: 'bld-cpick__group', role: 'presentation' }, g)); lastGroup = g; }
+      const li = h('li', { class: 'bld-cpick__opt', role: 'option', id: list.id + '-' + i }, swatch(o), txt(o));
+      li.addEventListener('mousedown', (e) => e.preventDefault());
+      li.addEventListener('click', () => { choose(i); close(true); });
+      list.append(li); items.push(li);
+    });
+    let active = -1;
+    const mark = (i) => {
+      active = i;
+      items.forEach((li, k) => { li.classList.toggle('is-active', k === i); li.setAttribute('aria-selected', String(k === sel.selectedIndex)); });
+      if (items[i]) { btn.setAttribute('aria-activedescendant', items[i].id); items[i].scrollIntoView({ block: 'nearest' }); }
+    };
+    const choose = (i) => { sel.selectedIndex = i; showCurrent(); sel.dispatchEvent(new Event('change', { bubbles: true })); };
+    const onAway = (e) => { if (!wrap.contains(e.target)) close(); };
+    const onScroll = (e) => { if (!list.contains(e.target)) close(); };
+    function close(focus) {
+      if (list.hidden) return;
+      list.hidden = true; btn.setAttribute('aria-expanded', 'false'); btn.removeAttribute('aria-activedescendant');
+      openColorLists.delete(close);
+      document.removeEventListener('click', onAway); window.removeEventListener('scroll', onScroll, true); window.removeEventListener('resize', close);
+      if (focus) btn.focus();
+    }
+    const open = () => {
+      openColorLists.forEach((c) => c());
+      list.hidden = false; btn.setAttribute('aria-expanded', 'true'); openColorLists.add(close);
+      // feste Position, damit die Liste nicht vom scrollenden Seitenfeld abgeschnitten wird
+      const r = btn.getBoundingClientRect();
+      const below = innerHeight - r.bottom - 12, above = r.top - 12;
+      const up = below < 220 && above > below;
+      Object.assign(list.style, { left: r.left + 'px', width: Math.max(r.width, 280) + 'px', maxHeight: Math.min(340, up ? above : below) + 'px',
+        top: up ? 'auto' : r.bottom + 4 + 'px', bottom: up ? innerHeight - r.top + 4 + 'px' : 'auto' });
+      mark(Math.max(0, sel.selectedIndex));
+      setTimeout(() => { document.addEventListener('click', onAway); window.addEventListener('scroll', onScroll, true); window.addEventListener('resize', close); });
+    };
+    btn.addEventListener('click', () => (list.hidden ? open() : close()));
+    btn.addEventListener('keydown', (e) => {
+      if (list.hidden) { if (['ArrowDown', 'ArrowUp', 'Enter', ' '].includes(e.key)) { e.preventDefault(); open(); } return; }
+      if (e.key === 'ArrowDown') { e.preventDefault(); mark(Math.min(opts.length - 1, active + 1)); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); mark(Math.max(0, active - 1)); }
+      else if (e.key === 'Home') { e.preventDefault(); mark(0); }
+      else if (e.key === 'End') { e.preventDefault(); mark(opts.length - 1); }
+      else if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); choose(active); close(true); }
+      else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(true); }
+      else if (e.key === 'Tab') close();
+    });
+    sel.addEventListener('change', showCurrent);
+    sel.setAttribute('aria-hidden', 'true'); sel.tabIndex = -1;
+    showCurrent();
+    wrap.append(btn, list, sel);
+    return wrap;
+  };
+
   const styleControl = (k, p, val, inh, set, nid) => {
     const id = fieldId();
     const isSet = val !== undefined;
@@ -870,7 +947,9 @@
         pickr.hidden = !(typeof val === 'string' && val.startsWith('#'));
         sel.addEventListener('change', () => { if (sel.value === 'custom') { pickr.hidden = false; set(pickr.value, null); } else set(sel.value, null); });
         pickr.addEventListener('input', () => set(pickr.value, key));
-        ctl = h('div', { class: 'bld-sprop__row' }, sel, pickr);
+        const cssOf = (v) => (typeof v === 'string' ? (v.startsWith('#') ? v : (v.startsWith('var:') ? (cfg.style.tokens.find((x) => x.key === v.slice(4)) || {}).value : null)) : null) || null;
+        const picker = swatchSelect(sel, (o) => o.value === 'custom' ? (cssOf(val) && val.startsWith('#') ? val : 'conic-gradient(#e8a33d, #3f8d7b, #0e3042, #e8a33d)') : (o.value === '' ? cssOf(inh) : cssOf(o.value)));
+        ctl = h('div', { class: 'bld-sprop__row' }, picker, pickr);
         wrap.append(h('label', { for: id }, p.label), h('div', { class: 'bld-sprop__row' }, ctl, reset));
         return wrap;
       }

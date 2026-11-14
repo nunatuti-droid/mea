@@ -26,11 +26,6 @@
           <li><a href="tel:{{ company.phone|tel }}">{{ icon('phone') }}<span>{{ company.phone_display }}</span></a></li>
           {% if company.whatsapp %}<li><a href="https://wa.me/{{ company.whatsapp|tel|replace({'+': ''}) }}" rel="noopener" target="_blank">{{ icon('message-circle') }}<span>WhatsApp</span><span class="visually-hidden"> (öffnet in neuem Fenster)</span></a></li>{% endif %}
         </ul>
-        {% set hl = all_locations|filter(l => l.hours is not empty)|first %}
-        {% if hl %}
-          <p class="footer__hours-title">Öffnungszeiten {{ hl.city }}</p>
-          <ul class="footer__hours">{% for h in hl.hours %}<li><span>{{ h.day }}</span><span>{{ h.opens }}–{{ h.closes }} Uhr</span></li>{% endfor %}</ul>
-        {% endif %}
         <a class="btn btn--light btn--sm" href="/kontakt/">{{ icon('calendar') }}{{ txt('footer.reach_cta') }}</a>
       </div>
       <div>
@@ -39,7 +34,7 @@
           {% for loc in all_locations %}
             <address>
               <a href="/standorte/{{ loc.slug }}/"><strong>{{ loc.name }}</strong></a><br>
-              {{ loc.street }}{% if loc.address_extra %}, {{ loc.address_extra }}{% endif %}<br>{{ loc.postal_code }} {{ loc.city }}
+              {{ loc.street }}{% if loc.address_extra %}<br><span class="nowrap">{{ loc.address_extra }}</span>{% endif %}<br>{{ loc.postal_code }} {{ loc.city }}
               {% if loc.phone %}<br><a href="tel:{{ loc.phone|tel }}">{{ loc.phone }}</a>{% endif %}
             </address>
           {% endfor %}

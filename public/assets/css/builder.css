@@ -173,3 +173,18 @@ body.bld { height: 100vh; overflow: hidden; display: flex; flex-direction: colum
 }
 @media (prefers-reduced-motion: reduce) { .bld-frame { transition: none; } }
 .bld-field > label.bld-check { justify-content: flex-start; font-weight: 600; }
+
+/* Farbauswahl mit Farbfeld */
+.bld-cpick { position: relative; }
+.bld-cpick > select { position: absolute; opacity: 0; pointer-events: none; width: 1px; height: 1px; }
+.bld-cpick__btn { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 32px; padding: 4px 8px; font: inherit; font-size: .86rem; color: var(--c-text); text-align: left; background: #fff; border: 1px solid var(--c-border-strong); border-radius: 6px; cursor: pointer; }
+.bld-cpick__btn::after { content: ""; margin-left: auto; flex: none; width: 7px; height: 7px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(45deg) translateY(-2px); }
+.bld-cpick__btn[aria-expanded="true"]::after { transform: rotate(-135deg); }
+.bld-cpick__txt { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bld-cpick__sw { flex: none; width: 20px; height: 20px; border-radius: 5px; border: 1px solid rgba(0,0,0,.2); }
+.bld-cpick__sw.is-none { background: repeating-linear-gradient(135deg, #fff 0 4px, #dfe6e9 4px 8px); }
+.bld-cpick__list { position: fixed; z-index: 1000; margin: 0; padding: 4px; list-style: none; overflow-y: auto; background: #fff; border: 1px solid var(--c-border-strong); border-radius: 8px; box-shadow: 0 10px 30px rgb(14 48 66 / .22); }
+.bld-cpick__group { padding: 6px 8px 2px; font-size: .72rem; font-weight: 750; letter-spacing: .04em; text-transform: uppercase; color: var(--c-muted); }
+.bld-cpick__opt { display: flex; align-items: center; gap: 8px; padding: 5px 8px; border-radius: 6px; font-size: .86rem; cursor: pointer; }
+.bld-cpick__opt:hover, .bld-cpick__opt.is-active { background: var(--c-brand-soft); }
+.bld-cpick__opt[aria-selected="true"] { font-weight: 700; box-shadow: inset 3px 0 0 var(--c-action); }
