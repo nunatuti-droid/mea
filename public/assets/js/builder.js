@@ -262,6 +262,7 @@
     positionOverlays();
   };
   const showErrors = (errors) => {
+    const changed = JSON.stringify(errors) !== JSON.stringify(state.errors);
     state.errors = errors;
     const box = $('[data-errors]');
     box.replaceChildren();
@@ -269,7 +270,7 @@
     if (errors.length) {
       box.append(h('strong', {}, 'Bitte prüfen:'), h('ul', {}, errors.slice(0, 8).map((e) => h('li', {}, e.id && find(e.id) ? h('button', { type: 'button', onclick: () => select(e.id, true) }, label(find(e.id).node)) : null, e.id && find(e.id) ? ': ' : '', e.msg))));
     }
-    if (state.sel) renderInspector();
+    if (state.sel && changed) renderInspector();
   };
 
   const elFor = (id) => doc && doc.querySelector('[data-b="' + CSS.escape(id) + '"]');
@@ -756,7 +757,10 @@
     if (!r) { box.replaceChildren(h('p', { class: 'bld-empty' }, 'Bitte ein Element in der Seite oder in der Struktur auswählen.')); return; }
     const n = r.node, t = T[n.type] || { label: n.type, fields: [] };
     const active = document.activeElement;
-    const keepFocus = active && box.contains(active) && active.id ? active.id : null;
+    // Feld-IDs werden bei jedem Aufbau neu vergeben; Fokus und Cursor daher über die Position des Feldes merken
+    const fields = () => [...box.querySelectorAll('input, textarea, select')];
+    const keepIdx = active && box.contains(active) ? fields().indexOf(active) : -1;
+    const keepSel = keepIdx >= 0 && typeof active.selectionStart === 'number' ? [active.selectionStart, active.selectionEnd] : null;
     const crumbs = h('nav', { class: 'bld-crumbs', 'aria-label': 'Position' }, h('span', {}, 'Seite ›'), ancestors(n.id).map((a) => [h('button', { type: 'button', onclick: () => select(a.id, true) }, label(a)), h('span', {}, '›')]));
     const errs = state.errors.filter((e) => e.id === n.id);
     const actions = h('div', { class: 'bld-actions' },
@@ -787,7 +791,10 @@
       crumbs,
       errs.length ? h('div', { class: 'alert alert--error' }, h('p', {}, errs.map((e) => e.msg).join(' '))) : null,
       actions, sub, body);
-    if (keepFocus) document.getElementById(keepFocus)?.focus();
+    if (keepIdx >= 0) {
+      const el = fields()[keepIdx];
+      if (el) { el.focus(); if (keepSel) { try { el.setSelectionRange(keepSel[0], keepSel[1]); } catch (e) { /* Feldtyp ohne Cursor */ } } }
+    }
   };
 
   const componentPanel = (n) => {

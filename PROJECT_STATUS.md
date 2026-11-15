@@ -98,3 +98,6 @@ Prüfseite `booking_review.twig`: Zeile „Zu zahlen“ dunkel hervorgehoben (Se
 
 ## Fix: „Diese Adresse wird schon verwendet“ beim Speichern (Branch `claude/project-thread-6nbu4i`, 15.11.2026)
 Ursache: Wurde eine Leistung per „Als Seite im Seitenbaukasten bearbeiten“ umgewandelt, existiert eine Seite mit derselben Adresse. `ServiceResource::validate` prüfte jede Hauptleistung auch gegen `pages.slug` und meldete so bei jedem Speichern (auch ohne Änderung der Adresse) einen Konflikt. Jetzt wird die Eindeutigkeit nur geprüft, wenn sich Adresse oder übergeordnete Leistung ändern; gleiches in `PageResource::validate` (Seite mit Adresse einer Leistung). Nur PHP-Syntax geprüft, nicht im Browser.
+
+## Fix: Seitenbaukasten-Einstellungen verlieren beim Tippen den Fokus (Branch `claude/project-thread-6nbu4i-fokus`, 15.11.2026)
+Ursache: Nach jeder Vorschau-Aktualisierung baute `showErrors` das Einstellungsfeld (Inspector) neu auf. Die Feld-IDs werden dabei neu vergeben, die Fokus-Wiederherstellung über die ID lief ins Leere; man musste für jeden Buchstaben neu ins Feld klicken. Jetzt wird der Inspector nur bei geänderten Fehlern neu aufgebaut, und der Fokus samt Cursor wird über die Feldposition wiederhergestellt (`public/assets/js/builder.js`). Nur Syntax geprüft (`node --check`), nicht im Browser.
