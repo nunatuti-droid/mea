@@ -1030,6 +1030,16 @@ body.offline { min-height: 100vh; display: grid; place-items: center; padding: v
 .review-list__row:last-child { border-bottom: 0; }
 .review-list dt { font-size: var(--font-size-small); color: var(--color-text-muted); font-weight: var(--font-weight-ui); }
 .review-list dd { margin: 0; color: var(--color-heading); overflow-wrap: anywhere; }
-.review-list__row--total dd { font-weight: var(--font-weight-heading); }
 .review-actions { display: flex; flex-wrap: wrap; gap: var(--space-3); }
 @media (min-width: 640px) { .review-list__row { grid-template-columns: 14rem minmax(0, 1fr); gap: var(--space-4); } }
+/* Zu-zahlen-Zeile hervorgehoben */
+.review-list { overflow: hidden; }
+.review-list__row--total { background: var(--color-secondary); border-bottom-color: var(--color-secondary); align-items: center; }
+.review-list__row--total dt { color: var(--color-on-dark); font-size: var(--font-size-body); }
+.review-list__row--total dd { color: var(--color-on-dark-accent); font-size: 1.5rem; line-height: 1.2; font-weight: var(--font-weight-heading); }
+/* Zahlungsart mit Logos */
+.pay-choice .check { align-items: flex-start; }
+.pay-choice .check > span { display: grid; gap: var(--space-2); }
+.pay-choice__logos { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+.pay-choice__logos img { height: 28px; width: auto; display: block; }
+.pay-choice .check:has(input:checked) { border-color: var(--color-primary); background: var(--color-surface); }
