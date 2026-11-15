@@ -66,7 +66,14 @@ final class CrudController
         $page = max(1, (int) $req->input('seite', '1'));
         $pages = max(1, (int) ceil($total / self::PER_PAGE));
         $page = min($page, $pages);
-        $rows = $this->db->all($sql . ' ORDER BY ' . $r->orderBy . ' LIMIT ' . self::PER_PAGE . ' OFFSET ' . (($page - 1) * self::PER_PAGE), $params);
+        if ($r->tree) {
+            // Baum-Liste: alle Einträge (höchstens 500) ohne Seitenaufteilung, Untereinträge unter ihrem Haupteintrag
+            $pages = 1;
+            $page = 1;
+            $rows = $r->treeRows($this->db->all($sql . ' ORDER BY ' . $r->orderBy . ' LIMIT 500', $params));
+        } else {
+            $rows = $this->db->all($sql . ' ORDER BY ' . $r->orderBy . ' LIMIT ' . self::PER_PAGE . ' OFFSET ' . (($page - 1) * self::PER_PAGE), $params);
+        }
         $filterValues = [];
         foreach ($r->filters() as $f) {
             $filterValues[$f['name']] = $req->input($f['name']);

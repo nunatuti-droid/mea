@@ -64,9 +64,9 @@ Der Cronjob gibt jede Minute abgelaufene Reservierungen frei und versendet E-Mai
 
 Siehe [`docs/betrieb.md`](docs/betrieb.md). Kurz: `BACKUP_KEY` (optional) und `RELEASE_PUBLIC_KEY` in die `.env`; die `.env` getrennt von den Sicherungen aufbewahren; Sicherungen regelmäßig herunterladen und extern speichern.
 
-### E-Mail und PayPal
+### E-Mail, Stripe und PayPal
 
-In `.env`: `MAIL_DSN` (SMTP-Zugang), `MAIL_FROM`, `MAIL_FROM_NAME` sowie `PAYPAL_MODE`, `PAYPAL_CLIENT_ID`, `PAYPAL_SECRET`, `PAYPAL_WEBHOOK_ID`. Ohne PayPal-Zugang ist die Online-Buchung gesperrt und die Website zeigt einen Hinweis. Ohne SMTP bleiben E-Mails in der Warteschlange und werden später gesendet. Webhook-Adresse bei PayPal: `https://DOMAIN/zahlung/paypal/webhook/` mit den Ereignissen `CHECKOUT.ORDER.APPROVED`, `PAYMENT.CAPTURE.COMPLETED`, `PAYMENT.CAPTURE.DENIED`, `PAYMENT.CAPTURE.REFUNDED`, `PAYMENT.CAPTURE.REVERSED`.
+In `.env`: `MAIL_DSN` (SMTP-Zugang), `MAIL_FROM`, `MAIL_FROM_NAME` sowie `PAYPAL_MODE`, `PAYPAL_CLIENT_ID`, `PAYPAL_SECRET`, `PAYPAL_WEBHOOK_ID`. Zusätzlich oder statt PayPal: `STRIPE_SECRET_KEY` (sk_test_… zum Testen, sk_live_… live) und `STRIPE_WEBHOOK_SECRET` (whsec_…). Ist mehr als ein Anbieter eingerichtet, wählen Kundinnen und Kunden beim Buchen; sonst gilt der eine eingerichtete. Stripe-Webhook: `https://DOMAIN/zahlung/stripe/webhook/` mit den Ereignissen `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed`, `checkout.session.expired`, `charge.refunded`, `charge.dispute.created`. Zahlarten (Karte, SEPA-Lastschrift, Apple/Google Pay …) schaltet man im Stripe-Dashboard ein. Ohne Zahlungsanbieter ist die Online-Buchung gesperrt und die Website zeigt einen Hinweis. Ohne SMTP bleiben E-Mails in der Warteschlange und werden später gesendet. Webhook-Adresse bei PayPal: `https://DOMAIN/zahlung/paypal/webhook/` mit den Ereignissen `CHECKOUT.ORDER.APPROVED`, `PAYMENT.CAPTURE.COMPLETED`, `PAYMENT.CAPTURE.DENIED`, `PAYMENT.CAPTURE.REFUNDED`, `PAYMENT.CAPTURE.REVERSED`.
 
 `seed` legt Inhalte, Bilder (WebP in 480/960/1440/1920 px), Standorte, die Prüfungen A1–C1 als Entwurf ohne Preis, FAQ und Weiterleitungen an. `--demo` veröffentlicht die Prüfungen mit Beispielpreisen und -terminen und blendet einen Hinweis ein. Auf `APP_ENV=production` wird `--demo` verweigert.
 

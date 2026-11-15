@@ -15,13 +15,31 @@ final class MenuItemResource extends Resource
     public string $plural = 'Menüs';
     public string $entity = 'menu_item';
     public string $intro = 'Hauptmenü, Footer und Rechtliches. Einträge mit übergeordnetem Eintrag erscheinen als Untermenü.';
-    public string $orderBy = 'menu_name, parent_sort, parent_id IS NOT NULL, sort_order';
+    public string $orderBy = 'menu_id, sort_order, id';
+    public bool $tree = true;
     public bool $optimisticLock = false;
 
     public function baseQuery(): string
     {
         return 'SELECT i.*, m.name AS menu_name, p.label AS parent_label, COALESCE(p.sort_order, i.sort_order) AS parent_sort
             FROM menu_items i JOIN menus m ON m.id = i.menu_id LEFT JOIN menu_items p ON p.id = i.parent_id';
+    }
+
+    /** Je Menü eine Gruppe (Hauptmenü, Footer …), darin Untereinträge eingerückt. */
+    public function treeRows(array $rows): array
+    {
+        $by = [];
+        foreach ($rows as $r) {
+            $by[(int) $r['menu_id']][] = $r;
+        }
+        $out = [];
+        foreach ($by as $group) {
+            foreach (self::nest($group) as $i => $r) {
+                $r['_group'] = $i === 0 ? (string) $r['menu_name'] : '';
+                $out[] = $r;
+            }
+        }
+        return $out;
     }
 
     public function filters(): array
@@ -38,8 +56,6 @@ final class MenuItemResource extends Resource
     {
         return [
             ['key' => 'label', 'label' => 'Bezeichnung'],
-            ['key' => 'menu_name', 'label' => 'Menü'],
-            ['key' => 'parent_label', 'label' => 'Unter'],
             ['key' => 'url', 'label' => 'Ziel'],
             ['key' => 'sort_order', 'label' => 'Sortierung', 'format' => 'int'],
         ];

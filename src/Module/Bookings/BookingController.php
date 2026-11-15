@@ -25,7 +25,8 @@ final class BookingController
         $r->get('/buchung/{ref:MEA-[A-Z0-9]{8}}/zahlung/', $this->paymentReturn(...));
         $r->get('/buchung/{ref:MEA-[A-Z0-9]{8}}/abbruch/', $this->paymentCancel(...));
         $r->post('/buchung/{ref:MEA-[A-Z0-9]{8}}/bezahlen/', $this->retryPayment(...));
-        $r->post('/zahlung/paypal/webhook/', $this->webhook(...));
+        $r->post('/zahlung/paypal/webhook/', fn(Request $req) => $this->webhook($req, 'paypal'));
+        $r->post('/zahlung/stripe/webhook/', fn(Request $req) => $this->webhook($req, 'stripe'));
     }
 
     /** @return array{0: array<string,mixed>, 1: array<string,mixed>} */
@@ -66,7 +67,8 @@ final class BookingController
             'optional_fees' => array_values(array_filter($exam['fees'], fn($f) => (int) $f['is_mandatory'] === 0)),
             'values' => [], 'errors' => [], 'chosen_fees' => [],
             'csrf' => Csrf::token(), 'form_started' => time(),
-            'payment_available' => $this->app->paymentGateway()->isConfigured() || ($session['price']['total_cents'] ?? 1) === 0,
+            'payment_available' => $this->app->gateways()->isAvailable() || ($session['price']['total_cents'] ?? 1) === 0,
+            'providers' => $this->providers(),
             'has_agb' => $agb !== null,
         ]), $status));
     }
@@ -108,7 +110,7 @@ final class BookingController
         }
         try {
             $res = $this->app->bookings()->reserve((int) $exam['id'], (int) $session['id'], $participant, $extra, $chosen);
-            $url = $this->app->bookings()->startPayment($res['id'], $res['key']);
+            $url = $this->app->bookings()->startPayment($res['id'], $res['key'], $req->input('provider'));
         } catch (BookingException $e) {
             if (in_array($e->reason, ['full', 'closed', 'disabled', 'not_found'], true)) {
                 Session::flash('booking_notice', $e->getMessage());
@@ -129,7 +131,7 @@ final class BookingController
 
     /**
      * Zwischenschritt: eingegebene Daten zur Prüfung anzeigen. Erst die Bestätigung
-     * (step=confirm) legt die Reservierung an und leitet zu PayPal weiter.
+     * (step=confirm) legt die Reservierung an und leitet zum Zahlungsanbieter weiter.
      * @param array<string,mixed> $exam @param array<string,mixed> $session
      * @param array<string,mixed> $p @param array<string,array{label:string,value:mixed}> $extra @param list<int> $chosen
      */
@@ -168,7 +170,7 @@ final class BookingController
         }
         return self::noStore(Response::html($this->app->view->render('public/booking_review.twig', [
             'exam' => $exam, 'session' => $session, 'rows' => $rows, 'fees' => $fees, 'total_cents' => $total,
-            'hidden' => $hidden, 'chosen_fees' => $chosen, 'csrf' => Csrf::token(),
+            'hidden' => $hidden, 'chosen_fees' => $chosen, 'csrf' => Csrf::token(), 'providers' => $this->providers(),
             'rule' => $this->app->bookings()->rule($exam, $session),
         ])));
     }
@@ -182,7 +184,7 @@ final class BookingController
         }
         return self::noStore(Response::html($this->app->view->render('public/booking_status.twig', [
             'b' => $b, 'key' => $req->input('k'), 'notice' => Session::flash('booking_notice'),
-            'csrf' => Csrf::token(),
+            'csrf' => Csrf::token(), 'providers' => $this->providers(),
             'can_pay' => in_array($b['status'], ['reserved', 'pending_payment'], true) && $b['payment_status'] !== 'paid'
                 && $b['reserved_until'] !== null && $b['reserved_until'] > gmdate('Y-m-d H:i:s'),
         ])));
@@ -196,15 +198,16 @@ final class BookingController
         if ($b === null) {
             throw HttpException::notFound();
         }
-        $orderId = $req->input('token');
-        if (!preg_match('/^[A-Z0-9]{5,64}$/', $orderId)) {
-            Session::flash('booking_notice', 'Die Rückmeldung von PayPal war unvollständig. Ihre Zahlung wird geprüft.');
+        // PayPal liefert „token“, Stripe „session_id“
+        $orderId = $req->input('session_id') !== '' ? $req->input('session_id') : $req->input('token');
+        if (!preg_match('/^[A-Za-z0-9_]{5,120}$/', $orderId)) {
+            Session::flash('booking_notice', 'Die Rückmeldung des Zahlungsanbieters war unvollständig. Ihre Zahlung wird geprüft.');
             return self::noStore(Response::redirect($this->app->bookings()->statusUrl($ref, $key), 303));
         }
         $result = $this->app->bookings()->completeReturn($ref, $orderId);
         Session::flash('booking_notice', match ($result) {
             'confirmed' => null,
-            'pending' => 'PayPal prüft Ihre Zahlung noch. Sie erhalten eine E-Mail, sobald sie bestätigt ist.',
+            'pending' => 'Ihre Zahlung wird noch geprüft (bei SEPA-Lastschrift kann das einige Tage dauern). Sie erhalten eine E-Mail, sobald sie bestätigt ist.',
             'refunded_full' => 'Ihre Zahlung ist eingegangen, aber der Termin war inzwischen ausgebucht. Der Betrag wurde vollständig erstattet.',
             default => 'Die Zahlung konnte nicht abgeschlossen werden. Sie können es erneut versuchen.',
         });
@@ -237,7 +240,7 @@ final class BookingController
             return self::noStore(Response::redirect($this->app->bookings()->statusUrl($ref, $key), 303));
         }
         try {
-            $url = $this->app->bookings()->startPayment((int) $b['id'], $key);
+            $url = $this->app->bookings()->startPayment((int) $b['id'], $key, $req->input('provider'));
         } catch (BookingException $e) {
             Session::flash('booking_notice', $e->getMessage());
             return self::noStore(Response::redirect($this->app->bookings()->statusUrl($ref, $key), 303));
@@ -245,17 +248,24 @@ final class BookingController
         return self::noStore(Response::redirect($url ?? $this->app->bookings()->statusUrl($ref, $key), 303));
     }
 
-    public function webhook(Request $req): Response
+    /** Eingerichtete Zahlungsanbieter für die Auswahl: Name und Beschriftung. @return list<array{name:string, label:string}> */
+    private function providers(): array
+    {
+        return array_map(fn($g) => ['name' => $g->name(), 'label' => \Mea\Module\Payments\GatewayRegistry::label($g->name())], $this->app->gateways()->configured());
+    }
+
+    public function webhook(Request $req, string $provider = 'paypal'): Response
     {
         $raw = $req->rawBody();
         if (strlen($raw) > 200_000) {
             return Response::json(['result' => 'too_large'], 413);
         }
         $headers = [];
-        foreach (['paypal-auth-algo', 'paypal-cert-url', 'paypal-transmission-id', 'paypal-transmission-sig', 'paypal-transmission-time'] as $h) {
+        $names = $provider === 'stripe' ? ['stripe-signature'] : ['paypal-auth-algo', 'paypal-cert-url', 'paypal-transmission-id', 'paypal-transmission-sig', 'paypal-transmission-time'];
+        foreach ($names as $h) {
             $headers[$h] = $req->header($h);
         }
-        $res = $this->app->bookings()->handleWebhook($headers, $raw);
+        $res = $this->app->bookings()->handleWebhook($headers, $raw, $provider);
         $r = Response::json(['result' => $res['result']], $res['status']);
         return $r->withHeader('Cache-Control', 'no-store');
     }
