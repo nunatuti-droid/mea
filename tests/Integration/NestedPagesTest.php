@@ -35,7 +35,7 @@ final class NestedPagesTest extends IntegrationTestCase
         $res = $this->get('/testbereich/unterseite/');
         self::assertSame(200, $res->status);
         self::assertStringContainsString('class="container sec-split"', $res->body);
-        self::assertStringContainsString('sec-visual__medal', $res->body);
+        self::assertStringContainsString('sec-visual__ph', $res->body);
         self::assertStringContainsString('<b>Gruppe</b><small>10 bis 15 Teilnehmende</small>', $res->body);
         self::assertStringContainsString('class="card card--feature reveal"', $res->body);
         self::assertStringContainsString('Karte eins', $res->body);

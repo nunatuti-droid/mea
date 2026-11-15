@@ -98,7 +98,7 @@ final class ServicePageConverter
             $points = (array) ($sec['points'] ?? $vis['points'] ?? []);
             $tree[] = $this->node('section_visual', [
                 'eyebrow' => (string) ($sec['eyebrow'] ?? ''), 'title' => (string) ($sec['title'] ?? ''), 'text' => (string) ($sec['text'] ?? ''),
-                'icon' => $this->icon((string) ($sec['icon'] ?? $vis['icon'])), 'bg' => $bg,
+                'media' => isset($sec['media_id']) ? (int) $sec['media_id'] : null, 'bg' => $bg,
                 'points' => array_map(fn($p) => ['icon' => $this->icon((string) ($p['icon'] ?? 'check')), 'title' => (string) ($p['title'] ?? ''), 'text' => (string) ($p['text'] ?? '')], array_values($points)),
             ]);
         }

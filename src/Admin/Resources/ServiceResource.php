@@ -83,6 +83,7 @@ final class ServiceResource extends Resource
             ['name' => 'facts_sections', 'label' => 'Abschnitte (eine pro Zeile: Kleine Überschrift | Überschrift | Text)', 'type' => 'lines', 'virtual' => true, 'rows' => 6, 'group' => 'Abschnitte der Seite', 'help' => 'Reihenfolge wie auf der Seite. Die Zeilennummer (1, 2, 3 …) wird unten für Karten und Box-Punkte gebraucht. Ein Abschnitt mit Karten zeigt die Karten, sonst rechts eine Symbol-Box.'],
             ['name' => 'facts_cards', 'label' => 'Karten in Abschnitten (eine pro Zeile: Abschnittsnummer | Titel | Text)', 'type' => 'lines', 'virtual' => true, 'rows' => 6, 'group' => 'Abschnitte der Seite', 'help' => 'z. B. „1 | Berufliche Grundlagen | Aufgaben lesen …“ = Karte im ersten Abschnitt.'],
             ['name' => 'facts_points', 'label' => 'Punkte der Symbol-Box (eine pro Zeile: Abschnittsnummer | Titel | Text)', 'type' => 'lines', 'virtual' => true, 'rows' => 4, 'group' => 'Abschnitte der Seite', 'help' => 'Nur nötig, wenn die Box andere Punkte zeigen soll als die Standardpunkte. Leer lassen = Standard bleibt.'],
+            ...$this->boxImageFields($row),
             ['name' => 'facts_process_eyebrow', 'label' => 'Ablauf: kleine Überschrift', 'max' => 80, 'virtual' => true, 'group' => 'Abschnitte der Seite'],
             ['name' => 'facts_process_title', 'label' => 'Ablauf: Überschrift', 'max' => 200, 'virtual' => true, 'group' => 'Abschnitte der Seite', 'help' => 'Die Schritte selbst stehen oben unter „Ablauf in Schritten“.'],
             ['name' => 'facts_faq', 'label' => 'Häufige Fragen (eine pro Zeile: Frage | Antwort)', 'type' => 'lines', 'virtual' => true, 'rows' => 5, 'group' => 'Abschnitte der Seite'],
@@ -115,13 +116,29 @@ final class ServiceResource extends Resource
         ] + self::sectionsToLines($f);
     }
 
+    /** Je Abschnitt ohne Karten ein Bildfeld für die 4:3-Bildfläche neben dem Text. @param array<string,mixed>|null $row @return list<array<string,mixed>> */
+    private function boxImageFields(?array $row): array
+    {
+        $f = is_string($row['facts_json'] ?? null) ? ((array) json_decode($row['facts_json'], true)) : [];
+        $out = [];
+        foreach (array_values((array) ($f['sections'] ?? [])) as $i => $sec) {
+            if (!empty($sec['cards'])) {
+                continue;
+            }
+            $out[] = ['name' => 'facts_box_image_' . ($i + 1), 'label' => 'Bild neben Abschnitt ' . ($i + 1) . ' (' . trim((string) ($sec['title'] ?? '')) . ')', 'type' => 'media', 'virtual' => true, 'group' => 'Abschnitte der Seite',
+                'help' => 'Bildfläche im Seitenverhältnis 4:3 rechts neben dem Text. Ohne Bild erscheint ein Platzhalter. Neue Abschnitte erscheinen hier nach dem Speichern.'];
+        }
+        return $out;
+    }
+
     /** Abschnitte, Karten, Box-Punkte, Fragen und Abschluss-Band für das Formular. @param array<string,mixed> $f @return array<string,string> */
     private static function sectionsToLines(array $f): array
     {
         $one = fn($v) => trim(preg_replace('/\s+/u', ' ', (string) $v) ?? '');
-        $sections = $cards = $points = [];
+        $sections = $cards = $points = $media = [];
         foreach (array_values((array) ($f['sections'] ?? [])) as $i => $sec) {
             $n = $i + 1;
+            $media['facts_box_image_' . $n] = isset($sec['media_id']) ? (string) (int) $sec['media_id'] : '';
             $sections[] = $one($sec['eyebrow'] ?? '') . ' | ' . $one($sec['title'] ?? '') . ' | ' . $one($sec['text'] ?? '');
             foreach ((array) ($sec['cards'] ?? []) as $c) {
                 $cards[] = $n . ' | ' . $one($c['title'] ?? '') . ' | ' . $one($c['text'] ?? '');
@@ -131,7 +148,7 @@ final class ServiceResource extends Resource
             }
         }
         $enc = fn(array $a) => json_encode($a, JSON_UNESCAPED_UNICODE);
-        return [
+        return $media + [
             'facts_highlights' => $enc(array_map($one, array_values((array) ($f['highlights'] ?? [])))),
             'facts_sections' => $enc($sections),
             'facts_cards' => $enc($cards),
@@ -236,7 +253,10 @@ final class ServiceResource extends Resource
         foreach ($lines('facts_sections') as $i => $p) {
             $n = $i + 1;
             $sec = is_array($old[$i] ?? null) ? $old[$i] : [];
-            unset($sec['cards']);
+            unset($sec['cards'], $sec['media_id']);
+            if (preg_match('/^\d+$/', (string) ($values['facts_box_image_' . $n] ?? ''))) {
+                $sec['media_id'] = (int) $values['facts_box_image_' . $n];
+            }
             $sec['eyebrow'] = $p[0];
             $sec['title'] = $p[1];
             $sec['text'] = implode(' | ', array_slice($p, 2));

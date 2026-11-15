@@ -47,12 +47,15 @@
       <div class="container{{ vis ? ' sec-split' : '' }}">
         <div class="section-head">{% if sec.eyebrow ?? false %}<span class="eyebrow">{{ sec.eyebrow }}</span>{% endif %}<h2>{{ sec.title ?? '' }}</h2>{% if sec.text ?? false %}<p>{{ sec.text }}</p>{% endif %}</div>
         {% if vis %}
-          <aside class="sec-visual reveal" aria-hidden="true">
-            <div class="sec-visual__medal">{{ icon(sec.icon ?? vis.icon) }}</div>
+          <div class="sec-visual-col reveal">
+            {# Bildfläche 4:3: Bild aus der Mediathek (Verwaltung → Leistungen → Abschnitte), sonst Platzhalter #}
+            <div class="sec-visual{{ sec.media_id ?? false ? ' sec-visual--photo' }}">
+              {% if sec.media_id ?? false %}{{ img(sec.media_id, '(max-width: 900px) 100vw, 520px', {alt: sec.title ?? ''}) }}{% else %}<span class="sec-visual__ph" aria-hidden="true">{{ icon('image') }}</span>{% endif %}
+            </div>
             {% if (sec.points ?? vis.points ?? [])|length %}
               <ul class="sec-visual__list{{ (sec.points ?? vis.points)|length > 3 ? ' sec-visual__list--grid' }}">{% for pt in sec.points ?? vis.points %}<li><span class="card__icon">{{ icon(pt.icon ?? 'check') }}</span><span><b>{{ pt.title }}</b>{% if pt.text ?? false %}<small>{{ pt.text }}</small>{% endif %}</span></li>{% endfor %}</ul>
             {% endif %}
-          </aside>
+          </div>
         {% endif %}
         {% if (sec.cards ?? [])|length %}
           <div class="grid grid--{{ sec.cards|length > 2 ? 3 : 2 }}">
