@@ -24,7 +24,7 @@
           {% if providers|length > 1 %}
           <fieldset class="field pay-choice">
             <legend>Zahlungsart</legend>
-            {% for pr in providers %}<label class="check"><input type="radio" name="provider" value="{{ pr.name }}"{{ loop.first ? ' checked' }}> <span>{{ pr.name == 'stripe' ? 'Karte, SEPA-Lastschrift und weitere (Stripe)' : pr.label }}</span></label>{% endfor %}
+            {% for pr in providers %}<label class="check"><input type="radio" name="provider" value="{{ pr.name }}"{{ loop.first ? ' checked' }}> <span>{{ pr.name == 'stripe' ? 'Karte, SEPA-Lastschrift und weitere' : pr.label }}<span class="pay-choice__logos" aria-hidden="true">{% if pr.name == 'stripe' %}<img src="/assets/img/pay-visa.svg" width="48" height="30" alt="" loading="lazy" decoding="async"><img src="/assets/img/pay-mastercard.svg" width="48" height="30" alt="" loading="lazy" decoding="async"><img src="/assets/img/pay-sepa.svg" width="48" height="30" alt="" loading="lazy" decoding="async"><img src="/assets/img/pay-applepay.svg" width="48" height="30" alt="" loading="lazy" decoding="async"><img src="/assets/img/pay-amazonpay.svg" width="64" height="30" alt="" loading="lazy" decoding="async"><img src="/assets/img/pay-klarna.svg" width="56" height="30" alt="" loading="lazy" decoding="async">{% elseif pr.name == 'paypal' %}<img src="/assets/img/paypal.svg" width="104" height="29" alt="" loading="lazy" decoding="async">{% endif %}</span></span></label>{% endfor %}
           </fieldset>
         {% endif %}
           <p class="hint text-muted">Die Anmeldung ist erst nach erfolgreicher Zahlung verbindlich.</p>
