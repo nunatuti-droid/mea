@@ -88,3 +88,6 @@ Box „Start im Betrieb“ im Abschnitt „Was zum Onboarding gehören kann“ (
 
 ## Update 0.9.29 (15.11.2026)
 `main` enthält jetzt PR #28 (Stand 0.9.28) und PR #30 (sechste Onboarding-Box). Paket `installation/update-0.9.29.zip` (aus `main` 92bebac, `--min=0.9.28`, SHA-256 `bd5d1f91…bb9`), Anleitung `update-0.9.29-anleitung.md`; nicht eingespielt. `VERSION` im Repo bleibt 0.9.19 (der Paketbau schreibt sie selbst). PR #29 (Medaillon +30 %) ist nicht gemerged und nicht im Paket.
+
+## Update 0.9.30 (15.11.2026)
+PR #29 (Medaillon +30 %) und #32 sind gemerged. Paket `installation/update-0.9.30.zip` (aus `main` e9e55bc, `--min=0.9.28`, SHA-256 `61ae895c…7fc1`), Anleitung `update-0.9.30-anleitung.md`; nicht eingespielt. Ersetzt 0.9.29.
