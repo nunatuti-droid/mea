@@ -164,7 +164,11 @@ final class ServiceResource extends Resource
     public function validate(array $values, ?int $id): array
     {
         $e = [];
-        if (isset($values['slug'])) {
+        // Unveränderte Adresse eines bestehenden Eintrags nicht erneut prüfen (z. B. wenn dazu schon eine Seitenbaukasten-Seite existiert)
+        $old = $id !== null ? $this->db->one('SELECT slug, parent_id FROM services WHERE id = ?', [$id]) : null;
+        $unchanged = $old !== null && (string) $old['slug'] === (string) ($values['slug'] ?? '')
+            && (int) ($old['parent_id'] ?? 0) === (int) ($values['parent_id'] ?? 0);
+        if (isset($values['slug']) && !$unchanged) {
             $parent = $values['parent_id'] ?? null;
             $dup = $parent === null || $parent === ''
                 ? $this->db->value('SELECT 1 FROM services WHERE slug = ? AND parent_id IS NULL AND id <> ?', [$values['slug'], $id ?? 0]) ?? $this->db->value('SELECT 1 FROM pages WHERE slug = ?', [$values['slug']])
