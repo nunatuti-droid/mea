@@ -30,8 +30,12 @@ final class SeoController
                 $urls[] = [\Mea\Module\Builder\PageService::NESTED[$p['slug']] ?? '/' . $p['slug'] . '/', $p['updated_at']];
             }
         }
+        $have = array_column($urls, 0);
         foreach ($this->content->allPublishedServices() as $s) {
-            $urls[] = [($s['parent_slug'] ? '/' . $s['parent_slug'] : '') . '/' . $s['slug'] . '/', $s['updated_at']];
+            $path = ($s['parent_slug'] ? '/' . $s['parent_slug'] : '') . '/' . $s['slug'] . '/';
+            if (!in_array($path, $have, true)) { // Leistung, die als Seite umgebaut wurde, steht nur einmal drin
+                $urls[] = [$path, $s['updated_at']];
+            }
         }
         foreach ($this->exams->sitemapEntries() as $e) {
             $urls[] = ['/pruefungen/' . $e['slug'] . '/', $e['updated_at']];

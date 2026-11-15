@@ -11,7 +11,7 @@
         <form method="post" action="/verwaltung/buchungen/{{ b.id }}/bestaetigung/" class="inline"><input type="hidden" name="_csrf" value="{{ csrf }}"><button class="btn btn--ghost btn--sm" type="submit">{{ icon('send') }}Bestätigung erneut senden</button></form>
       {% endif %}
       {% if b.status in ['pending_payment', 'expired', 'cancelled'] and b.payments is not empty and b.payment_status != 'paid' %}
-        <form method="post" action="/verwaltung/buchungen/{{ b.id }}/zahlung-pruefen/" class="inline"><input type="hidden" name="_csrf" value="{{ csrf }}"><button class="btn btn--ghost btn--sm" type="submit">{{ icon('refresh-cw') }}Zahlung bei PayPal prüfen</button></form>
+        <form method="post" action="/verwaltung/buchungen/{{ b.id }}/zahlung-pruefen/" class="inline"><input type="hidden" name="_csrf" value="{{ csrf }}"><button class="btn btn--ghost btn--sm" type="submit">{{ icon('refresh-cw') }}Zahlung beim Zahlungsanbieter prüfen</button></form>
       {% endif %}
     </div>
   </div>
@@ -67,7 +67,7 @@
         <input type="hidden" name="_csrf" value="{{ csrf }}">
         <div class="field"><label for="c-reason">Grund <span class="req" aria-hidden="true">*</span></label><input id="c-reason" type="text" name="reason" maxlength="255" required></div>
         {% if b.payment_status == 'paid' and can.refunds %}
-          <label class="check"><input type="checkbox" name="refund" value="1" checked> <span>Über PayPal erstatten</span></label>
+          <label class="check"><input type="checkbox" name="refund" value="1" checked> <span>Über den Zahlungsanbieter erstatten</span></label>
           <div class="field"><label for="c-amount">Betrag (leer = vollständig {{ open_refund|money(b.currency) }})</label><input id="c-amount" type="text" name="amount" inputmode="decimal" placeholder="{{ (open_refund / 100)|number_format(2, ',', '') }}"></div>
           <p class="text-sm text-muted">Prüfen Sie die Stornoregel: kostenlos bis {{ s.rule.free_cancellation_days ?? '–' }} Tage vorher{% if s.rule.cancellation_fee_cents ?? false %}, danach Gebühr {{ s.rule.cancellation_fee_cents|money }}{% elseif s.rule.cancellation_fee_percent ?? false %}, danach {{ s.rule.cancellation_fee_percent }} %{% endif %}.</p>
         {% endif %}
@@ -79,7 +79,7 @@
     {% if can.refunds and open_refund > 0 and b.status in ['confirmed', 'cancelled'] %}
     <section class="card">
       <h2 class="h3">Erstatten (ohne Stornierung)</h2>
-      <form method="post" action="/verwaltung/buchungen/{{ b.id }}/erstatten/" class="stack" data-confirm="Erstattung jetzt über PayPal ausführen?">
+      <form method="post" action="/verwaltung/buchungen/{{ b.id }}/erstatten/" class="stack" data-confirm="Erstattung jetzt über den Zahlungsanbieter ausführen?">
         <input type="hidden" name="_csrf" value="{{ csrf }}">
         <div class="field"><label for="r-amount">Betrag (höchstens {{ open_refund|money(b.currency) }})</label><input id="r-amount" type="text" name="amount" inputmode="decimal" required></div>
         <div class="field"><label for="r-reason">Grund</label><input id="r-reason" type="text" name="reason" maxlength="255" required></div>

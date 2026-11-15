@@ -89,9 +89,10 @@ final class ReferenceStructure
 
     /**
      * Legt fehlende Unterseiten an und schreibt die ausführlichen Texte (ReferenceContent) in Bereichs- und Unterseiten.
+     * Mit $onlyMissing nur Seiten ohne Abschnitte (Wiederherstellung nach dem Speicherfehler bis 0.9.23).
      * Wiederholbar; vorhandene Kennzahlen (Module, Maßnahmen) bleiben erhalten.
      */
-    public function content(): string
+    public function content(bool $onlyMissing = false): string
     {
         $n = 0;
         $created = 0;
@@ -108,6 +109,9 @@ final class ReferenceStructure
                 $row = $this->db->one('SELECT id, facts_json FROM services WHERE parent_id IS NULL AND slug = ?', [$d['slug']]);
             }
             $facts = $row !== null && is_string($row['facts_json']) ? (json_decode($row['facts_json'], true) ?: []) : [];
+            if ($onlyMissing && $row !== null && !empty($facts['sections'])) {
+                continue; // Abschnitte vorhanden: Änderungen der Redaktion bleiben unangetastet
+            }
             if ($row === null) {
                 if ($parent === null || !empty($d['update_only'])) {
                     continue;
