@@ -65,7 +65,8 @@ final class PageResource extends Resource
     {
         $e = [];
         $slug = $values['slug'] ?? null;
-        if ($slug !== null && $slug !== '') {
+        $oldSlug = $id !== null ? $this->db->value('SELECT slug FROM pages WHERE id = ?', [$id]) : null;
+        if ($slug !== null && $slug !== '' && (string) $oldSlug !== (string) $slug) {
             $parts = explode('/', (string) $slug);
             if (in_array($parts[0], self::RESERVED, true)) {
                 $e['slug'] = 'Diese Adresse ist für das System reserviert.';
