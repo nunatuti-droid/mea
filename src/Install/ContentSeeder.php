@@ -192,6 +192,7 @@ final class ContentSeeder
                 ['icon' => 'languages', 'title' => 'Sprachkurse und Sprachtraining', 'text' => 'Allgemeine und berufsbezogene Deutschkurse sowie Vermittlung passender Kurse und Coachings.'],
                 ['icon' => 'users', 'title' => 'Kulturelle Vorbereitung', 'text' => 'Einführung in Arbeitskultur und Umgangsformen sowie interkulturelle Trainings.'],
                 ['icon' => 'heart-handshake', 'title' => 'Familienintegration', 'text' => 'Unterstützung bei Kita- und Schulplätzen, Orientierung und Vernetzung für Partnerinnen und Partner.'],
+                ['icon' => 'briefcase', 'title' => 'Start im Betrieb', 'text' => 'Abstimmung von Abläufen, Ansprechpersonen und nächsten Schritten, damit der Arbeitsstart gut vorbereitet ist.'],
             ]],
             'hero_media_id' => $this->m['onboarding'], 'card_media_id' => $this->m['onboarding'],
             'cta_label' => 'Onboarding anfragen', 'cta_url' => '/kontakt/?thema=fachkraefte',

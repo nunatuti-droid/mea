@@ -82,3 +82,6 @@ Plesk: Cron einrichten und PHP-Limits prüfen (siehe Punkt 5). Release 0.9.5 ist
 ## Farbvorschau im Baukasten, Teil 2 (nach 0.9.28)
 - Das Feld „Hintergrund“ der Blöcke (Seitenhintergrund / Getönt / Weiß / Dunkel) zeigt jetzt ein Farbfeld je Eintrag (Werte aus dem Designsystem), gleiche Bedienung wie die Farbauswahl (Tastatur, Screenreader).
 - Nicht umgesetzt: Schriftauswahl mit Vorschau (Schriften sind im Editor nicht geladen); Symbol- und Bildfelder haben bereits Vorschauen. Nur Syntax geprüft, nicht im Browser.
+
+## 8. Onboarding: sechste Box (Branch `claude/project-thread-hpfsu9`, PR #30, 14.11.2026)
+Box „Start im Betrieb“ im Abschnitt „Was zum Onboarding gehören kann“ (Seeder + einmaliger Content-Patch `onboarding-sechste-box-2026-11-14`). Nur PHP-Syntax und CSS-Vorschau geprüft.
