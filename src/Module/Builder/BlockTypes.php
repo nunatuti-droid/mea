@@ -172,10 +172,10 @@ final class BlockTypes
                 $sel('cols', 'Spalten', ['2' => '2', '3' => '3', '4' => '4'], '3'),
                 $sel('look', 'Darstellung', ['card' => 'Karte mit Rahmen', 'feature' => 'Ohne Rahmen', 'media' => 'Bildkarte', 'symbol' => 'Karte mit Symbol oben'], 'card'),
                 $sel('level', 'Überschriftenebene der Karten', ['h3' => 'H3', 'h4' => 'H4', 'h2' => 'H2'], 'h3')]];
-        $t['section_visual'] = ['label' => 'Abschnitt mit Symbol-Box', 'icon' => 'panel-right', 'cat' => 'content', 'desc' => 'Ganzer Abschnitt: Überschrift und Text links, Symbol mit Punkten in einer Box rechts',
+        $t['section_visual'] = ['label' => 'Abschnitt mit Bildfläche', 'icon' => 'panel-right', 'cat' => 'content', 'desc' => 'Ganzer Abschnitt: Überschrift und Text links, Bildfläche (4:3) rechts, darunter optional Punkte',
             'fields' => [$text('eyebrow', 'Kleine Zeile', '', 100, ['inline' => 'text']), $text('title', 'Überschrift', 'Überschrift', 200, ['inline' => 'text', 'required' => true]),
-                $area('text', 'Text', '', 1200), $icon('icon', 'Symbol der Box', 'users'),
-                $items('points', 'Punkte in der Box', [$icon(), $text('title', 'Titel', '', 80, ['required' => true]), $text('text', 'Zusatz', '', 120)],
+                $area('text', 'Text', '', 1200), $media('media', 'Bild (Seitenverhältnis 4:3)'), $text('alt', 'Alternativtext', '', 200, ['help' => 'Leer = Alternativtext aus der Mediathek.']),
+                $items('points', 'Punkte unter dem Bild', [$icon(), $text('title', 'Titel', '', 80, ['required' => true]), $text('text', 'Zusatz', '', 120)],
                     [['icon' => 'check', 'title' => 'Erster Punkt', 'text' => '']], 8),
                 $sel('bg', 'Hintergrund', ['none' => 'Weiß', 'alt' => 'Getönt'], 'none')]];
         $t['accordion'] = ['label' => 'Akkordeon', 'icon' => 'list-checks', 'cat' => 'content', 'desc' => 'Aufklappbare Fragen oder Abschnitte',

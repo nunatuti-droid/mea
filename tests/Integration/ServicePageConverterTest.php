@@ -30,7 +30,7 @@ final class ServicePageConverterTest extends IntegrationTestCase
     private function counts(string $html): array
     {
         $out = [];
-        foreach (['card--feature', 'class="steps"', 'sec-visual__medal', 'class="faq"', 'cta-band', '<h2', '<h3', 'class="eyebrow"', 'section--alt', 'service-card', 'grid--3', 'grid--2', '<details'] as $k) {
+        foreach (['card--feature', 'class="steps"', 'sec-visual__ph', 'class="faq"', 'cta-band', '<h2', '<h3', 'class="eyebrow"', 'section--alt', 'service-card', 'grid--3', 'grid--2', '<details'] as $k) {
             $out[$k] = substr_count($html, $k);
         }
         return $out;
