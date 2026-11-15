@@ -93,5 +93,5 @@ Box „Start im Betrieb“ im Abschnitt „Was zum Onboarding gehören kann“ (
 ## Update 0.9.30 (15.11.2026)
 PR #29 (Medaillon +30 %) und #32 sind gemerged. Paket `installation/update-0.9.30.zip` (aus `main` e9e55bc, `--min=0.9.28`, SHA-256 `61ae895c…7fc1`), Anleitung `update-0.9.30-anleitung.md`; nicht eingespielt. Ersetzt 0.9.29.
 
-## Buchung: Zu-zahlen-Zeile und Zahlungslogos (Branch `claude/project-thread-f3rw86`, noch nicht gebaut)
+## Buchung: Zu-zahlen-Zeile und Zahlungslogos (PR #34 in `main`; Paket `installation/update-0.9.32.zip`, aus `main` c91f99e, `--min=0.9.28`, SHA-256 `60fb7385…0897`, Anleitung `update-0.9.32-anleitung.md`; nicht eingespielt; ersetzt 0.9.31)
 Prüfseite `booking_review.twig`: Zeile „Zu zahlen“ dunkel hervorgehoben (Sekundärfarbe, Betrag in `--color-on-dark-accent`). Zahlungsart-Auswahl zeigt unter dem Text eine Logo-Reihe (Visa, Mastercard, SEPA, Apple Pay, Amazon Pay, Klarna bzw. PayPal); „(Stripe)“ aus dem Text entfernt. Logos sind selbst gezeichnete SVGs (`public/assets/img/pay-*.svg`), für den Live-Betrieb durch offizielle Logos ersetzen. Die Logos sind nur Anzeige: welche Zahlarten Stripe wirklich anbietet, stellt man im Stripe-Dashboard ein. Nicht im echten Browser geprüft (keine Datenbank/vendor hier); Vorschau aus dem Thread basiert auf den echten Stylesheets.
