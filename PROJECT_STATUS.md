@@ -85,3 +85,6 @@ Plesk: Cron einrichten und PHP-Limits prüfen (siehe Punkt 5). Release 0.9.5 ist
 
 ## 8. Onboarding: sechste Box (Branch `claude/project-thread-hpfsu9`, PR #30, 14.11.2026)
 Box „Start im Betrieb“ im Abschnitt „Was zum Onboarding gehören kann“ (Seeder + einmaliger Content-Patch `onboarding-sechste-box-2026-11-14`). Nur PHP-Syntax und CSS-Vorschau geprüft.
+
+## Update 0.9.29 (15.11.2026)
+`main` enthält jetzt PR #28 (Stand 0.9.28) und PR #30 (sechste Onboarding-Box). Paket `installation/update-0.9.29.zip` (aus `main` 92bebac, `--min=0.9.28`, SHA-256 `bd5d1f91…bb9`), Anleitung `update-0.9.29-anleitung.md`; nicht eingespielt. `VERSION` im Repo bleibt 0.9.19 (der Paketbau schreibt sie selbst). PR #29 (Medaillon +30 %) ist nicht gemerged und nicht im Paket.
