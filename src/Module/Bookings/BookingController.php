@@ -98,15 +98,17 @@ final class BookingController
             }
             return $this->review($req, $exam, $session, $participant, $extra, $chosen);
         }
-        if (!$this->limiter->hit('booking', $req->ip(), 10, 3600)) {
-            return $this->form($req, $slug, $id, ['form_error' => 'Zu viele Anmeldeversuche in kurzer Zeit. Bitte versuchen Sie es später erneut oder rufen Sie uns an.', 'values' => $req->post], 429);
-        }
         $rule = $this->app->bookings()->rule($exam, $session);
         $custom = (new BookingForm($this->app->db))->customFields((int) $exam['id']);
         [$participant, $extra, $errors] = BookingForm::validate($req->post, BookingForm::requiredStandard($rule), $custom);
         $chosen = array_map('intval', $req->inputList('fees'));
         if ($errors !== []) {
             return $this->form($req, $slug, $id, ['errors' => $errors, 'values' => $req->post, 'chosen_fees' => $chosen], 422);
+        }
+        // Begrenzung erst nach erfolgreicher Validierung: Tippfehler und Wiederholungen zählen nicht.
+        // Die IP ist bei Mobilfunk/WLAN oft mit vielen Personen geteilt (großzügig), die E-Mail-Adresse begrenzt gezielt.
+        if (!$this->limiter->hit('booking', $req->ip(), 30, 3600) || !$this->limiter->hit('booking-email', $participant['email'], 6, 3600)) {
+            return $this->form($req, $slug, $id, ['form_error' => 'Zu viele Anmeldeversuche in kurzer Zeit. Bitte versuchen Sie es später erneut oder rufen Sie uns an.', 'values' => $req->post, 'chosen_fees' => $chosen], 429);
         }
         try {
             $res = $this->app->bookings()->reserve((int) $exam['id'], (int) $session['id'], $participant, $extra, $chosen);
