@@ -27,7 +27,7 @@
     {% endif %}
   </main>
   {% if videos.desktop or videos.mobile %}
-    {# Erscheint 10 Sekunden nach dem Öffnen automatisch (public/assets/js/offline.js) #}
+    {# Erscheint 5 Sekunden nach dem Öffnen automatisch (public/assets/js/offline.js) #}
     <div class="offline__video" data-offline-video data-src-desktop="{{ videos.desktop }}" data-src-mobile="{{ videos.mobile }}" hidden role="dialog" aria-modal="true" aria-label="Video">
       <button type="button" class="offline__video-close" data-offline-video-close aria-label="Video schließen">{{ icon('x') }}</button>
       <video controls playsinline muted preload="none"></video>
