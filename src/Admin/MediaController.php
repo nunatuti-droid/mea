@@ -14,6 +14,7 @@ final class MediaController
 {
     private const MAX_IMAGE = 15 * 1024 * 1024;
     private const MAX_PDF = 20 * 1024 * 1024;
+    private const MAX_VIDEO = 40 * 1024 * 1024;
 
     public function __construct(private App $app) {}
 
@@ -37,7 +38,7 @@ final class MediaController
     public function index(Request $req, AdminContext $ctx): Response
     {
         $q = mb_substr($req->input('q'), 0, 100);
-        $kind = in_array($req->input('art'), ['image', 'document'], true) ? $req->input('art') : '';
+        $kind = in_array($req->input('art'), ['image', 'document', 'video'], true) ? $req->input('art') : '';
         $where = [];
         $params = [];
         if ($q !== '') {
@@ -84,6 +85,11 @@ final class MediaController
                         throw new \InvalidArgumentException('PDF größer als 20 MB.');
                     }
                     $id = $this->generator()->importDocument($tmp, $name, $alt !== '' ? $alt : pathinfo($name, PATHINFO_FILENAME));
+                } elseif ($mime === 'video/mp4') {
+                    if ($size > self::MAX_VIDEO) {
+                        throw new \InvalidArgumentException('Video größer als 40 MB.');
+                    }
+                    $id = $this->generator()->importVideo($tmp, $name, pathinfo($name, PATHINFO_FILENAME));
                 } else {
                     if ($size > self::MAX_IMAGE) {
                         throw new \InvalidArgumentException('Bild größer als 15 MB.');
@@ -281,8 +287,8 @@ final class MediaController
         foreach ($db->all("SELECT slug, public_name FROM exam_types WHERE status = 'published'") as $e) {
             $links[] = ['url' => '/pruefungen/' . $e['slug'] . '/', 'label' => $e['public_name']];
         }
-        foreach ($db->all("SELECT public_path, title FROM media WHERE kind = 'document'") as $d) {
-            $links[] = ['url' => '/media/' . $d['public_path'], 'label' => 'PDF: ' . $d['title']];
+        foreach ($db->all("SELECT public_path, title, kind FROM media WHERE kind IN ('document', 'video')") as $d) {
+            $links[] = ['url' => '/media/' . $d['public_path'], 'label' => ($d['kind'] === 'video' ? 'Video: ' : 'PDF: ') . $d['title']];
         }
         return Response::json($links);
     }

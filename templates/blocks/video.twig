@@ -1,4 +1,9 @@
 {%- set v = video_embed(f.url) -%}
+{% if v and v.provider == 'file' %}
+<div{{ battr(b, 'video b-ratio--' ~ f.ratio) }}>
+  <video controls preload="metadata" playsinline src="{{ v.src }}"{% if f.poster %} poster="{{ media_url(f.poster, 1200) }}"{% endif %} aria-label="{{ f.title }}"></video>
+</div>
+{% else %}
 <div{{ battr(b, 'video b-ratio--' ~ f.ratio) }}{% if v %} data-video-src="{{ v.src }}" data-video-title="{{ f.title }}"{% endif %}>
   {% if f.poster %}{{ img(f.poster, '(max-width: 900px) 100vw, 900px', {alt: ''}) }}{% endif %}
   <div class="video__consent">
@@ -10,3 +15,4 @@
     {% endif %}
   </div>
 </div>
+{% endif %}
