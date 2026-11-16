@@ -1,4 +1,4 @@
-/* Wartungsseite: Video erscheint nach 10 Sekunden automatisch und startet ohne Ton. */
+/* Wartungsseite: Video erscheint nach 5 Sekunden automatisch und startet ohne Ton. */
 (() => {
   const box = document.querySelector('[data-offline-video]');
   const video = box && box.querySelector('video');
@@ -19,5 +19,5 @@
     // Ohne Ton starten, damit der Browser das automatische Abspielen erlaubt; bei Bewegungsreduzierung nicht automatisch
     if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) video.play().catch(() => {});
     box.querySelector('[data-offline-video-close]').focus();
-  }, 10000);
+  }, 5000);
 })();
