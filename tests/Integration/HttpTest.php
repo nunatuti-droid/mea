@@ -22,6 +22,8 @@ final class HttpTest extends IntegrationTestCase
         self::assertStringContainsString('<meta name="description"', $r->body, "$path ohne Meta-Beschreibung");
         self::assertStringNotContainsString('info@meabildungszentrum.de', $r->body, 'E-Mail darf nicht im Klartext stehen');
         self::assertStringContainsString("script-src 'self'", $r->headers['Content-Security-Policy']);
+        // Chrome prüft form-action auch bei der Weiterleitung nach dem Absenden: Zahlungsseiten müssen erlaubt sein
+        self::assertMatchesRegularExpression('~form-action \'self\' [^;]*https://checkout\.stripe\.com[^;]*https://www\.paypal\.com~', $r->headers['Content-Security-Policy']);
         self::assertSame('nosniff', $r->headers['X-Content-Type-Options']);
         self::assertSame('DENY', $r->headers['X-Frame-Options']);
         self::assertSame(1, preg_match_all('/<h1[\s>]/', $r->body), "$path braucht genau eine h1");
