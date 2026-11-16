@@ -112,3 +112,7 @@ Die Mediathek nimmt jetzt MP4-Videos bis 40 MB an (neue Art „Video“, Migrati
 
 ## Wartungsseite: Video nach 5 Sekunden (Branch `claude/project-thread-6nbu4i-wartung`, baut auf PR #40 auf, 16.11.2026)
 Auf der Wartungsseite (Website offline) erscheint 5 Sekunden nach dem Laden ein Video-Overlay (`public/assets/js/offline.js`, startet ohne Ton, schließbar mit Knopf/Esc/Klick daneben). Hochformat-Geräte bekommen die 9:16-Fassung, sonst 16:9. Auswahl in Verwaltung → Website-Status (`site_status.video_desktop/video_mobile`); ohne Auswahl wird die Mediathek-Datei `MEA3_Werbespot_Desktop_16-9_A` bzw. `MEA3_Werbespot_Mobile_9-16_A` gesucht (`App::offlineVideos`). Nur Syntax geprüft, nicht im Browser.
+
+## Audit 16.11.2026 (Branch `claude/project-thread-nb022x`, ohne Versionssprung)
+Vollständiger Bericht: `docs/audit-2026-11-16.md`. Keine kritischen oder hohen Befunde im geprüften Umfang. Geändert: `public/index.php` (keine Fehlerausgabe, neutrale 500-Seite bei Startfehler, `X-Powered-By` entfernt), `public/assets/css/app.css` (feste Farben/Schriftgröße der Wartungsvideo-Ansicht und Preiszeile auf Designvariablen), `tests/Integration/PageBuilderTest.php` (8 statt 7 Inhaltspatches). PHPUnit lokal: 201 Tests, 2.742 Assertions, grün; E2E/axe 15 von 17 Seiten grün (2 Seiten fehlen nur in der leeren Test-DB). Offen: Proxy-IP-Erkennung auf dem Server prüfen, Rechtstexte, Versionsstand (`VERSION` = 0.9.19, Einträge 0.9.33 bis 0.9.37 fehlen in dieser Datei und wurden nicht rekonstruiert). Release muss neu gebaut/signiert werden (Dateiwächter).
+
