@@ -106,3 +106,6 @@ Ursache: Nach jeder Vorschau-Aktualisierung baute `showErrors` das Einstellungsf
 
 ## 7. Nachtrag 16.11.2026 – Button „Daten bestätigen und zur Zahlung“
 - Ursache: CSP `form-action 'self'` blockiert in Chrome auch die Weiterleitung nach dem Absenden (303 zu Stripe/PayPal); der Button schien ohne Wirkung. Behoben in `src/Core/App.php` (`form-action` erlaubt `checkout.stripe.com`, `www.paypal.com`, `www.sandbox.paypal.com`), Test in `HttpTest`. Nicht gegen die Live-Seite geprüft (kein Netzzugriff aus der Sitzung); Wirkung erst nach Einspielen des Updates. Unabhängig vom Rate-Limit (PR #38).
+
+## Mediathek: MP4-Videos hochladen (Branch `claude/project-thread-6nbu4i-video`, 16.11.2026)
+Die Mediathek nimmt jetzt MP4-Videos bis 40 MB an (neue Art „Video“, Migration `20261116100026_media_kind_video.php`; Dateien liegen wie PDFs unter `public/media/dokumente/ID-name.mp4`, Dateiwächter erlaubt `.mp4`). Im Seitenbaukasten-Baustein „Video“ trägt man die Adresse `/media/dokumente/…mp4` ein (erscheint in der Adressvorschlagsliste als „Video: …“); sie wird mit eigenem Player ohne Einwilligung abgespielt, YouTube/Vimeo funktionieren wie bisher. Server: `upload_max_filesize` ≥ 40M und `post_max_size` ≥ 45M nötig. Nur PHP-Syntax geprüft, nicht im Browser/gegen Datenbank.

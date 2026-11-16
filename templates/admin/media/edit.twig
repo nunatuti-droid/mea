@@ -2,12 +2,15 @@
 {% import 'admin/partials/ui.twig' as ui %}
 {% block content %}
   <p class="crumb"><a href="/verwaltung/medien/">{{ icon('arrow-left') }}Mediathek</a></p>
-  <div class="adm-head"><div><h1>{{ m.original_name }}</h1><p class="adm-head__intro">{{ m.kind == 'document' ? 'PDF-Dokument' : m.width ~ ' × ' ~ m.height ~ ' Pixel' }} · {{ (m.size_bytes / 1024)|round }} KB · hochgeladen {{ m.created_at|utc|date('d.m.Y') }}</p></div></div>
+  <div class="adm-head"><div><h1>{{ m.original_name }}</h1><p class="adm-head__intro">{{ m.kind == 'document' ? 'PDF-Dokument' : (m.kind == 'video' ? 'MP4-Video' : m.width ~ ' × ' ~ m.height ~ ' Pixel') }} · {{ (m.size_bytes / 1024)|round }} KB · hochgeladen {{ m.created_at|utc|date('d.m.Y') }}</p></div></div>
   <div class="grid-2">
     <section class="card">
       {% if m.kind == 'document' %}
         <p><a class="btn btn--ghost" href="/media/{{ m.public_path }}" target="_blank" rel="noopener">{{ icon('external-link') }}PDF öffnen</a></p>
         <p class="text-sm text-muted">Öffentliche Adresse: <span class="mono">/media/{{ m.public_path }}</span></p>
+      {% elseif m.kind == 'video' %}
+        <video class="lib__preview" src="/media/{{ m.public_path }}" controls preload="metadata" playsinline></video>
+        <p class="text-sm text-muted">Adresse für den Baustein „Video“ im Seitenbaukasten: <span class="mono">/media/{{ m.public_path }}</span></p>
       {% else %}
         {% set big = m.variants|last %}
         {% if big %}<img class="lib__preview" src="/media/{{ big.path }}" alt="{{ m.alt_text }}" width="{{ big.width }}" height="{{ big.height }}">{% endif %}
@@ -21,7 +24,7 @@
           {{ ui.field({name: 'alt_text', label: 'Alternativtext', type: 'textarea', max: 300, counter: true, help: 'Was ist zu sehen? Kurz und konkret, ohne „Bild von“.'}, m, errors, []) }}
           <div class="field"><label class="check"><input type="checkbox" name="decorative" value="1"> Rein dekoratives Bild (kein Alternativtext nötig)</label></div>
         {% endif %}
-        {{ ui.field({name: 'title', label: m.kind == 'document' ? 'Titel des Dokuments' : 'Titel (intern)', max: 200}, m, errors, []) }}
+        {{ ui.field({name: 'title', label: m.kind == 'document' ? 'Titel des Dokuments' : (m.kind == 'video' ? 'Titel des Videos' : 'Titel (intern)'), max: 200}, m, errors, []) }}
         {{ ui.field({name: 'credit', label: 'Bildnachweis / Urheber', max: 200, help: 'Wird bei Bedarf unter dem Bild genannt.'}, m, errors, []) }}
         <button class="btn btn--primary" type="submit">{{ icon('save') }}Speichern</button>
       </form>

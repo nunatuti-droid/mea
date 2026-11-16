@@ -119,6 +119,34 @@ final class ImageVariantGenerator
         return $id;
     }
 
+    /** MP4-Video speichern (öffentlich abrufbar, wird im Baustein „Video“ über die Adresse eingebunden). Nur echte MP4-Dateien. */
+    public function importVideo(string $sourceFile, string $originalName, string $title): int
+    {
+        $mime = (new \finfo(FILEINFO_MIME_TYPE))->file($sourceFile) ?: '';
+        $head = (string) file_get_contents($sourceFile, false, null, 0, 12);
+        if ($mime !== 'video/mp4' || substr($head, 4, 4) !== 'ftyp') {
+            throw new \InvalidArgumentException('Nur Videos im Format MP4 sind erlaubt.');
+        }
+        $hash = hash_file('sha256', $sourceFile) ?: '';
+        $existing = $this->db->value('SELECT id FROM media WHERE sha256 = ?', [$hash]);
+        if ($existing !== null) {
+            return (int) $existing;
+        }
+        $slug = self::slug(pathinfo($originalName, PATHINFO_FILENAME));
+        $stored = bin2hex(random_bytes(8)) . '.mp4';
+        @mkdir($this->storageDir, 0750, true);
+        copy($sourceFile, $this->storageDir . '/' . $stored);
+        $id = $this->db->insert('media', [
+            'original_name' => mb_substr($originalName, 0, 255), 'storage_path' => $stored, 'mime' => $mime, 'kind' => 'video',
+            'size_bytes' => filesize($sourceFile) ?: 0, 'sha256' => $hash, 'alt_text' => '', 'title' => mb_substr($title, 0, 200),
+        ]);
+        @mkdir($this->publicDir . '/dokumente', 0755, true);
+        $file = sprintf('dokumente/%d-%s.mp4', $id, $slug);
+        copy($sourceFile, $this->publicDir . '/' . $file);
+        $this->db->run('UPDATE media SET public_path = ? WHERE id = ?', [$file, $id]);
+        return $id;
+    }
+
     /** Dateien eines Mediums entfernen (nach Prüfung der Verwendungen). */
     public function deleteFiles(int $id): void
     {

@@ -156,8 +156,8 @@ final class BlockTypes
                 $sel('cols', 'Spalten', ['2' => '2', '3' => '3', '4' => '4'], '3'),
                 $sel('ratio', 'Seitenverhältnis', ['3-2' => '3:2', '1-1' => 'Quadrat', '4-3' => '4:3', 'auto' => 'Original'], '3-2'),
                 $bool('captions', 'Alternativtext als Bildunterschrift zeigen')]];
-        $t['video'] = ['label' => 'Video', 'icon' => 'play', 'cat' => 'media', 'desc' => 'YouTube oder Vimeo, lädt erst nach Klick',
-            'fields' => [$url('url', 'Adresse des Videos (YouTube oder Vimeo)'), $text('title', 'Titel', 'Video', 160, ['required' => true]), $media('poster', 'Vorschaubild'),
+        $t['video'] = ['label' => 'Video', 'icon' => 'play', 'cat' => 'media', 'desc' => 'YouTube, Vimeo oder eigenes Video aus der Mediathek',
+            'fields' => [$url('url', 'Adresse des Videos (YouTube, Vimeo oder Mediathek-Video)'), $text('title', 'Titel', 'Video', 160, ['required' => true]), $media('poster', 'Vorschaubild'),
                 $sel('ratio', 'Seitenverhältnis', ['16-9' => '16:9', '4-3' => '4:3', '1-1' => 'Quadrat'], '16-9')]];
 
         // ---------- Inhaltsbausteine ----------
