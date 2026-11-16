@@ -419,13 +419,35 @@ final class App
     private function offlinePage(): Response
     {
         try {
-            $body = $this->view->render('public/offline.twig', ['message' => $this->siteStatus->offlineMessage()]);
+            $body = $this->view->render('public/offline.twig', ['message' => $this->siteStatus->offlineMessage(), 'videos' => $this->offlineVideos()]);
         } catch (\Throwable $e) {
             $this->log->error('Wartungsseite: ' . $e->getMessage());
             return self::staticPage(503, 'Wartungsarbeiten', $this->siteStatus->offlineMessage());
         }
         return Response::html($body, 503)->withHeader('Retry-After', '3600')->withHeader('Cache-Control', 'no-store')
             ->withHeader('X-Robots-Tag', 'noindex');
+    }
+
+    /**
+     * Video der Wartungsseite (Mediathek): gewählte Datei, sonst die Datei mit dem Standardnamen.
+     * @return array{desktop:?string, mobile:?string} öffentliche Adressen
+     */
+    private function offlineVideos(): array
+    {
+        $defaults = ['desktop' => 'MEA3_Werbespot_Desktop_16-9_A', 'mobile' => 'MEA3_Werbespot_Mobile_9-16_A'];
+        $out = ['desktop' => null, 'mobile' => null];
+        try {
+            foreach ($defaults as $k => $name) {
+                $id = $this->siteStatus->videoId($k);
+                $row = $id !== null
+                    ? $this->db->one("SELECT public_path FROM media WHERE id = ? AND kind = 'video'", [$id])
+                    : $this->db->one("SELECT public_path FROM media WHERE kind = 'video' AND (original_name LIKE ? OR title LIKE ?) ORDER BY id DESC LIMIT 1", [addcslashes($name, '%_\\') . '%', addcslashes($name, '%_\\') . '%']);
+                $out[$k] = $row !== null && $row['public_path'] ? '/media/' . $row['public_path'] : null;
+            }
+        } catch (\Throwable $e) {
+            $this->log->error('Wartungsseite, Video: ' . $e->getMessage());
+        }
+        return $out;
     }
 
     public static function maintenanceFlag(string $root): string

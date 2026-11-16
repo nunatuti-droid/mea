@@ -18,6 +18,16 @@
         <textarea id="f-message" name="message" rows="4" maxlength="600"{% if errors.message is defined %} aria-invalid="true" aria-describedby="e-message"{% endif %}>{{ message }}</textarea>
         {% if errors.message is defined %}<p class="field__error" id="e-message">{{ errors.message }}</p>{% endif %}
       </div>
+      <h3 class="h3 mt">Video auf der Wartungsseite</h3>
+      <p class="text-sm text-muted">Erscheint 5 Sekunden nach dem Öffnen der Wartungsseite automatisch und startet ohne Ton (Ton per Knopf im Video). Quer­format für Computer, Hochformat für Handys. Videos laden Sie unter Mediathek hoch (MP4). Ohne Auswahl wird die Datei „MEA3_Werbespot_Desktop_16-9_A“ bzw. „MEA3_Werbespot_Mobile_9-16_A“ verwendet, falls vorhanden.</p>
+      <div class="field">
+        <label for="f-vd">Video für Computer (16:9)</label>
+        <select id="f-vd" name="video_desktop"><option value="">Standard (nach Dateiname)</option>{% for v in videos %}<option value="{{ v.id }}" {{ video_desktop == v.id ? 'selected' }}>{{ v.name }}</option>{% endfor %}</select>
+      </div>
+      <div class="field">
+        <label for="f-vm">Video für Handys (9:16)</label>
+        <select id="f-vm" name="video_mobile"><option value="">Standard (nach Dateiname)</option>{% for v in videos %}<option value="{{ v.id }}" {{ video_mobile == v.id ? 'selected' }}>{{ v.name }}</option>{% endfor %}</select>
+      </div>
     </section>
 
     <section class="card mt">
