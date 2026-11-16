@@ -27,6 +27,9 @@ final class SiteStatusController
             'indexing' => $s->indexingAllowed(),
             'message' => $message ?? $s->offlineMessage(),
             'errors' => $errors,
+            'videos' => $this->app->db->all("SELECT id, COALESCE(NULLIF(title, ''), original_name) AS name FROM media WHERE kind = 'video' ORDER BY id DESC"),
+            'video_desktop' => $s->videoId('desktop'),
+            'video_mobile' => $s->videoId('mobile'),
             'base_url' => rtrim($this->app->baseUrl, '/'),
         ]), $errors ? 422 : 200);
     }
@@ -41,7 +44,12 @@ final class SiteStatusController
             return $this->edit($req, $ctx, ['message' => 'Bitte höchstens 600 Zeichen.'], $message);
         }
         $before = ['online' => $s->isOnline(), 'indexing' => $s->indexingAllowed()];
-        $s->save(['online' => $online, 'indexing' => $indexing, 'message' => strip_tags($message)]);
+        $vid = function (string $field) use ($req): ?int {
+            $id = (int) $this->app->db->value("SELECT id FROM media WHERE id = ? AND kind = 'video'", [(int) $req->input($field)]);
+            return $id > 0 ? $id : null;
+        };
+        $s->save(['online' => $online, 'indexing' => $indexing, 'message' => strip_tags($message),
+            'video_desktop' => $vid('video_desktop'), 'video_mobile' => $vid('video_mobile')]);
 
         $changes = [];
         if ($before['online'] !== $online) {

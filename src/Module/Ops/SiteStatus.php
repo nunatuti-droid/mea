@@ -33,7 +33,14 @@ final class SiteStatus
         return $m !== '' ? $m : 'Wir überarbeiten gerade unsere Website und sind in Kürze wieder für Sie da. Telefonisch erreichen Sie uns wie gewohnt.';
     }
 
-    /** @param array{online?:bool, indexing?:bool, message?:string} $changes */
+    /** Mediathek-Video für die Wartungsseite: 'desktop' (16:9) oder 'mobile' (9:16); null = Standardsuche über den Dateinamen. */
+    public function videoId(string $variant): ?int
+    {
+        $id = (int) ($this->value()['video_' . $variant] ?? 0);
+        return $id > 0 ? $id : null;
+    }
+
+    /** @param array{online?:bool, indexing?:bool, message?:string, video_desktop?:?int, video_mobile?:?int} $changes */
     public function save(array $changes): void
     {
         $this->settings->set(self::KEY, array_merge($this->value(), $changes));
