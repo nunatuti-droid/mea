@@ -488,9 +488,11 @@ final class App
     {
         // Fremde Quellen nur für Dienste, die in der Verwaltung eingetragen sind; geladen werden sie erst nach Einwilligung
         $x = $this->consent->cspSources();
+        // form-action gilt in Chrome auch für Weiterleitungen nach dem Absenden: ohne die Zahlungsseiten blockiert der Browser
+        // den Sprung von „Daten bestätigen und zur Zahlung“ zu Stripe/PayPal stillschweigend.
         $add = fn(array $l): string => $l !== [] ? ' ' . implode(' ', $l) : '';
         $csp = "default-src 'self'; script-src 'self'" . $add($x['script']) . "; style-src 'self'; img-src 'self' data:" . $add($x['img']) . "; font-src 'self'; "
-            . "frame-src 'self' https://www.google.com https://www.youtube-nocookie.com https://player.vimeo.com" . $add($x['frame']) . "; connect-src 'self'" . $add($x['connect']) . "; form-action 'self'; "
+            . "frame-src 'self' https://www.google.com https://www.youtube-nocookie.com https://player.vimeo.com" . $add($x['frame']) . "; connect-src 'self'" . $add($x['connect']) . "; form-action 'self' https://checkout.stripe.com https://www.paypal.com https://www.sandbox.paypal.com; "
             . "base-uri 'self'; frame-ancestors 'none'; object-src 'none'";
         // Live-Vorschau des Designsystems: die Verwaltung zeigt öffentliche Seiten in einem Rahmen derselben Website
         $framable = (isset($req->query['designvorschau']) && !str_starts_with($req->path, '/verwaltung/'))
