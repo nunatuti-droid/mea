@@ -16,6 +16,10 @@ final class Video
         if (preg_match('~^https?://(?:www\.|player\.)?vimeo\.com/(?:video/)?(\d{5,12})~', $url, $m)) {
             return ['src' => 'https://player.vimeo.com/video/' . $m[1] . '?autoplay=1&dnt=1', 'provider' => 'Vimeo'];
         }
+        // Eigene Datei aus der Mediathek (MP4)
+        if (preg_match('~^/media/dokumente/\d+-[a-z0-9-]*\.mp4$~', $url)) {
+            return ['src' => $url, 'provider' => 'file'];
+        }
         return null;
     }
 }
