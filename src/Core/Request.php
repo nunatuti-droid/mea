@@ -22,7 +22,11 @@ final class Request
         public readonly array $files = [],
     ) {}
 
-    public static function fromGlobals(): self
+    /**
+     * @param string|null $trustedProxies Kommagetrennte IPs/CIDR-Bereiche der vorgeschalteten Proxys (.env TRUSTED_PROXIES).
+     *        Nur Anfragen von dort dürfen Besucher-IP und https über X-Forwarded-* angeben; leer = Header werden ignoriert.
+     */
+    public static function fromGlobals(?string $trustedProxies = null): self
     {
         $uri = (string) ($_SERVER['REQUEST_URI'] ?? '/');
         $path = rawurldecode((string) parse_url($uri, PHP_URL_PATH));
@@ -31,10 +35,49 @@ final class Request
             $path === '' ? '/' : $path,
             $_GET,
             $_POST,
-            $_SERVER,
+            self::applyTrustedProxy($_SERVER, $trustedProxies),
             $_COOKIE,
             $_FILES,
         );
+    }
+
+    /**
+     * Hinter einem vertrauten Proxy: Besucher-IP aus X-Forwarded-For (von rechts der erste nicht vertraute Eintrag,
+     * so lässt sich die Angabe nicht vom Besucher fälschen) und https aus X-Forwarded-Proto übernehmen.
+     * @param array<string,mixed> $server @return array<string,mixed>
+     */
+    public static function applyTrustedProxy(array $server, ?string $trusted): array
+    {
+        $list = array_values(array_filter(array_map('trim', explode(',', (string) $trusted)), fn($x) => $x !== ''));
+        $remote = (string) ($server['REMOTE_ADDR'] ?? '');
+        if ($list === [] || !self::isTrusted($remote, $list)) {
+            return $server;
+        }
+        $chain = array_reverse(array_map('trim', explode(',', (string) ($server['HTTP_X_FORWARDED_FOR'] ?? ''))));
+        foreach ($chain as $ip) {
+            if (!\Mea\Module\Security\IpAddress::valid($ip)) {
+                break; // unlesbare Angabe: bei der Proxy-Adresse bleiben
+            }
+            if (!self::isTrusted($ip, $list)) {
+                $server['REMOTE_ADDR'] = $ip;
+                break;
+            }
+        }
+        if (strtolower(trim((string) ($server['HTTP_X_FORWARDED_PROTO'] ?? ''))) === 'https') {
+            $server['HTTPS'] = 'on';
+        }
+        return $server;
+    }
+
+    /** @param list<string> $list */
+    private static function isTrusted(string $ip, array $list): bool
+    {
+        foreach ($list as $entry) {
+            if (\Mea\Module\Security\IpAddress::inCidr($ip, $entry)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public function input(string $key, string $default = ''): string
@@ -86,7 +129,7 @@ final class Request
 
     public function ip(): string
     {
-        // Hinter Proxys wird nur REMOTE_ADDR vertraut; ein Proxy muss bewusst konfiguriert werden.
+        // Hinter Proxys gilt nur, was fromGlobals() über TRUSTED_PROXIES bewusst freigegeben hat; sonst ausschließlich REMOTE_ADDR.
         return (string) ($this->server['REMOTE_ADDR'] ?? '0.0.0.0');
     }
 
