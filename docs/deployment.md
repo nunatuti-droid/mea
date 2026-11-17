@@ -128,3 +128,6 @@ Zum Schluss eine Sicherung erstellen, herunterladen und einmal wiederherstellen 
 - Webhook in der PayPal-Developer-Konsole: `https://DOMAIN/zahlung/paypal/webhook/` mit den Ereignissen `CHECKOUT.ORDER.APPROVED`, `PAYMENT.CAPTURE.COMPLETED`, `PAYMENT.CAPTURE.DENIED`, `PAYMENT.CAPTURE.REFUNDED`, `PAYMENT.CAPTURE.REVERSED`. Die Webhook-ID in `PAYPAL_WEBHOOK_ID` eintragen.
 - Erst im Sandbox-Modus eine Testbuchung vollständig durchspielen (inklusive Erstattung), dann auf `live` umstellen.
 - E-Mail: in der Verwaltung unter **E-Mail-Vorlagen → Testversand** an eine eigene Adresse senden. SPF/DKIM der Absenderdomain beim Hoster prüfen, sonst landen Mails im Spam.
+
+## Vorgeschalteter Proxy (z. B. Plesk mit nginx)
+Sieht die Anwendung bei allen Besuchern dieselbe Adresse (z. B. 127.0.0.1), arbeiten Anwendungsschutz und Anmeldebegrenzung auf einer einzigen „IP“. Prüfen: Verwaltung → Sicherheit, erkannte Adresse mit der eigenen vergleichen. Lösung: in `.env` `TRUSTED_PROXIES=127.0.0.1,::1` (Adresse bzw. Bereich des Proxys) setzen. Nur Anfragen von dort dürfen dann Besucher-IP (`X-Forwarded-For`, von rechts der erste nicht vertraute Eintrag) und https (`X-Forwarded-Proto`) angeben; ohne Eintrag werden diese Header ignoriert.

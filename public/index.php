@@ -16,7 +16,7 @@ header_remove('X-Powered-By');
 
 try {
     $app = new Mea\Core\App(dirname(__DIR__));
-    $response = $app->handle(Mea\Core\Request::fromGlobals());
+    $response = $app->handle(Mea\Core\Request::fromGlobals($app->config->get('TRUSTED_PROXIES')));
 } catch (Throwable $e) {
     // Start der Anwendung gescheitert (z. B. Datenbank nicht erreichbar): neutrale Seite statt Fehlerdetails
     error_log('MEA Start fehlgeschlagen: ' . get_class($e) . ': ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
